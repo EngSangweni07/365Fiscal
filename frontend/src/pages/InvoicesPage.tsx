@@ -614,7 +614,7 @@ export default function InvoicesPage({
       const IconComponent = filter.icon;
       const count =
         filter.key === ""
-          ? invoices.length
+          ? invoices.filter((inv) => !isPOSReceiptInvoice(inv)).length
           : filter.key === "pos_receipt"
             ? invoices.filter((inv) => isPOSReceiptInvoice(inv)).length
             : invoices.filter((inv) => inv.invoice_type === filter.key).length;
@@ -654,7 +654,7 @@ export default function InvoicesPage({
     if (listType) {
       return invoices.filter((inv) => inv.invoice_type === listType);
     }
-    return invoices;
+    return invoices.filter((inv) => !isPOSReceiptInvoice(inv));
   }, [invoices, listType]);
   const [linesPage, setLinesPage] = useState(1);
   const [linesPerPage, setLinesPerPage] = useState(10);
