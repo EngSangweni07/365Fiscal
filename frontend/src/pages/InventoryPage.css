@@ -1186,6 +1186,10 @@
   padding: 6px 8px 10px;
 }
 
+.inventory-counted-input {
+  max-width: 10ch;
+}
+
 .inventory-move-lines-header span {
   display: inline-flex;
   align-items: center;
