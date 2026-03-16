@@ -6463,6 +6463,7 @@ export default function InventoryPage() {
                         gridTemplateColumns:
                           "repeat(auto-fill, minmax(350px, 1fr))",
                         gap: 20,
+                        padding: "1rem",
                       }}
                     >
                       {warehouses.map((w) => {
