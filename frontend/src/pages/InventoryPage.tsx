@@ -3556,7 +3556,7 @@ export default function InventoryPage() {
 
     rows.unshift({
       id: 0,
-      name: "Uncategorized",
+      name: "All",
       isDefault: true,
       products: uncategorizedProducts,
       category: null,
@@ -5056,6 +5056,7 @@ export default function InventoryPage() {
                         <tr>
                           <th>Category</th>
                           <th>Products</th>
+                          <th>On Hand</th>
                           <th style={{ width: 160 }}>Actions</th>
                         </tr>
                       </thead>
@@ -5155,6 +5156,18 @@ export default function InventoryPage() {
                                     )}
                                   </div>
                                 </td>
+                                <td className="inventory-strong-cell">
+                                  {c.products
+                                    .reduce(
+                                      (sum, product) =>
+                                        sum +
+                                        (Number.isFinite(product.quantity_on_hand)
+                                          ? product.quantity_on_hand
+                                          : 0),
+                                      0,
+                                    )
+                                    .toFixed(2)}
+                                </td>
                                 <td className="inventory-category-actions-cell">
                                   <div className="inventory-category-actions">
                                     {!c.isDefault && (
@@ -5199,6 +5212,11 @@ export default function InventoryPage() {
                                           {product.name}
                                         </button>
                                       </td>
+                                      <td className="inventory-strong-cell">
+                                        {Number.isFinite(product.quantity_on_hand)
+                                          ? `${product.quantity_on_hand} ${product.uom}`
+                                          : `0 ${product.uom}`}
+                                      </td>
                                       <td />
                                     </tr>
                                   ))
@@ -5210,6 +5228,7 @@ export default function InventoryPage() {
                                         No products yet
                                       </span>
                                     </td>
+                                    <td />
                                     <td />
                                   </tr>
                                 ))}
