@@ -442,16 +442,18 @@ export default function InventoryPage() {
   const [expandedQuantGroupKeys, setExpandedQuantGroupKeys] = useState<
     Set<string>
   >(new Set());
-  const [quantGroupPages, setQuantGroupPages] = useState<Record<string, number>>(
-    {},
-  );
+  const [quantGroupPages, setQuantGroupPages] = useState<
+    Record<string, number>
+  >({});
   const [showOnlyChangedAdjustments, setShowOnlyChangedAdjustments] =
     useState(false);
   const [applyingAdjustments, setApplyingAdjustments] = useState(false);
   const [expandedCategoryKeys, setExpandedCategoryKeys] = useState<Set<string>>(
     new Set(),
   );
-  const [categoryPages, setCategoryPages] = useState<Record<string, number>>({});
+  const [categoryPages, setCategoryPages] = useState<Record<string, number>>(
+    {},
+  );
 
   useEffect(() => {
     if (!filterMenuOpen) return;
@@ -1010,12 +1012,12 @@ export default function InventoryPage() {
               method: "POST",
               body: fd,
             });
-            } catch (err: any) {
-              showDangerAlert(
-                err?.message ||
-                  "Product was created, but image upload failed. You can upload it from the product form.",
-              );
-            } finally {
+          } catch (err: any) {
+            showDangerAlert(
+              err?.message ||
+                "Product was created, but image upload failed. You can upload it from the product form.",
+            );
+          } finally {
             setUploadingImage(false);
             clearPendingProductImage();
           }
@@ -1106,16 +1108,16 @@ export default function InventoryPage() {
   };
 
   const deleteSelectedProducts = async () => {
-  if (!selectedProductIds.size) return;
-  const confirmedDeleted = await showConfirm({
-    title: "Delete selected products",
-    message: `Are you sure you want to delete ${selectedProductIds.size} selected product${selectedProductIds.size === 1 ? "" : "s"}?`,
-    variant: "warning",
-    confirmLabel: "Delete",
-  });
-  if (!confirmedDeleted) {
-    return;
-  }
+    if (!selectedProductIds.size) return;
+    const confirmedDeleted = await showConfirm({
+      title: "Delete selected products",
+      message: `Are you sure you want to delete ${selectedProductIds.size} selected product${selectedProductIds.size === 1 ? "" : "s"}?`,
+      variant: "warning",
+      confirmLabel: "Delete",
+    });
+    if (!confirmedDeleted) {
+      return;
+    }
     setSaving(true);
     try {
       const failures: string[] = [];
@@ -3550,7 +3552,9 @@ export default function InventoryPage() {
       id: category.id,
       name: category.name,
       isDefault: false,
-      products: products.filter((product) => product.category_id === category.id),
+      products: products.filter(
+        (product) => product.category_id === category.id,
+      ),
       category,
     }));
 
@@ -3600,7 +3604,9 @@ export default function InventoryPage() {
   };
 
   const groupedStockOnHandRows = useMemo(() => {
-    const productById = new Map(products.map((product) => [product.id, product]));
+    const productById = new Map(
+      products.map((product) => [product.id, product]),
+    );
     const warehouseById = new Map(
       warehouses.map((warehouse) => [warehouse.id, warehouse]),
     );
@@ -3685,7 +3691,9 @@ export default function InventoryPage() {
           (left.product?.name || "").localeCompare(right.product?.name || ""),
         ),
       }))
-      .sort((left, right) => left.locationLabel.localeCompare(right.locationLabel));
+      .sort((left, right) =>
+        left.locationLabel.localeCompare(right.locationLabel),
+      );
   }, [stockQuants, products, warehouses, locations, searchQuery]);
 
   const quantGroupPageSize = 20;
@@ -4943,11 +4951,6 @@ export default function InventoryPage() {
                                 />
                               </td>
                               <td>
-                                <span className="inventory-inline-icon">
-                                  <Package size={14} />
-                                </span>
-                              </td>
-                              <td>
                                 <span
                                   className="inventory-link-cell"
                                   onClick={() => openProduct(p)}
@@ -5050,8 +5053,8 @@ export default function InventoryPage() {
               {/* ============= CATEGORIES LIST ============= */}
               {mainView === "categories" && subView === "list" && (
                 <div className="o-main" style={{ width: "100%" }}>
-                  <div className="o-list-view inventory-category-list-view">
-                    <table className="o-list-table inventory-category-table">
+                  <div className="o-list-view inventory-table-panel">
+                    <table className="o-list-table">
                       <thead>
                         <tr>
                           <th>Category</th>
@@ -5063,7 +5066,8 @@ export default function InventoryPage() {
                       <tbody>
                         {filteredCategories.map((c) => {
                           const categoryKey = `${c.isDefault ? "default" : "category"}-${c.id}`;
-                          const isExpanded = expandedCategoryKeys.has(categoryKey);
+                          const isExpanded =
+                            expandedCategoryKeys.has(categoryKey);
                           const totalPages = Math.max(
                             1,
                             Math.ceil(c.products.length / categoryPageSize),
@@ -5092,7 +5096,9 @@ export default function InventoryPage() {
                                   <button
                                     type="button"
                                     className="inventory-quant-group-toggle"
-                                    onClick={() => toggleCategoryGroup(categoryKey)}
+                                    onClick={() =>
+                                      toggleCategoryGroup(categoryKey)
+                                    }
                                   >
                                     <span
                                       className={`inventory-quant-group-chevron ${isExpanded ? "is-open" : ""}`}
@@ -5100,18 +5106,19 @@ export default function InventoryPage() {
                                       <ChevronDown size={14} />
                                     </span>
                                     <div className="inventory-category-name-cell">
-                                      <span className="inventory-category-name-icon">
+                                      {/* <span className="inventory-category-name-icon">
                                         <LayoutGrid size={16} />
-                                      </span>
+                                      </span> */}
                                       <div>
                                         <span className="inventory-category-name-text">
                                           {c.name}
                                         </span>
-                                        {c.isDefault && (
+                                        {/* {c.isDefault && (
                                           <div className="inventory-category-name-subtext">
-                                            Default category for products without an assigned category
+                                            Default category for products
+                                            without an assigned category
                                           </div>
-                                        )}
+                                        )} */}
                                       </div>
                                     </div>
                                   </button>
@@ -5124,7 +5131,8 @@ export default function InventoryPage() {
                                     {c.products.length > 0 && (
                                       <div className="inventory-quant-group-pager">
                                         <span>
-                                          {fromItem}-{toItem} / {c.products.length}
+                                          {fromItem}-{toItem} /{" "}
+                                          {c.products.length}
                                         </span>
                                         <button
                                           type="button"
@@ -5161,7 +5169,9 @@ export default function InventoryPage() {
                                     .reduce(
                                       (sum, product) =>
                                         sum +
-                                        (Number.isFinite(product.quantity_on_hand)
+                                        (Number.isFinite(
+                                          product.quantity_on_hand,
+                                        )
                                           ? product.quantity_on_hand
                                           : 0),
                                       0,
@@ -5177,7 +5187,8 @@ export default function InventoryPage() {
                                           className="inventory-category-action-btn"
                                           aria-label={`Edit ${c.name}`}
                                           onClick={() =>
-                                            c.category && openCategoryModal(c.category)
+                                            c.category &&
+                                            openCategoryModal(c.category)
                                           }
                                         >
                                           <PenLine size={15} />
@@ -5213,7 +5224,9 @@ export default function InventoryPage() {
                                         </button>
                                       </td>
                                       <td className="inventory-strong-cell">
-                                        {Number.isFinite(product.quantity_on_hand)
+                                        {Number.isFinite(
+                                          product.quantity_on_hand,
+                                        )
                                           ? `${product.quantity_on_hand} ${product.uom}`
                                           : `0 ${product.uom}`}
                                       </td>
@@ -7090,14 +7103,14 @@ export default function InventoryPage() {
 
                             return (
                               <Fragment key={`group-body-${group.key}`}>
-                                <tr
-                                  className="inventory-quant-group-row"
-                                >
+                                <tr className="inventory-quant-group-row">
                                   <td>
                                     <button
                                       type="button"
                                       className="inventory-quant-group-toggle"
-                                      onClick={() => toggleQuantGroup(group.key)}
+                                      onClick={() =>
+                                        toggleQuantGroup(group.key)
+                                      }
                                     >
                                       <span
                                         className={`inventory-quant-group-chevron ${isExpanded ? "is-open" : ""}`}
@@ -7114,7 +7127,8 @@ export default function InventoryPage() {
                                     {group.rows.length > 0 && (
                                       <div className="inventory-quant-group-pager">
                                         <span>
-                                          {fromItem}-{toItem} / {group.rows.length}
+                                          {fromItem}-{toItem} /{" "}
+                                          {group.rows.length}
                                         </span>
                                         <button
                                           type="button"
@@ -7201,7 +7215,9 @@ export default function InventoryPage() {
                                               : ""
                                           }
                                         >
-                                          {row.quant.reserved_quantity.toFixed(2)}
+                                          {row.quant.reserved_quantity.toFixed(
+                                            2,
+                                          )}
                                         </td>
                                         <td>{product?.uom || "-"}</td>
                                         <td>
@@ -7211,7 +7227,9 @@ export default function InventoryPage() {
                                                 <button
                                                   type="button"
                                                   className="o-btn o-btn-link"
-                                                  onClick={() => openProduct(product)}
+                                                  onClick={() =>
+                                                    openProduct(product)
+                                                  }
                                                 >
                                                   History
                                                 </button>
