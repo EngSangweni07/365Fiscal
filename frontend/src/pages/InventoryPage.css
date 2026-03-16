@@ -1789,6 +1789,14 @@
   gap: 8px;
 }
 
+.inventory-category-group-row td {
+  background: #f8fbff;
+}
+
+.inventory-category-child-row td {
+  background: #fff;
+}
+
 .inventory-category-action-btn {
   width: 36px;
   height: 36px;

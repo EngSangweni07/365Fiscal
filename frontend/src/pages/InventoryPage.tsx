@@ -448,6 +448,10 @@ export default function InventoryPage() {
   const [showOnlyChangedAdjustments, setShowOnlyChangedAdjustments] =
     useState(false);
   const [applyingAdjustments, setApplyingAdjustments] = useState(false);
+  const [expandedCategoryKeys, setExpandedCategoryKeys] = useState<Set<string>>(
+    new Set(),
+  );
+  const [categoryPages, setCategoryPages] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (!filterMenuOpen) return;
@@ -3573,6 +3577,28 @@ export default function InventoryPage() {
     );
   }, [categoryRows, searchQuery]);
 
+  const categoryPageSize = 20;
+
+  const toggleCategoryGroup = (categoryKey: string) => {
+    setExpandedCategoryKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(categoryKey)) next.delete(categoryKey);
+      else next.add(categoryKey);
+      return next;
+    });
+    setCategoryPages((prev) => ({
+      ...prev,
+      [categoryKey]: prev[categoryKey] ?? 1,
+    }));
+  };
+
+  const changeCategoryPage = (categoryKey: string, page: number) => {
+    setCategoryPages((prev) => ({
+      ...prev,
+      [categoryKey]: page,
+    }));
+  };
+
   const groupedStockOnHandRows = useMemo(() => {
     const productById = new Map(products.map((product) => [product.id, product]));
     const warehouseById = new Map(
@@ -5034,80 +5060,162 @@ export default function InventoryPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredCategories.map((c) => (
-                          <tr key={`${c.isDefault ? "default" : "category"}-${c.id}`}>
-                            <td>
-                              <div className="inventory-category-name-cell">
-                                <span className="inventory-category-name-icon">
-                                  <LayoutGrid size={16} />
-                                </span>
-                                <div>
-                                  <span className="inventory-category-name-text">
-                                    {c.name}
-                                  </span>
-                                  {c.isDefault && (
-                                    <div className="inventory-category-name-subtext">
-                                      Default category for products without an assigned category
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </td>
-                            <td>
-                              <div className="inventory-category-products-cell">
-                                <span className="inventory-category-count-badge">
-                                  {c.isDefault
-                                    ? uncategorizedProducts.length
-                                    : categoryProductCounts.get(c.id) ?? 0}
-                                </span>
-                                <div className="inventory-category-product-list">
-                                  {c.products.length ? (
-                                    c.products.map((product) => (
-                                      <button
-                                        key={product.id}
-                                        type="button"
-                                        className="inventory-category-product-pill"
-                                        onClick={() => openProduct(product)}
-                                      >
-                                        {product.name}
-                                      </button>
-                                    ))
-                                  ) : (
-                                    <span className="inventory-category-empty-products">
-                                      No products yet
+                        {filteredCategories.map((c) => {
+                          const categoryKey = `${c.isDefault ? "default" : "category"}-${c.id}`;
+                          const isExpanded = expandedCategoryKeys.has(categoryKey);
+                          const totalPages = Math.max(
+                            1,
+                            Math.ceil(c.products.length / categoryPageSize),
+                          );
+                          const currentPage = Math.min(
+                            categoryPages[categoryKey] ?? 1,
+                            totalPages,
+                          );
+                          const fromItem =
+                            c.products.length === 0
+                              ? 0
+                              : (currentPage - 1) * categoryPageSize + 1;
+                          const toItem = Math.min(
+                            c.products.length,
+                            currentPage * categoryPageSize,
+                          );
+                          const visibleProducts = c.products.slice(
+                            (currentPage - 1) * categoryPageSize,
+                            currentPage * categoryPageSize,
+                          );
+
+                          return (
+                            <Fragment key={categoryKey}>
+                              <tr className="inventory-category-group-row">
+                                <td>
+                                  <button
+                                    type="button"
+                                    className="inventory-quant-group-toggle"
+                                    onClick={() => toggleCategoryGroup(categoryKey)}
+                                  >
+                                    <span
+                                      className={`inventory-quant-group-chevron ${isExpanded ? "is-open" : ""}`}
+                                    >
+                                      <ChevronDown size={14} />
                                     </span>
-                                  )}
-                                </div>
-                              </div>
-                            </td>
-                            <td className="inventory-category-actions-cell">
-                              <div className="inventory-category-actions">
-                                {!c.isDefault && (
-                                  <>
-                                    <button
-                                      type="button"
-                                      className="inventory-category-action-btn"
-                                      aria-label={`Edit ${c.name}`}
-                                      onClick={() =>
-                                        c.category && openCategoryModal(c.category)
-                                      }
+                                    <div className="inventory-category-name-cell">
+                                      <span className="inventory-category-name-icon">
+                                        <LayoutGrid size={16} />
+                                      </span>
+                                      <div>
+                                        <span className="inventory-category-name-text">
+                                          {c.name}
+                                        </span>
+                                        {c.isDefault && (
+                                          <div className="inventory-category-name-subtext">
+                                            Default category for products without an assigned category
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </button>
+                                </td>
+                                <td>
+                                  <div className="inventory-category-products-cell">
+                                    <span className="inventory-category-count-badge">
+                                      {c.products.length}
+                                    </span>
+                                    {c.products.length > 0 && (
+                                      <div className="inventory-quant-group-pager">
+                                        <span>
+                                          {fromItem}-{toItem} / {c.products.length}
+                                        </span>
+                                        <button
+                                          type="button"
+                                          className="inventory-quant-group-page-btn"
+                                          disabled={currentPage <= 1}
+                                          onClick={() =>
+                                            changeCategoryPage(
+                                              categoryKey,
+                                              currentPage - 1,
+                                            )
+                                          }
+                                        >
+                                          <ChevronLeft size={14} />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          className="inventory-quant-group-page-btn"
+                                          disabled={currentPage >= totalPages}
+                                          onClick={() =>
+                                            changeCategoryPage(
+                                              categoryKey,
+                                              currentPage + 1,
+                                            )
+                                          }
+                                        >
+                                          <ChevronRight size={14} />
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="inventory-category-actions-cell">
+                                  <div className="inventory-category-actions">
+                                    {!c.isDefault && (
+                                      <>
+                                        <button
+                                          type="button"
+                                          className="inventory-category-action-btn"
+                                          aria-label={`Edit ${c.name}`}
+                                          onClick={() =>
+                                            c.category && openCategoryModal(c.category)
+                                          }
+                                        >
+                                          <PenLine size={15} />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          className="inventory-category-action-btn inventory-category-action-btn-danger"
+                                          aria-label={`Delete ${c.name}`}
+                                          onClick={() => deleteCategory(c.id)}
+                                        >
+                                          <Trash2 size={15} />
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                              {isExpanded &&
+                                (visibleProducts.length ? (
+                                  visibleProducts.map((product) => (
+                                    <tr
+                                      key={`category-product-${categoryKey}-${product.id}`}
+                                      className="inventory-category-child-row"
                                     >
-                                      <PenLine size={15} />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="inventory-category-action-btn inventory-category-action-btn-danger"
-                                      aria-label={`Delete ${c.name}`}
-                                      onClick={() => deleteCategory(c.id)}
-                                    >
-                                      <Trash2 size={15} />
-                                    </button>
-                                  </>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
+                                      <td />
+                                      <td>
+                                        <button
+                                          type="button"
+                                          className="inventory-category-product-pill"
+                                          onClick={() => openProduct(product)}
+                                        >
+                                          {product.name}
+                                        </button>
+                                      </td>
+                                      <td />
+                                    </tr>
+                                  ))
+                                ) : (
+                                  <tr className="inventory-category-child-row">
+                                    <td />
+                                    <td>
+                                      <span className="inventory-category-empty-products">
+                                        No products yet
+                                      </span>
+                                    </td>
+                                    <td />
+                                  </tr>
+                                ))}
+                            </Fragment>
+                          );
+                        })}
                         {filteredCategories.length === 0 && (
                           <tr>
                             <td
