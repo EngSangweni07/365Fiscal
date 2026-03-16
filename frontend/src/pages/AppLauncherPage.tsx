@@ -397,7 +397,7 @@ export default function AppLauncherPage() {
   }
 
   // Portal activation gate — no active subscription
-  if (!isAdmin && !hasActiveSubscription) {
+  if (!isAdmin && !hasActiveSubscription && me) {
     return (
       <div className="app-launcher-page">
         <div className="app-launcher-watermark" aria-hidden="true">
@@ -432,11 +432,10 @@ export default function AppLauncherPage() {
                 </svg>
               </div> */}
               <img src="/365.png" alt="365 Fiscal" className="logo-365" />
-
               <h2 className="login-card-title activation-title">
-                Enter you subscription code
+                Enter your subscription code
               </h2>
-
+              s
               {activateError && (
                 <div className="login-error activation-message">
                   <svg
@@ -476,7 +475,6 @@ export default function AppLauncherPage() {
                   {activateSuccess}
                 </div>
               )}
-
               <div className="login-form activation-form">
                 <div className="input-group">
                   <input
@@ -523,7 +521,6 @@ export default function AppLauncherPage() {
                   )}
                 </button>
               </div>
-
               <p
                 className="activation-note,  "
                 style={{
@@ -642,4 +639,3 @@ export default function AppLauncherPage() {
     </div>
   );
 }
-

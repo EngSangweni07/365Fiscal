@@ -199,6 +199,7 @@ def delete_product(
                 status_code=400,
                 detail=f"Cannot delete product because it is already used in {label}",
             )
+            
     company = db.query(Company).filter(Company.id == product.company_id).first()
     product_reference = product.reference or product.name
     product_name = product.name
