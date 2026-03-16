@@ -212,7 +212,8 @@ type FilterDefinition = {
 };
 
 const isPOSReceiptInvoice = (invoice: Invoice) =>
-  invoice.reference.startsWith("POS-") || invoice.reference.startsWith("CN-POS-");
+  invoice.reference.startsWith("POS-") ||
+  invoice.reference.startsWith("CN-POS-");
 
 const STATUS_FILTERS: FilterDefinition[] = [
   {
@@ -252,7 +253,7 @@ const TYPE_FILTERS: FilterDefinition[] = [
   },
   {
     key: "credit_note",
-    label: "CREDIT NOTE",
+    label: "CREDIT NOTES",
     icon: FileMinus,
     color: "var(--violet-500)",
   },
@@ -264,7 +265,10 @@ const TYPE_FILTERS: FilterDefinition[] = [
   },
 ];
 
-const STATUS_ICON_STYLES: Record<string, { color: string; background: string }> = {
+const STATUS_ICON_STYLES: Record<
+  string,
+  { color: string; background: string }
+> = {
   "": {
     color: "var(--indigo-500)",
     background: "rgba(99, 102, 241, 0.15)",
@@ -287,24 +291,25 @@ const STATUS_ICON_STYLES: Record<string, { color: string; background: string }> 
   },
 };
 
-const TYPE_ICON_STYLES: Record<string, { color: string; background: string }> = {
-  "": {
-    color: "var(--muted)",
-    background: "rgba(148, 163, 184, 0.12)",
-  },
-  invoice: {
-    color: "var(--blue-500)",
-    background: "rgba(59, 130, 246, 0.12)",
-  },
-  credit_note: {
-    color: "var(--violet-500)",
-    background: "rgba(139, 92, 246, 0.15)",
-  },
-  pos_receipt: {
-    color: "var(--emerald-500)",
-    background: "rgba(16, 185, 129, 0.15)",
-  },
-};
+const TYPE_ICON_STYLES: Record<string, { color: string; background: string }> =
+  {
+    "": {
+      color: "var(--muted)",
+      background: "rgba(148, 163, 184, 0.12)",
+    },
+    invoice: {
+      color: "var(--blue-500)",
+      background: "rgba(59, 130, 246, 0.12)",
+    },
+    credit_note: {
+      color: "var(--violet-500)",
+      background: "rgba(139, 92, 246, 0.15)",
+    },
+    pos_receipt: {
+      color: "var(--emerald-500)",
+      background: "rgba(16, 185, 129, 0.15)",
+    },
+  };
 
 type Rgb = { r: number; g: number; b: number };
 
@@ -586,11 +591,10 @@ export default function InvoicesPage({
         filter.key === ""
           ? invoices.length
           : invoices.filter((inv) => inv.status === filter.key).length;
-      const iconStyle =
-        STATUS_ICON_STYLES[filter.key] || {
-          color: filter.color,
-          background: "transparent",
-        };
+      const iconStyle = STATUS_ICON_STYLES[filter.key] || {
+        color: filter.color,
+        background: "transparent",
+      };
       return {
         id: `status-${filter.key || "all"}`,
         label: filter.label,
@@ -618,11 +622,10 @@ export default function InvoicesPage({
           : filter.key === "pos_receipt"
             ? invoices.filter((inv) => isPOSReceiptInvoice(inv)).length
             : invoices.filter((inv) => inv.invoice_type === filter.key).length;
-      const iconStyle =
-        TYPE_ICON_STYLES[filter.key] || {
-          color: filter.color,
-          background: "transparent",
-        };
+      const iconStyle = TYPE_ICON_STYLES[filter.key] || {
+        color: filter.color,
+        background: "transparent",
+      };
       return {
         id: `type-${filter.key || "all"}`,
         label: filter.label,
@@ -982,9 +985,7 @@ export default function InvoicesPage({
       });
       const csvContent = [headers, ...rows]
         .map((row) =>
-          row
-            .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
-            .join(","),
+          row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","),
         )
         .join("\n");
       const blob = new Blob([csvContent], {
@@ -1621,8 +1622,7 @@ export default function InvoicesPage({
       : "";
     const isFiscalizedDocument = Boolean(
       selectedInvoice.status === "fiscalized" ||
-        (selectedInvoice.zimra_status || "").toLowerCase().trim() ===
-          "submitted",
+      (selectedInvoice.zimra_status || "").toLowerCase().trim() === "submitted",
     );
     const rows = lines
       .map((line) => {
@@ -1969,7 +1969,9 @@ export default function InvoicesPage({
                                 <input
                                   placeholder="Search invoices..."
                                   value={listSearch}
-                                  onChange={(e) => setListSearch(e.target.value)}
+                                  onChange={(e) =>
+                                    setListSearch(e.target.value)
+                                  }
                                 />
                                 <button
                                   type="button"
@@ -2045,7 +2047,9 @@ export default function InvoicesPage({
                               "Due",
                             ];
                             const rows = visibleInvoices.map((inv) => {
-                              const cust = contactById.get(inv.customer_id ?? 0);
+                              const cust = contactById.get(
+                                inv.customer_id ?? 0,
+                              );
                               return [
                                 inv.reference,
                                 isPOSReceiptInvoice(inv)
@@ -2056,7 +2060,10 @@ export default function InvoicesPage({
                                 cust?.name || "",
                                 formatDateTime(inv.invoice_date),
                                 inv.status,
-                                getPaymentStatus(inv.amount_paid, inv.amount_due),
+                                getPaymentStatus(
+                                  inv.amount_paid,
+                                  inv.amount_due,
+                                ),
                                 inv.subtotal || 0,
                                 inv.tax_amount || 0,
                                 inv.total_amount || 0,
@@ -2121,7 +2128,9 @@ export default function InvoicesPage({
                           onClick={exportSelectedInvoices}
                           disabled={exportingSelected}
                         >
-                          {exportingSelected ? "Exporting..." : "Export Selected"}
+                          {exportingSelected
+                            ? "Exporting..."
+                            : "Export Selected"}
                         </button>
                         <button
                           className="batch-btn clear-btn"
