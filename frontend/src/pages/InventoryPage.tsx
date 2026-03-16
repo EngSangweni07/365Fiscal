@@ -7104,7 +7104,7 @@ export default function InventoryPage() {
 
                             return (
                               <Fragment key={`group-body-${group.key}`}>
-                                <tr className="inventory-quant-group-row">
+                                <tr className="inventory-table-clickable">
                                   <td>
                                     <button
                                       type="button"
