@@ -381,6 +381,10 @@ export default function InventoryPage() {
     ]);
   };
 
+  const removeNewCountLine = (id: string) => {
+    setNewCountLines((prev) => prev.filter((l) => l.id !== id));
+  };
+
   const filteredCompanies = useMemo(() => {
     if (!companyQuery.trim()) return companies;
     const q = companyQuery.toLowerCase();
@@ -7067,7 +7071,7 @@ export default function InventoryPage() {
                         </tbody>
                       </table>
                       {filteredMoves.length === 0 && (
-                        <div colSpan={10} className="inventory-empty-row">
+                        <div className="inventory-empty-row">
                           <div className="inventory-muted-note inventory-empty-note">
                             No stock moves found
                           </div>
