@@ -154,6 +154,12 @@ type AppNotification = {
 function POSWindowLauncher() {
   const navigate = useNavigate();
   const [popupBlocked, setPopupBlocked] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const openPOSWindow = useCallback(() => {
     const posWindow = window.open(
@@ -177,14 +183,85 @@ function POSWindowLauncher() {
     if (!openPOSWindow()) setPopupBlocked(true);
   }, [openPOSWindow]);
 
+  const timeString = currentTime.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+  const dateString = currentTime.toLocaleDateString([], {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
   return (
-    <div className="content" style={{ padding: "2rem", textAlign: "center" }}>
+    <div
+      className="content"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        minHeight: "60vh",
+        gap: "1.5rem",
+        textAlign: "center",
+      }}
+    >
+      {/* POS Icon */}
+      <div
+        style={{
+          width: 80,
+          height: 80,
+          borderRadius: 20,
+          background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          boxShadow: "0 8px 24px rgba(99,102,241,0.35)",
+        }}
+      >
+        <Calculator size={40} color="#fff" strokeWidth={1.75} />
+      </div>
+
+      {/* Live Clock */}
+      <div style={{ lineHeight: 1.2 }}>
+        <div
+          style={{
+            fontSize: "3rem",
+            fontWeight: 700,
+            letterSpacing: "-0.02em",
+            color: "var(--text-primary, #111)",
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          {timeString}
+        </div>
+        <div
+          style={{
+            fontSize: "0.95rem",
+            color: "var(--text-muted, #6b7280)",
+            marginTop: "0.25rem",
+          }}
+        >
+          {dateString}
+        </div>
+      </div>
+
+      {/* Open POS Button */}
       {popupBlocked && (
         <button
           className="btn btn-primary"
-          style={{ margin: "auto 0" }}
+          style={{
+            padding: "0.65rem 2rem",
+            fontSize: "1rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+          }}
           onClick={openPOSWindow}
         >
+          <Calculator size={18} strokeWidth={2} />
           Open POS
         </button>
       )}
