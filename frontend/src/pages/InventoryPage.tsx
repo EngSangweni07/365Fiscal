@@ -40,6 +40,7 @@ import {
   LayoutDashboard,
   Warehouse,
   CirclePlus,
+  PlusCircle,
 } from "lucide-react";
 import ValidationAlert from "../components/ValidationAlert";
 import ValidatedField from "../components/ValidatedField";
@@ -4696,7 +4697,7 @@ export default function InventoryPage() {
                               : `Apply All (${adjustmentRows.filter((row) => row.changed).length})`}
                           </button>
                           <button onClick={addNewCountLine}>
-                            <Plus size={16} /> Add Line
+                            <PlusCircle size={16} />
                           </button>
                         </div>
                       )}
