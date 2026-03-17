@@ -7366,73 +7366,6 @@ export default function InventoryPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {adjustmentRows.map((row) => {
-                            const hasDelta = row.changed;
-                            return (
-                              <tr
-                                key={row.quantId}
-                                className={
-                                  hasDelta
-                                    ? "inventory-adjustment-row-changed"
-                                    : ""
-                                }
-                              >
-                                <td className="inventory-strong-cell">
-                                  {row.productName}
-                                </td>
-                                <td>{row.warehouseName}</td>
-                                <td>{row.locationName}</td>
-                                <td className="text-end">
-                                  {row.onHand} {row.uom}
-                                </td>
-                                <td className="text-end">
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    step="1"
-                                    value={row.countedText}
-                                    className={`inventory-counted-input ${!row.isValid ? "invalid" : ""}`}
-                                    onChange={(e) =>
-                                      updateCountedQuantity(
-                                        row.quantId,
-                                        e.target.value,
-                                      )
-                                    }
-                                  />
-                                </td>
-                                <td
-                                  className={`text-end ${row.difference > 0 ? "inventory-diff-positive" : row.difference < 0 ? "inventory-diff-negative" : ""}`}
-                                >
-                                  {row.isValid
-                                    ? row.difference.toFixed(2)
-                                    : "-"}
-                                </td>
-                                <td className="o-monetary text-end">
-                                  ${row.unitCost.toFixed(2)}
-                                </td>
-                                <td className="o-monetary text-end">
-                                  {row.isValid
-                                    ? `$${(row.counted * row.unitCost).toFixed(2)}`
-                                    : "-"}
-                                </td>
-                                <td>
-                                  {row.isValid && row.changed ? (
-                                    <button
-                                      className="o-btn o-btn-primary"
-                                      onClick={() =>
-                                        void applyInventoryAdjustments([
-                                          row.quantId,
-                                        ])
-                                      }
-                                      disabled={applyingAdjustments}
-                                    >
-                                      Apply
-                                    </button>
-                                  ) : null}
-                                </td>
-                              </tr>
-                            );
-                          })}
                           {newCountLines.map((line) => {
                             const lineLocations = locations.filter(
                               (loc) => loc.warehouse_id === line.warehouse_id,
@@ -7595,6 +7528,74 @@ export default function InventoryPage() {
                               </tr>
                             );
                           })}
+                          {adjustmentRows.map((row) => {
+                            const hasDelta = row.changed;
+                            return (
+                              <tr
+                                key={row.quantId}
+                                className={
+                                  hasDelta
+                                    ? "inventory-adjustment-row-changed"
+                                    : ""
+                                }
+                              >
+                                <td className="inventory-strong-cell">
+                                  {row.productName}
+                                </td>
+                                <td>{row.warehouseName}</td>
+                                <td>{row.locationName}</td>
+                                <td className="text-end">
+                                  {row.onHand} {row.uom}
+                                </td>
+                                <td className="text-end">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="1"
+                                    value={row.countedText}
+                                    className={`inventory-counted-input ${!row.isValid ? "invalid" : ""}`}
+                                    onChange={(e) =>
+                                      updateCountedQuantity(
+                                        row.quantId,
+                                        e.target.value,
+                                      )
+                                    }
+                                  />
+                                </td>
+                                <td
+                                  className={`text-end ${row.difference > 0 ? "inventory-diff-positive" : row.difference < 0 ? "inventory-diff-negative" : ""}`}
+                                >
+                                  {row.isValid
+                                    ? row.difference.toFixed(2)
+                                    : "-"}
+                                </td>
+                                <td className="o-monetary text-end">
+                                  ${row.unitCost.toFixed(2)}
+                                </td>
+                                <td className="o-monetary text-end">
+                                  {row.isValid
+                                    ? `$${(row.counted * row.unitCost).toFixed(2)}`
+                                    : "-"}
+                                </td>
+                                <td>
+                                  {row.isValid && row.changed ? (
+                                    <button
+                                      className="o-btn o-btn-primary"
+                                      onClick={() =>
+                                        void applyInventoryAdjustments([
+                                          row.quantId,
+                                        ])
+                                      }
+                                      disabled={applyingAdjustments}
+                                    >
+                                      Apply
+                                    </button>
+                                  ) : null}
+                                </td>
+                              </tr>
+                            );
+                          })}
+
                           {adjustmentRows.length === 0 && (
                             <tr>
                               <td
