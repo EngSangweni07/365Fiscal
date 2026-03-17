@@ -143,6 +143,12 @@ type Location = {
   is_scrap: boolean;
 };
 
+type NewStockCountLine = {
+  id: string;
+  product_id: number | null;
+  quantity: string;
+};
+
 type StockMove = {
   id: number;
   company_id: number;
@@ -362,6 +368,18 @@ export default function InventoryPage() {
   const isAdmin = Boolean(me?.is_admin);
   const [companyId, setCompanyId] = useState<number | null>(null);
   const [companyQuery, setCompanyQuery] = useState("");
+  const [newCountLines, setNewCountLines] = useState<NewStockCountLine[]>([]);
+
+  const addNewCountLine = () => {
+    setNewCountLines((prev) => [
+      ...prev,
+      {
+        id: `new-${Date.now()}`,
+        product_id: null,
+        quantity: "0",
+      },
+    ]);
+  };
 
   const filteredCompanies = useMemo(() => {
     if (!companyQuery.trim()) return companies;
@@ -4612,6 +4630,7 @@ export default function InventoryPage() {
                           >
                             Reset
                           </button>
+
                           <button
                             className="o-btn o-btn-primary"
                             onClick={() => void applyInventoryAdjustments()}
@@ -4623,6 +4642,9 @@ export default function InventoryPage() {
                             {applyingAdjustments
                               ? "Applying..."
                               : `Apply All (${adjustmentRows.filter((row) => row.changed).length})`}
+                          </button>
+                          <button onClick={addNewCountLine}>
+                            <Plus size={16} /> Add Line
                           </button>
                         </div>
                       )}
@@ -7355,6 +7377,63 @@ export default function InventoryPage() {
                               </tr>
                             );
                           })}
+                          {newCountLines.map((line) => (
+                            <tr key={line.id}>
+                              {/* Product selector */}
+                              <td>
+                                <select
+                                  value={line.product_id ?? ""}
+                                  onChange={(e) =>
+                                    setNewCountLines((prev) =>
+                                      prev.map((l) =>
+                                        l.id === line.id
+                                          ? {
+                                              ...l,
+                                              product_id: Number(
+                                                e.target.value,
+                                              ),
+                                            }
+                                          : l,
+                                      ),
+                                    )
+                                  }
+                                >
+                                  <option value="">Select product</option>
+                                  {products.map((p) => (
+                                    <option key={p.id} value={p.id}>
+                                      {p.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              </td>
+
+                              {/* Quantity */}
+                              <td>
+                                <input
+                                  type="number"
+                                  value={line.quantity}
+                                  onChange={(e) =>
+                                    setNewCountLines((prev) =>
+                                      prev.map((l) =>
+                                        l.id === line.id
+                                          ? { ...l, quantity: e.target.value }
+                                          : l,
+                                      ),
+                                    )
+                                  }
+                                />
+                              </td>
+
+                              {/* Remove */}
+                              <td>
+                                <button
+                                  onClick={() => removeNewCountLine(line.id)}
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
                           {adjustmentRows.length === 0 && (
                             <tr>
                               <td
