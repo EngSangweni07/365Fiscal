@@ -146,6 +146,8 @@ type Location = {
 type NewStockCountLine = {
   id: string;
   product_id: number | null;
+  warehouse_id: number | null;
+  location_id: number | null;
   quantity: string;
 };
 
@@ -376,6 +378,8 @@ export default function InventoryPage() {
       {
         id: `new-${Date.now()}`,
         product_id: null,
+        warehouse_id: warehouses[0]?.id ?? null,
+        location_id: null,
         quantity: "0",
       },
     ]);
@@ -2168,6 +2172,49 @@ export default function InventoryPage() {
       await loadAllData();
     } catch (err: any) {
       setError(err?.message || "Failed to apply inventory adjustments.");
+    } finally {
+      setApplyingAdjustments(false);
+    }
+  };
+
+  const applyNewCountLine = async (line: NewStockCountLine) => {
+    if (!companyId) {
+      setError("Please select a company first.");
+      return;
+    }
+    if (!line.product_id) {
+      setError("Please select a product for the new line.");
+      return;
+    }
+    const qty = parseFloat(line.quantity);
+    if (!Number.isFinite(qty) || qty < 0) {
+      setError("Please enter a valid quantity (0 or more).");
+      return;
+    }
+    const product = products.find((p) => p.id === line.product_id);
+    setApplyingAdjustments(true);
+    setError(null);
+    try {
+      const created = await apiFetch<StockMove>("/stock/moves", {
+        method: "POST",
+        body: JSON.stringify({
+          company_id: companyId,
+          product_id: line.product_id,
+          warehouse_id: line.warehouse_id,
+          location_id: line.location_id,
+          move_type: "adjustment",
+          quantity: qty,
+          unit_cost: product?.purchase_cost ?? 0,
+          reference: "",
+          source_document: "",
+          notes: `Inventory adjustment (new count: ${qty})`,
+        }),
+      });
+      await apiFetch(`/stock/moves/${created.id}/confirm`, { method: "POST" });
+      removeNewCountLine(line.id);
+      await loadAllData();
+    } catch (err: any) {
+      setError(err?.message || "Failed to apply new count line.");
     } finally {
       setApplyingAdjustments(false);
     }
@@ -7071,7 +7118,7 @@ export default function InventoryPage() {
                         </tbody>
                       </table>
                       {filteredMoves.length === 0 && (
-                        <div className="inventory-empty-row">
+                        <div colSpan={10} className="inventory-empty-row">
                           <div className="inventory-muted-note inventory-empty-note">
                             No stock moves found
                           </div>
@@ -7381,63 +7428,168 @@ export default function InventoryPage() {
                               </tr>
                             );
                           })}
-                          {newCountLines.map((line) => (
-                            <tr key={line.id}>
-                              {/* Product selector */}
-                              <td>
-                                <select
-                                  value={line.product_id ?? ""}
-                                  onChange={(e) =>
-                                    setNewCountLines((prev) =>
-                                      prev.map((l) =>
-                                        l.id === line.id
-                                          ? {
-                                              ...l,
-                                              product_id: Number(
-                                                e.target.value,
-                                              ),
-                                            }
-                                          : l,
-                                      ),
-                                    )
-                                  }
-                                >
-                                  <option value="">Select product</option>
-                                  {products.map((p) => (
-                                    <option key={p.id} value={p.id}>
-                                      {p.name}
+                          {newCountLines.map((line) => {
+                            const lineLocations = locations.filter(
+                              (loc) => loc.warehouse_id === line.warehouse_id,
+                            );
+                            return (
+                              <tr
+                                key={line.id}
+                                className="inventory-adjustment-row-changed"
+                              >
+                                {/* Product */}
+                                <td>
+                                  <select
+                                    className="o-form-select"
+                                    value={line.product_id ?? ""}
+                                    onChange={(e) =>
+                                      setNewCountLines((prev) =>
+                                        prev.map((l) =>
+                                          l.id === line.id
+                                            ? {
+                                                ...l,
+                                                product_id: e.target.value
+                                                  ? Number(e.target.value)
+                                                  : null,
+                                              }
+                                            : l,
+                                        ),
+                                      )
+                                    }
+                                  >
+                                    <option value="">Select product...</option>
+                                    {products.map((p) => (
+                                      <option key={p.id} value={p.id}>
+                                        {p.name}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </td>
+
+                                {/* Warehouse */}
+                                <td>
+                                  <select
+                                    className="o-form-select"
+                                    value={line.warehouse_id ?? ""}
+                                    onChange={(e) =>
+                                      setNewCountLines((prev) =>
+                                        prev.map((l) =>
+                                          l.id === line.id
+                                            ? {
+                                                ...l,
+                                                warehouse_id: e.target.value
+                                                  ? Number(e.target.value)
+                                                  : null,
+                                                location_id: null,
+                                              }
+                                            : l,
+                                        ),
+                                      )
+                                    }
+                                  >
+                                    <option value="">
+                                      Select warehouse...
                                     </option>
-                                  ))}
-                                </select>
-                              </td>
+                                    {warehouses.map((w) => (
+                                      <option key={w.id} value={w.id}>
+                                        {w.name}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </td>
 
-                              {/* Quantity */}
-                              <td>
-                                <input
-                                  type="number"
-                                  value={line.quantity}
-                                  onChange={(e) =>
-                                    setNewCountLines((prev) =>
-                                      prev.map((l) =>
-                                        l.id === line.id
-                                          ? { ...l, quantity: e.target.value }
-                                          : l,
-                                      ),
-                                    )
-                                  }
-                                />
-                              </td>
+                                {/* Location */}
+                                <td>
+                                  <select
+                                    className="o-form-select"
+                                    value={line.location_id ?? ""}
+                                    disabled={!line.warehouse_id}
+                                    onChange={(e) =>
+                                      setNewCountLines((prev) =>
+                                        prev.map((l) =>
+                                          l.id === line.id
+                                            ? {
+                                                ...l,
+                                                location_id: e.target.value
+                                                  ? Number(e.target.value)
+                                                  : null,
+                                              }
+                                            : l,
+                                        ),
+                                      )
+                                    }
+                                  >
+                                    <option value="">Select location...</option>
+                                    {lineLocations.map((loc) => (
+                                      <option key={loc.id} value={loc.id}>
+                                        {loc.name}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </td>
 
-                              {/* Remove */}
-                              <td>
-                                <button
-                                  onClick={() => removeNewCountLine(line.id)}
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
+                                {/* On Hand — blank for new lines */}
+                                <td className="text-end">—</td>
+
+                                {/* Counted quantity */}
+                                <td className="text-end">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    className="inventory-counted-input"
+                                    value={line.quantity}
+                                    onChange={(e) =>
+                                      setNewCountLines((prev) =>
+                                        prev.map((l) =>
+                                          l.id === line.id
+                                            ? { ...l, quantity: e.target.value }
+                                            : l,
+                                        ),
+                                      )
+                                    }
+                                  />
+                                </td>
+
+                                {/* Difference, Unit Cost, New Value — blank for new lines */}
+                                <td className="text-end">—</td>
+                                <td className="text-end">—</td>
+                                <td className="text-end">—</td>
+
+                                {/* Action */}
+                                <td>
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      gap: 6,
+                                      alignItems: "center",
+                                    }}
+                                  >
+                                    <button
+                                      className="o-btn o-btn-primary"
+                                      onClick={() =>
+                                        void applyNewCountLine(line)
+                                      }
+                                      disabled={
+                                        applyingAdjustments || !line.product_id
+                                      }
+                                    >
+                                      Apply
+                                    </button>
+                                    <button
+                                      className="o-btn o-btn-link"
+                                      onClick={() =>
+                                        removeNewCountLine(line.id)
+                                      }
+                                      title="Remove line"
+                                    >
+                                      <Trash2 size={16} />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
                           {adjustmentRows.length === 0 && (
                             <tr>
                               <td
