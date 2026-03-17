@@ -382,7 +382,7 @@ export default function InventoryPage() {
   };
 
   const removeNewCountLine = (id: string) => {
-    setNewCountLines((prev) => prev.filter((l) => l.id !== id));
+    setNewCountLines((prev) => prev.filter((line) => line.id !== id));
   };
 
   const filteredCompanies = useMemo(() => {
