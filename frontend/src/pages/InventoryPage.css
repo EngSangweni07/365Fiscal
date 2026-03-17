@@ -1302,6 +1302,7 @@
 .inventory-workspace > .o-main {
   height: 100% !important;
   min-height: 0;
+  max-height: 85vh;
 }
 
 .inventory-content.inventory-view-operations.inventory-subview-form {
