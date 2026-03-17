@@ -14,6 +14,7 @@ import {
   Calculator,
   ChartColumn,
   CreditCard,
+  ExternalLink,
   FilePenLine,
   FileText,
   House,
@@ -27,6 +28,7 @@ import {
   UserCog,
   UsersRound,
   WalletCards,
+  Store,
 } from "lucide-react";
 import AppLauncherPage from "./pages/AppLauncherPage";
 import DashboardPage from "./pages/DashboardPage";
@@ -221,7 +223,7 @@ function POSWindowLauncher() {
           boxShadow: "0 8px 24px rgba(99,102,241,0.35)",
         }}
       >
-        <Calculator size={40} color="#fff" strokeWidth={1.75} />
+        <Store size={40} color="#fff" strokeWidth={1.75} />
       </div>
 
       {/* Live Clock */}
@@ -261,7 +263,7 @@ function POSWindowLauncher() {
           }}
           onClick={openPOSWindow}
         >
-          <Calculator size={18} strokeWidth={2} />
+          <ExternalLink size={18} strokeWidth={2} />
           Open POS
         </button>
       )}
