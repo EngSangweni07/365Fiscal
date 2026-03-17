@@ -4696,7 +4696,10 @@ export default function InventoryPage() {
                               ? "Applying..."
                               : `Apply All (${adjustmentRows.filter((row) => row.changed).length})`}
                           </button>
-                          <button onClick={addNewCountLine}>
+                          <button
+                            className="o-btn o-btn-primary"
+                            onClick={addNewCountLine}
+                          >
                             <PlusCircle size={16} />
                           </button>
                         </div>
