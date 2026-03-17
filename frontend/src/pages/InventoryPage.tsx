@@ -7118,7 +7118,7 @@ export default function InventoryPage() {
                         </tbody>
                       </table>
                       {filteredMoves.length === 0 && (
-                        <div colSpan={10} className="inventory-empty-row">
+                        <div className="inventory-empty-row">
                           <div className="inventory-muted-note inventory-empty-note">
                             No stock moves found
                           </div>
