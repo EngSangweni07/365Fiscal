@@ -520,6 +520,13 @@
   font-size: 13px;
 }
 
+.inventory-empty-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 5rem 0;
+}
+
 .inventory-empty-state.success {
   color: #1e7e49;
 }

@@ -7042,23 +7042,21 @@ export default function InventoryPage() {
                               </tr>
                             );
                           })}
-                          {filteredMoves.length === 0 && (
-                            <tr>
-                              <td colSpan={10} className="inventory-empty-row">
-                                <div className="inventory-muted-note inventory-empty-note">
-                                  No stock moves found
-                                </div>
-                                <button
-                                  className="o-btn o-btn-primary"
-                                  onClick={() => startNewMove("in")}
-                                >
-                                  + Create Stock Move
-                                </button>
-                              </td>
-                            </tr>
-                          )}
                         </tbody>
                       </table>
+                      {filteredMoves.length === 0 && (
+                        <div colSpan={10} className="inventory-empty-row">
+                          <div className="inventory-muted-note inventory-empty-note">
+                            No stock moves found
+                          </div>
+                          <button
+                            className="o-btn o-btn-primary"
+                            onClick={() => startNewMove("in")}
+                          >
+                            + Create Stock Move
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
 
