@@ -100,7 +100,7 @@ export default function LoginPage() {
       {/* Centered Login Card */}
       <div className="login-card login-card-glass">
         {/* <div className="login-floating-logo">
-          <img src="/365.png" alt="365 Fiscal" className="logo-365" />
+          <img src="/three.png" alt="365 Fiscal" className="logo-365" />
         </div> */}
         <div className="login-card-body">
           <img src="/365.png" alt="365 Fiscal" className="logo-365" />

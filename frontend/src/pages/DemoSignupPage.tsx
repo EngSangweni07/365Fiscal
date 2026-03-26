@@ -153,7 +153,7 @@ export default function DemoSignupPage() {
       <div className="demo-shell demo-shell-single">
         <div className="login-card login-card-glass demo-card">
           <div className="login-card-body demo-card-body">
-            <img src="/365.png" alt="365 Fiscal" className="logo-365 demo-card-logo" />
+            <img src="/three.png" alt="365 Fiscal" className="logo-365 demo-card-logo" />
 
             {!isDemoView ? (
               <>

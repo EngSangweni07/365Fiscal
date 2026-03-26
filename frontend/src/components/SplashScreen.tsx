@@ -18,7 +18,7 @@ export default function SplashScreen({ label = "Loading" }: SplashProps) {
     <div className="splash">
       <div className="splash-card">
         <div className="splash-logo">
-          <img src="/365.png" alt="365 Fiscal" />
+          <img src="/three.png" alt="365 Fiscal" />
         </div>
         <div className="splash-title">365 Fiscal</div>
         <div className="splash-sub">{label}{dots}</div>

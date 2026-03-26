@@ -170,6 +170,9 @@
   --ink: var(--slate-800);
   --ink-light: var(--slate-700);
   --muted: var(--slate-500);
+  --brand-pear: #d1e826;
+  --brand-sherpa: #0b4550;
+  --brand-grey: #898a8e;
   --white: var(--white-500);
   --black: var(--black-500);
   --card: var(--white-500);
@@ -2288,13 +2291,13 @@ thead.table-light th {
   gap: 8px;
   padding: 8px 16px;
   border-radius: 999px;
-  background: rgba(11, 87, 208, 0.08);
-  color: var(--blue-700);
+  background: rgba(11, 69, 80, 0.1);
+  color: var(--brand-sherpa);
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.8px;
-  border: 1px solid rgba(11, 87, 208, 0.15);
+  border: 1px solid rgba(11, 69, 80, 0.16);
 }
 
 /* Login Card */
@@ -2541,8 +2544,8 @@ thead.table-light th {
 
 .input-action-btn:hover:not(:disabled) {
   color: var(--slate-800);
-  border-color: rgba(99, 102, 241, 0.45);
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.12);
+  border-color: rgba(11, 69, 80, 0.4);
+  box-shadow: 0 0 0 2px rgba(11, 69, 80, 0.12);
 }
 
 .input-action-btn:hover:not(:disabled) img {
@@ -2589,8 +2592,8 @@ thead.table-light th {
 }
 
 .input-group input:focus {
-  border-color: var(--indigo-600);
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.14);
+  border-color: var(--brand-sherpa);
+  box-shadow: 0 0 0 3px rgba(11, 69, 80, 0.14);
   outline: none;
 }
 
@@ -2625,19 +2628,19 @@ thead.table-light th {
   animation: slide-up-fade 0.6s ease both;
   animation-delay: 0.6s;
   color: var(--white-500);
-  background: linear-gradient(135deg, var(--indigo-600) 0%, var(--indigo-500) 100%);
+  background: linear-gradient(135deg, var(--brand-sherpa) 0%, var(--brand-grey) 100%);
   border: none;
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+  box-shadow: 0 4px 14px rgba(11, 69, 80, 0.28);
   margin-top: 8px;
 }
 
 .login-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(79, 70, 229, 0.45);
-  background: linear-gradient(135deg, var(--indigo-700) 0%, var(--indigo-500) 100%);
+  box-shadow: 0 8px 25px rgba(11, 69, 80, 0.36);
+  background: linear-gradient(135deg, #0d5663 0%, #76787d 100%);
 }
 
 .login-btn:active:not(:disabled) {
@@ -2679,12 +2682,12 @@ thead.table-light th {
   margin-top: 16px;
   padding: 12px 16px;
   border-radius: 10px;
-  background: var(--emerald-50);
-  color: var(--emerald-600);
+  background: rgba(209, 232, 38, 0.18);
+  color: var(--brand-sherpa);
   font-size: 13px;
   font-weight: 500;
   animation: fade-in 0.3s ease;
-  border: 1px solid var(--emerald-200);
+  border: 1px solid rgba(209, 232, 38, 0.38);
 }
 
 .login-error {
@@ -2804,7 +2807,7 @@ thead.table-light th {
   margin-top: 3px;
   width: 16px;
   height: 16px;
-  accent-color: var(--indigo-600);
+  accent-color: var(--brand-sherpa);
 }
 
 .demo-session {
@@ -2816,8 +2819,8 @@ thead.table-light th {
 .demo-timer-card {
   border-radius: 22px;
   padding: 24px;
-  background: linear-gradient(135deg, rgba(79, 70, 229, 0.14) 0%, rgba(37, 99, 235, 0.12) 100%);
-  border: 1px solid rgba(99, 102, 241, 0.18);
+  background: linear-gradient(135deg, rgba(11, 69, 80, 0.12) 0%, rgba(209, 232, 38, 0.16) 100%);
+  border: 1px solid rgba(11, 69, 80, 0.16);
   text-align: center;
 }
 
@@ -2859,7 +2862,7 @@ thead.table-light th {
 
 .demo-text-link {
   text-align: center;
-  color: var(--indigo-700);
+  color: var(--brand-sherpa);
   font-weight: 600;
   text-decoration: underline;
 }
@@ -2871,13 +2874,13 @@ thead.table-light th {
   padding: 10px 14px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.68);
-  border: 1px solid rgba(99, 102, 241, 0.16);
+  border: 1px solid rgba(11, 69, 80, 0.16);
   color: var(--slate-700);
   margin-right: 12px;
 }
 
 .demo-launcher-banner strong {
-  color: var(--indigo-700);
+  color: var(--brand-sherpa);
   font-size: 14px;
 }
 

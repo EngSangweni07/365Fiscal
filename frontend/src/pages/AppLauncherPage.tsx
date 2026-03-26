@@ -487,7 +487,7 @@ export default function AppLauncherPage() {
                   <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                 </svg>
               </div> */}
-              <img src="/365.png" alt="365 Fiscal" className="logo-365" />
+              <img src="/three.png" alt="365 Fiscal" className="logo-365" />
               <h2 className="login-card-title activation-title">
                 Enter your subscription code
               </h2>
