@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { Building2, Clock3, Mail, ShieldCheck, Users, Phone } from "lucide-react";
+import { Building2, Mail, Users, Phone } from "lucide-react";
 import { apiFetch } from "../api";
 
 type DemoAccount = {
@@ -41,6 +41,25 @@ function formatRemaining(seconds: number) {
   const mins = Math.floor(safeSeconds / 60);
   const secs = safeSeconds % 60;
   return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+}
+
+function parseApiDate(value: string) {
+  if (!value) return new Date("");
+  const hasTimezone = /[zZ]$|[+\-]\d{2}:\d{2}$/.test(value);
+  return new Date(hasTimezone ? value : `${value}Z`);
+}
+
+function formatHarareDateTime(value: string) {
+  return parseApiDate(value).toLocaleString("en-ZW", {
+    timeZone: "Africa/Harare",
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
 }
 
 export default function DemoSignupPage() {
@@ -92,7 +111,7 @@ export default function DemoSignupPage() {
 
   const expiresAtLabel = useMemo(() => {
     if (!demo?.expires_at) return "";
-    return new Date(demo.expires_at).toLocaleString();
+    return `${formatHarareDateTime(demo.expires_at)} CAT`;
   }, [demo?.expires_at]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -109,7 +128,11 @@ export default function DemoSignupPage() {
       if (created.access_token) {
         localStorage.setItem("access_token", created.access_token);
         localStorage.setItem("demo_account_id", String(created.id));
-        localStorage.setItem("demo_expires_at", created.expires_at);
+        localStorage.removeItem("demo_expires_at");
+        localStorage.setItem(
+          "demo_expires_at_ms",
+          String(Date.now() + created.time_remaining_seconds * 1000),
+        );
         localStorage.setItem("demo_email", created.email);
         window.location.href = created.portal_redirect_url || "/";
         return;
@@ -127,66 +150,7 @@ export default function DemoSignupPage() {
 
   return (
     <div className="login-shell login-centered">
-      <div className="demo-shell">
-        <section className="demo-panel">
-          <div className="demo-panel-badge">365Fiscal Demo</div>
-          <img src="/365.png" alt="365 Fiscal" className="demo-panel-logo" />
-          <div className="login-headline">
-            <h1 className="login-title">
-              {isDemoView
-                ? "Your demo session is ready."
-                : "Create a demo account that feels like the real system."}
-            </h1>
-            <p className="login-lead">
-              {isDemoView
-                ? "Your lead is already saved for the admin in the Leads app. Keep an eye on the countdown while you explore."
-                : "Use the same product experience and background as the main login page while capturing company details, phone number, email, ZIMRA FDMS preference, and expected user count."}
-            </p>
-          </div>
-
-          {!isDemoView ? (
-            <div className="login-features demo-features">
-              <div className="login-feature">
-                <span className="feature-icon">
-                  <Clock3 size={18} />
-                </span>
-                <span className="feature-text">
-                  <strong>30-minute live trial</strong>
-                  <span>Every demo expires automatically after thirty minutes.</span>
-                </span>
-              </div>
-              <div className="login-feature">
-                <span className="feature-icon">
-                  <ShieldCheck size={18} />
-                </span>
-                <span className="feature-text">
-                  <strong>Lead captured for admin</strong>
-                  <span>Requests appear in the Leads app for follow-up and conversion.</span>
-                </span>
-              </div>
-              <div className="login-feature">
-                <span className="feature-icon">
-                  <Users size={18} />
-                </span>
-                <span className="feature-text">
-                  <strong>ZIMRA FDMS and user sizing</strong>
-                  <span>Capture fiscal needs and the expected number of users up front.</span>
-                </span>
-              </div>
-            </div>
-          ) : (
-            <div className="demo-summary-grid">
-              <SummaryCard label="Company" value={demo?.company_name ?? "Demo"} />
-              <SummaryCard label="Email" value={demo?.email ?? "-"} />
-              <SummaryCard label="Phone" value={demo?.phone_number ?? "-"} />
-              <SummaryCard
-                label="ZIMRA FDMS"
-                value={demo?.wants_zimra_fdms ? "Requested" : "Not requested"}
-              />
-            </div>
-          )}
-        </section>
-
+      <div className="demo-shell demo-shell-single">
         <div className="login-card login-card-glass demo-card">
           <div className="login-card-body demo-card-body">
             <img src="/365.png" alt="365 Fiscal" className="logo-365 demo-card-logo" />
@@ -355,15 +319,6 @@ export default function DemoSignupPage() {
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-function SummaryCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="demo-summary-card">
-      <div className="demo-summary-label">{label}</div>
-      <div className="demo-summary-value">{value}</div>
     </div>
   );
 }

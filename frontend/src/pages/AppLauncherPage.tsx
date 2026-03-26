@@ -286,6 +286,12 @@ const portalApps: AppItem[] = [
   },
 ];
 
+function parseApiDate(value: string) {
+  if (!value) return new Date("");
+  const hasTimezone = /[zZ]$|[+\-]\d{2}:\d{2}$/.test(value);
+  return new Date(hasTimezone ? value : `${value}Z`);
+}
+
 export default function AppLauncherPage() {
   const { me, loading } = useMe();
   const isAdmin = Boolean(me?.is_admin);
@@ -344,21 +350,23 @@ export default function AppLauncherPage() {
 
   useEffect(() => {
     const demoEmail = localStorage.getItem("demo_email");
-    const demoExpiresAt = localStorage.getItem("demo_expires_at");
-    if (!me || isAdmin || !demoEmail || !demoExpiresAt || me.email !== demoEmail) {
+    const demoExpiresAtMs = localStorage.getItem("demo_expires_at_ms");
+    if (!me || isAdmin || !demoEmail || !demoExpiresAtMs || me.email !== demoEmail) {
       setDemoCountdown(null);
       return;
     }
 
     const computeRemaining = () => {
+      const expiresAtMs = Number(demoExpiresAtMs);
       const remaining = Math.max(
         0,
-        Math.floor((new Date(demoExpiresAt).getTime() - Date.now()) / 1000),
+        Math.floor((expiresAtMs - Date.now()) / 1000),
       );
       setDemoCountdown(remaining);
       if (remaining === 0) {
         localStorage.removeItem("demo_account_id");
         localStorage.removeItem("demo_expires_at");
+        localStorage.removeItem("demo_expires_at_ms");
         localStorage.removeItem("demo_email");
       }
     };
@@ -400,6 +408,7 @@ export default function AppLauncherPage() {
     localStorage.removeItem("access_token");
     localStorage.removeItem("demo_account_id");
     localStorage.removeItem("demo_expires_at");
+    localStorage.removeItem("demo_expires_at_ms");
     localStorage.removeItem("demo_email");
     window.location.href = "/login";
   };

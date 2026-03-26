@@ -37,6 +37,24 @@ const formatTimer = (seconds: number) => {
   return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 };
 
+const parseApiDate = (value: string) => {
+  if (!value) return new Date("");
+  const hasTimezone = /[zZ]$|[+\-]\d{2}:\d{2}$/.test(value);
+  return new Date(hasTimezone ? value : `${value}Z`);
+};
+
+const formatHarareDateTime = (value: string) =>
+  parseApiDate(value).toLocaleString("en-ZW", {
+    timeZone: "Africa/Harare",
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
+
 export default function LeadsPage() {
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] =
@@ -213,7 +231,7 @@ export default function LeadsPage() {
                         </span>
                       </div>
                       <div className="leads-meta">
-                        Created {new Date(lead.created_at).toLocaleString()}
+                        Created {formatHarareDateTime(lead.created_at)} CAT
                       </div>
                     </div>
                     <div
@@ -253,7 +271,7 @@ export default function LeadsPage() {
                   </div>
 
                   <div className="leads-meta">
-                    Expires {new Date(lead.expires_at).toLocaleString()}
+                    Expires {formatHarareDateTime(lead.expires_at)} CAT
                   </div>
                 </article>
               ))}
