@@ -159,13 +159,10 @@ export default function DemoSignupPage() {
               <>
                 <div className="demo-form-head">
                   <h2 className="login-card-title">Create demo account</h2>
-                  <p className="login-card-sub">
-                    Fill in your details and we will open a 30-minute demo session.
-                  </p>
                 </div>
 
-                <form className="login-form" onSubmit={handleSubmit}>
-                  <div className="input-group">
+                <form className="login-form demo-form-compact" onSubmit={handleSubmit}>
+                  <div className="input-group demo-field">
                     <label className="input-label" htmlFor="demo-company">
                       <Building2 size={14} />
                       Company
@@ -184,7 +181,7 @@ export default function DemoSignupPage() {
                     />
                   </div>
 
-                  <div className="input-group">
+                  <div className="input-group demo-field">
                     <label className="input-label" htmlFor="demo-phone">
                       <Phone size={14} />
                       Phone number
@@ -203,7 +200,7 @@ export default function DemoSignupPage() {
                     />
                   </div>
 
-                  <div className="input-group">
+                  <div className="input-group demo-field">
                     <label className="input-label" htmlFor="demo-email">
                       <Mail size={14} />
                       Email
@@ -223,7 +220,7 @@ export default function DemoSignupPage() {
                     />
                   </div>
 
-                  <div className="input-group">
+                  <div className="input-group demo-field">
                     <label className="input-label" htmlFor="demo-users">
                       <Users size={14} />
                       Number of users
@@ -260,7 +257,11 @@ export default function DemoSignupPage() {
 
                   {error && <div className="login-error">{error}</div>}
 
-                  <button className="login-btn" type="submit" disabled={submitting}>
+                  <button
+                    className="login-btn demo-submit-btn"
+                    type="submit"
+                    disabled={submitting}
+                  >
                     {submitting ? (
                       <>
                         <span className="spinner"></span>
@@ -292,7 +293,7 @@ export default function DemoSignupPage() {
                 {error && <div className="login-error">{error}</div>}
 
                 <div className="demo-link-row">
-                  <Link to="/demo" className="login-btn demo-secondary-btn">
+                  <Link to="/demo" className="login-btn demo-submit-btn demo-secondary-btn">
                     Create another demo later
                   </Link>
                   <Link to="/login" className="demo-text-link">

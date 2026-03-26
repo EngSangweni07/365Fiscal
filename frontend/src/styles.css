@@ -2774,15 +2774,21 @@ thead.table-light th {
 
 .demo-card {
   max-width: 430px;
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border-color: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 28px 60px rgba(15, 23, 42, 0.28);
 }
 
 .demo-card-body {
-  gap: 12px;
+  gap: 8px;
+  padding-top: 6px;
 }
 
 .demo-card-logo {
-  width: 250px;
-  padding: 2rem 2rem 1rem;
+  width: 200px;
+  padding: 1.25rem 1.25rem 0.35rem;
   align-self: center;
 }
 
@@ -2790,16 +2796,53 @@ thead.table-light th {
   text-align: center;
 }
 
+.demo-form-head .login-card-title {
+  margin-bottom: 4px;
+  color: var(--brand-sherpa);
+  font-weight: 700;
+}
+
+.demo-form-head .login-card-sub {
+  margin-bottom: 10px;
+  font-size: 0.95rem;
+}
+
+.demo-form-compact {
+  gap: 12px;
+}
+
+.demo-field {
+  gap: 6px;
+}
+
+.demo-field .input-label {
+  font-size: 11px;
+  color: var(--brand-sherpa);
+  opacity: 1;
+}
+
+.demo-field input {
+  padding: 12px 14px;
+  color: var(--brand-sherpa);
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(137, 138, 142, 0.35);
+}
+
+.demo-field input::placeholder {
+  color: rgba(11, 69, 80, 0.45);
+}
+
 .demo-checkbox {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 14px 16px;
+  padding: 12px 14px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  background: rgba(255, 255, 255, 0.3);
-  color: var(--slate-700);
-  font-size: 14px;
+  border: 1px solid rgba(137, 138, 142, 0.35);
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--brand-sherpa);
+  font-size: 13px;
+  font-weight: 500;
   line-height: 1.5;
 }
 
@@ -2858,6 +2901,20 @@ thead.table-light th {
 
 .demo-secondary-btn {
   text-decoration: none;
+}
+
+.demo-submit-btn {
+  background: var(--brand-sherpa);
+  box-shadow: 0 4px 14px rgba(11, 69, 80, 0.22);
+}
+
+.demo-submit-btn:hover:not(:disabled) {
+  background: #0d5663;
+  box-shadow: 0 8px 22px rgba(11, 69, 80, 0.28);
+}
+
+.demo-submit-btn:disabled {
+  background: var(--brand-grey);
 }
 
 .demo-text-link {
