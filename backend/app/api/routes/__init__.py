@@ -9,6 +9,7 @@ from app.api.routes import expenses
 from app.api.routes import expense_categories
 from app.api.routes import currencies
 from app.api.routes import notifications
+from app.api.routes import demo
 
 api_router = APIRouter()
 api_router.include_router(auth.router)
@@ -38,3 +39,4 @@ api_router.include_router(expenses.router)
 api_router.include_router(expense_categories.router)
 api_router.include_router(currencies.router)
 api_router.include_router(notifications.router)
+api_router.include_router(demo.router)

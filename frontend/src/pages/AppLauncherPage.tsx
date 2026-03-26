@@ -4,6 +4,7 @@ import { NavLink } from "react-router-dom";
 import type { LucideIcon } from "lucide-react";
 import {
   Boxes,
+  BriefcaseBusiness,
   Building2,
   Calculator,
   ChartColumn,
@@ -43,6 +44,7 @@ const SettingsIcon = Settings;
 const CompanyIcon = Building2;
 const SubscriptionIcon = CreditCard;
 const POSLauncherIcon = Calculator;
+const LeadsIcon = BriefcaseBusiness;
 
 interface AppItem {
   to: string;
@@ -161,6 +163,15 @@ const adminApps: AppItem[] = [
     color: "var(--white-500)",
     background: "linear-gradient(145deg, #efbc5d 0%, #eeb03f 100%)",
     glowColor: "rgba(245, 158, 11, 0.18)",
+  },
+  {
+    to: "/leads",
+    key: "leads",
+    label: "Leads",
+    icon: LeadsIcon,
+    color: "var(--white-500)",
+    background: "linear-gradient(145deg, #2dd4bf 0%, #0f766e 100%)",
+    glowColor: "rgba(20, 184, 166, 0.2)",
   },
   {
     to: "/settings",

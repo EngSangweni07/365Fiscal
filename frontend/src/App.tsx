@@ -53,6 +53,8 @@ import PaymentsPage from "./pages/PaymentsPage";
 import SubscriptionsPage from "./pages/SubscriptionsPage";
 import POSPage from "./pages/POSPage";
 import CustomerDisplayPage from "./pages/CustomerDisplayPage";
+import DemoSignupPage from "./pages/DemoSignupPage";
+import LeadsPage from "./pages/LeadsPage";
 import { apiFetch } from "./api";
 import { useMe } from "./hooks/useMe";
 import BackIcon from "./assets/back.svg?react";
@@ -81,6 +83,7 @@ const adminNav = [
   { to: "/reports", label: "Financial Reports", icon: ReportsIcon },
   { to: "/users-roles", label: "Users & Roles", icon: UsersIcon },
   { to: "/audit-logs", label: "Audit Logs", icon: AuditIcon },
+  { to: "/leads", label: "Leads", icon: ContactIcon },
   { to: "/subscriptions", label: "Subscriptions", icon: SubscriptionIcon },
   { to: "/settings", label: "Settings", icon: SettingsIcon },
 ];
@@ -755,6 +758,7 @@ function AppContent() {
               <Route path="/my-devices" element={<PortalDevicesPage />} />
               <Route path="/users-roles" element={<UsersRolesPage />} />
               <Route path="/audit-logs" element={<AuditLogsPage />} />
+              <Route path="/leads" element={isPortalMode ? <DashboardPage /> : <LeadsPage />} />
               <Route path="/payments" element={<PaymentsPage />} />
               <Route path="/pos" element={<POSWindowLauncher />} />
               <Route path="/pos/window" element={<POSPage />} />
@@ -773,6 +777,8 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/portal-login" element={<PortalLoginPage />} />
+        <Route path="/demo" element={<DemoSignupPage />} />
+        <Route path="/demo/:demoId" element={<DemoSignupPage />} />
         <Route path="/pos/customer-display" element={<CustomerDisplayPage />} />
         <Route
           path="/*"
