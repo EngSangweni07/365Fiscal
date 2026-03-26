@@ -1,16 +1,41 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
+from datetime import datetime, timedelta
 
 from app.api.deps import get_db, require_admin
+from app.models.company import Company
+from app.models.company_user import CompanyUser
 from app.models.demo_account import DemoAccount
-from app.schemas.demo_account import DemoAccountCreate, DemoAccountRead, DemoAccountUpdate
+from app.models.role import Role
+from app.models.subscription import Subscription
+from app.models.user import User
+from app.schemas.demo_account import (
+    DemoAccountCreate,
+    DemoAccountRead,
+    DemoAccountUpdate,
+    DemoSignupResponse,
+)
+from app.security.security import create_access_token, hash_password
 
 
 router = APIRouter(prefix="/demo", tags=["demo"])
+DEMO_PORTAL_APPS = ",".join([
+    "dashboard",
+    "invoices",
+    "purchases",
+    "contacts",
+    "quotations",
+    "inventory",
+    "pos",
+    "devices",
+    "expenses",
+    "reports",
+    "settings",
+])
 
 
-@router.post("/signup", response_model=DemoAccountRead)
+@router.post("/signup", response_model=DemoSignupResponse)
 def create_demo_account(
     payload: DemoAccountCreate,
     db: Session = Depends(get_db)
@@ -30,6 +55,108 @@ def create_demo_account(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="An active demo account already exists for this email. Please wait 30 minutes before creating another."
         )
+
+    existing_user = db.query(User).filter(User.email == payload.email).first()
+    reusable_demo = (
+        db.query(DemoAccount)
+        .filter(DemoAccount.email == payload.email)
+        .order_by(desc(DemoAccount.created_at))
+        .first()
+    )
+
+    if existing_user and (not reusable_demo or reusable_demo.user_id != existing_user.id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This email already belongs to an existing account. Please use another email for the demo or log in with your existing account.",
+        )
+
+    company_admin_role = db.query(Role).filter(Role.name == "company_admin").first()
+    company = None
+    user = existing_user
+
+    if reusable_demo and reusable_demo.company_id:
+        company = db.query(Company).filter(Company.id == reusable_demo.company_id).first()
+
+    if company is None:
+        company = Company(
+            name=payload.company_name,
+            email=payload.email,
+            phone=payload.phone_number,
+            portal_apps=DEMO_PORTAL_APPS,
+        )
+        db.add(company)
+        db.flush()
+    else:
+        company.name = payload.company_name
+        company.email = payload.email
+        company.phone = payload.phone_number
+        company.portal_apps = DEMO_PORTAL_APPS
+
+    if user is None:
+        user = User(
+            name=payload.company_name,
+            email=payload.email,
+            hashed_password=hash_password(f"demo-{payload.email.lower()}"),
+            is_admin=False,
+            is_active=True,
+        )
+        db.add(user)
+        db.flush()
+    else:
+        user.name = payload.company_name
+        user.is_active = True
+
+    company_link = (
+        db.query(CompanyUser)
+        .filter(
+            CompanyUser.company_id == company.id,
+            CompanyUser.user_id == user.id,
+        )
+        .first()
+    )
+
+    if company_link is None:
+        company_link = CompanyUser(
+            company_id=company.id,
+            user_id=user.id,
+            role="company_admin",
+            role_id=company_admin_role.id if company_admin_role else None,
+            is_active=True,
+            is_company_admin=True,
+            portal_apps=DEMO_PORTAL_APPS,
+        )
+        db.add(company_link)
+    else:
+        company_link.role = "company_admin"
+        company_link.role_id = company_admin_role.id if company_admin_role else company_link.role_id
+        company_link.is_active = True
+        company_link.is_company_admin = True
+        company_link.portal_apps = DEMO_PORTAL_APPS
+
+    subscription = db.query(Subscription).filter(Subscription.company_id == company.id).first()
+    expires_at = datetime.utcnow() + timedelta(minutes=30)
+    if subscription is None:
+        subscription = Subscription(
+            company_id=company.id,
+            plan="trial",
+            status="active",
+            starts_at=datetime.utcnow(),
+            expires_at=expires_at,
+            max_users=max(payload.num_users, 1),
+            max_devices=2,
+            max_invoices_per_month=100,
+            notes="Auto-created 30-minute demo subscription.",
+        )
+        db.add(subscription)
+    else:
+        subscription.plan = "trial"
+        subscription.status = "active"
+        subscription.starts_at = datetime.utcnow()
+        subscription.expires_at = expires_at
+        subscription.max_users = max(payload.num_users, 1)
+        subscription.max_devices = max(subscription.max_devices, 2)
+        subscription.max_invoices_per_month = max(subscription.max_invoices_per_month, 100)
+        subscription.notes = "Auto-created 30-minute demo subscription."
     
     # Create new demo account
     demo_account = DemoAccount.create_demo_account(
@@ -40,12 +167,18 @@ def create_demo_account(
         num_users=payload.num_users,
         demo_duration_minutes=30
     )
+    demo_account.user_id = user.id
+    demo_account.company_id = company.id
     
     db.add(demo_account)
     db.commit()
     db.refresh(demo_account)
     
-    return serialize_demo(demo_account)
+    return {
+        **serialize_demo(demo_account),
+        "access_token": create_access_token(str(user.id)),
+        "portal_redirect_url": "/",
+    }
 
 
 @router.get("/{demo_id}", response_model=DemoAccountRead)
@@ -183,6 +316,8 @@ def serialize_demo(demo: DemoAccount) -> dict:
         "created_at": demo.created_at,
         "expires_at": demo.expires_at,
         "notes": demo.notes,
+        "user_id": demo.user_id,
+        "company_id": demo.company_id,
         "time_remaining_seconds": demo.time_remaining_seconds(),
         "is_expired": demo.is_expired(),
     }

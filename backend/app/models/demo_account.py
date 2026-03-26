@@ -1,4 +1,4 @@
-from sqlalchemy import String, Boolean, Integer, DateTime
+from sqlalchemy import String, Boolean, Integer, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 from datetime import datetime, timedelta
 
@@ -18,6 +18,8 @@ class DemoAccount(Base, TimestampMixin):
     status: Mapped[str] = mapped_column(String(50), default="active")  # active, expired, converted
     expires_at: Mapped[datetime] = mapped_column(DateTime)
     notes: Mapped[str] = mapped_column(String(1000), default="")
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
+    company_id: Mapped[int | None] = mapped_column(ForeignKey("companies.id"), nullable=True, index=True)
 
     def is_expired(self) -> bool:
         """Check if demo account has expired."""

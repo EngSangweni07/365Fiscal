@@ -1,5 +1,6 @@
-import { FormEvent, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { Building2, Clock3, Mail, ShieldCheck, Users, Phone } from "lucide-react";
 import { apiFetch } from "../api";
 
 type DemoAccount = {
@@ -15,6 +16,8 @@ type DemoAccount = {
   notes: string;
   time_remaining_seconds: number;
   is_expired: boolean;
+  access_token?: string;
+  portal_redirect_url?: string;
 };
 
 type DemoFormState = {
@@ -33,48 +36,6 @@ const initialForm: DemoFormState = {
   num_users: 1,
 };
 
-const pageShellStyle: CSSProperties = {
-  minHeight: "100vh",
-  background:
-    "radial-gradient(circle at top left, rgba(16, 185, 129, 0.18), transparent 35%), linear-gradient(135deg, #0f172a 0%, #11263c 52%, #1c4b4d 100%)",
-  color: "#e2e8f0",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  padding: "32px 16px",
-};
-
-const cardStyle: CSSProperties = {
-  width: "100%",
-  maxWidth: 1100,
-  borderRadius: 28,
-  overflow: "hidden",
-  background: "rgba(15, 23, 42, 0.82)",
-  border: "1px solid rgba(148, 163, 184, 0.18)",
-  boxShadow: "0 28px 80px rgba(15, 23, 42, 0.35)",
-  backdropFilter: "blur(20px)",
-  display: "grid",
-  gridTemplateColumns: "minmax(320px, 1.15fr) minmax(320px, 0.85fr)",
-};
-
-const inputStyle: CSSProperties = {
-  width: "100%",
-  borderRadius: 14,
-  border: "1px solid rgba(148, 163, 184, 0.22)",
-  background: "rgba(15, 23, 42, 0.6)",
-  color: "#f8fafc",
-  padding: "14px 16px",
-  fontSize: 15,
-  outline: "none",
-};
-
-const labelStyle: CSSProperties = {
-  display: "grid",
-  gap: 8,
-  fontSize: 14,
-  color: "#cbd5e1",
-};
-
 function formatRemaining(seconds: number) {
   const safeSeconds = Math.max(0, seconds);
   const mins = Math.floor(safeSeconds / 60);
@@ -90,7 +51,6 @@ export default function DemoSignupPage() {
   const [error, setError] = useState("");
   const [demo, setDemo] = useState<DemoAccount | null>(null);
   const [timeRemaining, setTimeRemaining] = useState(0);
-  const [isCompact, setIsCompact] = useState(() => window.innerWidth < 960);
 
   const isDemoView = Boolean(demoId);
 
@@ -107,6 +67,7 @@ export default function DemoSignupPage() {
         if (cancelled) return;
         setDemo(payload);
         setTimeRemaining(payload.time_remaining_seconds);
+        setError("");
       } catch (err) {
         if (cancelled) return;
         setError(err instanceof Error ? err.message : "Failed to load demo.");
@@ -129,12 +90,6 @@ export default function DemoSignupPage() {
     return () => window.clearInterval(countdown);
   }, [isDemoView]);
 
-  useEffect(() => {
-    const handleResize = () => setIsCompact(window.innerWidth < 960);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
   const expiresAtLabel = useMemo(() => {
     if (!demo?.expires_at) return "";
     return new Date(demo.expires_at).toLocaleString();
@@ -151,6 +106,14 @@ export default function DemoSignupPage() {
         suppress401Redirect: true,
         body: JSON.stringify(form),
       });
+      if (created.access_token) {
+        localStorage.setItem("access_token", created.access_token);
+        localStorage.setItem("demo_account_id", String(created.id));
+        localStorage.setItem("demo_expires_at", created.expires_at);
+        localStorage.setItem("demo_email", created.email);
+        window.location.href = created.portal_redirect_url || "/";
+        return;
+      }
       navigate(`/demo/${created.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to create demo.");
@@ -159,322 +122,248 @@ export default function DemoSignupPage() {
     }
   };
 
-  const expired = demo?.is_expired || timeRemaining <= 0 || demo?.status === "expired";
+  const expired =
+    demo?.is_expired || timeRemaining <= 0 || demo?.status === "expired";
 
   return (
-    <div style={pageShellStyle}>
-      <div
-        style={{
-          ...cardStyle,
-          gridTemplateColumns: isCompact ? "minmax(0, 1fr)" : cardStyle.gridTemplateColumns,
-        }}
-      >
-        <section
-          style={{
-            padding: 40,
-            background:
-              "linear-gradient(180deg, rgba(15,23,42,0.18) 0%, rgba(8,47,73,0.4) 100%)",
-          }}
-        >
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 10,
-              padding: "8px 14px",
-              borderRadius: 999,
-              background: "rgba(16, 185, 129, 0.16)",
-              color: "#a7f3d0",
-              fontSize: 13,
-              fontWeight: 700,
-              letterSpacing: "0.04em",
-              textTransform: "uppercase",
-            }}
-          >
-            365Fiscal Demo
+    <div className="login-shell login-centered">
+      <div className="demo-shell">
+        <section className="demo-panel">
+          <div className="demo-panel-badge">365Fiscal Demo</div>
+          <img src="/365.png" alt="365 Fiscal" className="demo-panel-logo" />
+          <div className="login-headline">
+            <h1 className="login-title">
+              {isDemoView
+                ? "Your demo session is ready."
+                : "Create a demo account that feels like the real system."}
+            </h1>
+            <p className="login-lead">
+              {isDemoView
+                ? "Your lead is already saved for the admin in the Leads app. Keep an eye on the countdown while you explore."
+                : "Use the same product experience and background as the main login page while capturing company details, phone number, email, ZIMRA FDMS preference, and expected user count."}
+            </p>
           </div>
-          <h1 style={{ fontSize: 44, lineHeight: 1.05, margin: "20px 0 12px" }}>
-            Explore a live demo account in under 30 minutes.
-          </h1>
-          <p style={{ margin: 0, color: "#cbd5e1", maxWidth: 520, fontSize: 16, lineHeight: 1.7 }}>
-            Capture your company details, tell us how many users you expect, and let
-            us know whether you want ZIMRA FDMS support. Your request is saved into
-            the admin Leads app immediately.
-          </p>
 
-          <div
-            style={{
-              marginTop: 30,
-              display: "grid",
-              gap: 16,
-              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-            }}
-          >
-            {[
-              { label: "Demo lifetime", value: "30 minutes" },
-              { label: "Lead captured", value: "Visible to admin" },
-              { label: "FDMS preference", value: "Optional" },
-            ].map((item) => (
-              <div
-                key={item.label}
-                style={{
-                  padding: 18,
-                  borderRadius: 18,
-                  background: "rgba(15, 23, 42, 0.5)",
-                  border: "1px solid rgba(148, 163, 184, 0.14)",
-                }}
-              >
-                <div style={{ color: "#94a3b8", fontSize: 12, textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                  {item.label}
-                </div>
-                <div style={{ marginTop: 8, fontSize: 22, fontWeight: 700 }}>{item.value}</div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section style={{ padding: 40 }}>
           {!isDemoView ? (
-            <form onSubmit={handleSubmit} style={{ display: "grid", gap: 18 }}>
-              <div>
-                <h2 style={{ margin: 0, fontSize: 30 }}>Create demo account</h2>
-                <p style={{ margin: "8px 0 0", color: "#94a3b8", lineHeight: 1.6 }}>
-                  Fill in your details and we will open a 30-minute demo session.
-                </p>
+            <div className="login-features demo-features">
+              <div className="login-feature">
+                <span className="feature-icon">
+                  <Clock3 size={18} />
+                </span>
+                <span className="feature-text">
+                  <strong>30-minute live trial</strong>
+                  <span>Every demo expires automatically after thirty minutes.</span>
+                </span>
               </div>
-
-              <label style={labelStyle}>
-                Company
-                <input
-                  style={inputStyle}
-                  value={form.company_name}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, company_name: event.target.value }))
-                  }
-                  placeholder="Acme Retail"
-                  required
-                />
-              </label>
-
-              <label style={labelStyle}>
-                Phone number
-                <input
-                  style={inputStyle}
-                  value={form.phone_number}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, phone_number: event.target.value }))
-                  }
-                  placeholder="+263 77 123 4567"
-                  required
-                />
-              </label>
-
-              <label style={labelStyle}>
-                Email
-                <input
-                  type="email"
-                  style={inputStyle}
-                  value={form.email}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, email: event.target.value }))
-                  }
-                  placeholder="you@company.com"
-                  required
-                />
-              </label>
-
-              <label style={labelStyle}>
-                Number of users
-                <input
-                  type="number"
-                  min={1}
-                  max={500}
-                  style={inputStyle}
-                  value={form.num_users}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      num_users: Number(event.target.value) || 1,
-                    }))
-                  }
-                  required
-                />
-              </label>
-
-              <label
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  padding: 16,
-                  borderRadius: 16,
-                  border: "1px solid rgba(148, 163, 184, 0.18)",
-                  background: "rgba(15, 23, 42, 0.42)",
-                  cursor: "pointer",
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={form.wants_zimra_fdms}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      wants_zimra_fdms: event.target.checked,
-                    }))
-                  }
-                />
-                <span>I want ZIMRA FDMS enabled for the demo.</span>
-              </label>
-
-              {error && (
-                <div
-                  style={{
-                    padding: 14,
-                    borderRadius: 14,
-                    background: "rgba(239, 68, 68, 0.12)",
-                    border: "1px solid rgba(248, 113, 113, 0.28)",
-                    color: "#fecaca",
-                    whiteSpace: "pre-wrap",
-                  }}
-                >
-                  {error}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={submitting}
-                style={{
-                  border: 0,
-                  borderRadius: 16,
-                  padding: "16px 20px",
-                  fontSize: 16,
-                  fontWeight: 700,
-                  color: "#022c22",
-                  background: "linear-gradient(135deg, #6ee7b7 0%, #34d399 100%)",
-                  cursor: submitting ? "wait" : "pointer",
-                }}
-              >
-                {submitting ? "Creating demo..." : "Start demo"}
-              </button>
-            </form>
+              <div className="login-feature">
+                <span className="feature-icon">
+                  <ShieldCheck size={18} />
+                </span>
+                <span className="feature-text">
+                  <strong>Lead captured for admin</strong>
+                  <span>Requests appear in the Leads app for follow-up and conversion.</span>
+                </span>
+              </div>
+              <div className="login-feature">
+                <span className="feature-icon">
+                  <Users size={18} />
+                </span>
+                <span className="feature-text">
+                  <strong>ZIMRA FDMS and user sizing</strong>
+                  <span>Capture fiscal needs and the expected number of users up front.</span>
+                </span>
+              </div>
+            </div>
           ) : (
-            <div style={{ display: "grid", gap: 22 }}>
-              <div>
-                <h2 style={{ margin: 0, fontSize: 30 }}>
-                  {demo?.company_name || "Demo session"}
-                </h2>
-                <p style={{ margin: "8px 0 0", color: "#94a3b8", lineHeight: 1.6 }}>
-                  Your demo account is active for 30 minutes from creation time.
-                </p>
-              </div>
-
-              <div
-                style={{
-                  padding: 24,
-                  borderRadius: 24,
-                  background: expired
-                    ? "linear-gradient(135deg, rgba(127,29,29,0.65), rgba(69,10,10,0.8))"
-                    : "linear-gradient(135deg, rgba(5,150,105,0.22), rgba(8,47,73,0.7))",
-                  border: "1px solid rgba(148, 163, 184, 0.2)",
-                }}
-              >
-                <div style={{ fontSize: 13, color: "#cbd5e1", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                  Time remaining
-                </div>
-                <div style={{ fontSize: 64, lineHeight: 1, margin: "14px 0 10px", fontWeight: 800 }}>
-                  {formatRemaining(timeRemaining)}
-                </div>
-                <div style={{ color: "#cbd5e1" }}>
-                  {expired ? "This demo has expired." : `Expires at ${expiresAtLabel}`}
-                </div>
-              </div>
-
-              {demo && (
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                    gap: 14,
-                  }}
-                >
-                  {[
-                    { label: "Email", value: demo.email },
-                    { label: "Phone", value: demo.phone_number },
-                    { label: "Users", value: String(demo.num_users) },
-                    {
-                      label: "ZIMRA FDMS",
-                      value: demo.wants_zimra_fdms ? "Requested" : "Not requested",
-                    },
-                  ].map((item) => (
-                    <div
-                      key={item.label}
-                      style={{
-                        padding: 16,
-                        borderRadius: 16,
-                        background: "rgba(15, 23, 42, 0.45)",
-                        border: "1px solid rgba(148, 163, 184, 0.14)",
-                      }}
-                    >
-                      <div style={{ color: "#94a3b8", fontSize: 12, textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                        {item.label}
-                      </div>
-                      <div style={{ marginTop: 8, fontWeight: 700, wordBreak: "break-word" }}>
-                        {item.value}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {error && (
-                <div
-                  style={{
-                    padding: 14,
-                    borderRadius: 14,
-                    background: "rgba(239, 68, 68, 0.12)",
-                    border: "1px solid rgba(248, 113, 113, 0.28)",
-                    color: "#fecaca",
-                    whiteSpace: "pre-wrap",
-                  }}
-                >
-                  {error}
-                </div>
-              )}
-
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                <Link
-                  to="/demo"
-                  style={{
-                    textDecoration: "none",
-                    borderRadius: 14,
-                    padding: "14px 18px",
-                    fontWeight: 700,
-                    color: "#022c22",
-                    background: "linear-gradient(135deg, #6ee7b7 0%, #34d399 100%)",
-                  }}
-                >
-                  Create another demo later
-                </Link>
-                <Link
-                  to="/login"
-                  style={{
-                    textDecoration: "none",
-                    borderRadius: 14,
-                    padding: "14px 18px",
-                    fontWeight: 700,
-                    color: "#e2e8f0",
-                    border: "1px solid rgba(148, 163, 184, 0.18)",
-                    background: "rgba(15, 23, 42, 0.45)",
-                  }}
-                >
-                  Admin login
-                </Link>
-              </div>
+            <div className="demo-summary-grid">
+              <SummaryCard label="Company" value={demo?.company_name ?? "Demo"} />
+              <SummaryCard label="Email" value={demo?.email ?? "-"} />
+              <SummaryCard label="Phone" value={demo?.phone_number ?? "-"} />
+              <SummaryCard
+                label="ZIMRA FDMS"
+                value={demo?.wants_zimra_fdms ? "Requested" : "Not requested"}
+              />
             </div>
           )}
         </section>
+
+        <div className="login-card login-card-glass demo-card">
+          <div className="login-card-body demo-card-body">
+            <img src="/365.png" alt="365 Fiscal" className="logo-365 demo-card-logo" />
+
+            {!isDemoView ? (
+              <>
+                <div className="demo-form-head">
+                  <h2 className="login-card-title">Create demo account</h2>
+                  <p className="login-card-sub">
+                    Fill in your details and we will open a 30-minute demo session.
+                  </p>
+                </div>
+
+                <form className="login-form" onSubmit={handleSubmit}>
+                  <div className="input-group">
+                    <label className="input-label" htmlFor="demo-company">
+                      <Building2 size={14} />
+                      Company
+                    </label>
+                    <input
+                      id="demo-company"
+                      value={form.company_name}
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          company_name: event.target.value,
+                        }))
+                      }
+                      placeholder="Acme Retail"
+                      required
+                    />
+                  </div>
+
+                  <div className="input-group">
+                    <label className="input-label" htmlFor="demo-phone">
+                      <Phone size={14} />
+                      Phone number
+                    </label>
+                    <input
+                      id="demo-phone"
+                      value={form.phone_number}
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          phone_number: event.target.value,
+                        }))
+                      }
+                      placeholder="+263 77 123 4567"
+                      required
+                    />
+                  </div>
+
+                  <div className="input-group">
+                    <label className="input-label" htmlFor="demo-email">
+                      <Mail size={14} />
+                      Email
+                    </label>
+                    <input
+                      id="demo-email"
+                      type="email"
+                      value={form.email}
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          email: event.target.value,
+                        }))
+                      }
+                      placeholder="you@company.com"
+                      required
+                    />
+                  </div>
+
+                  <div className="input-group">
+                    <label className="input-label" htmlFor="demo-users">
+                      <Users size={14} />
+                      Number of users
+                    </label>
+                    <input
+                      id="demo-users"
+                      type="number"
+                      min={1}
+                      max={500}
+                      value={form.num_users}
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          num_users: Number(event.target.value) || 1,
+                        }))
+                      }
+                      required
+                    />
+                  </div>
+
+                  <label className="demo-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={form.wants_zimra_fdms}
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          wants_zimra_fdms: event.target.checked,
+                        }))
+                      }
+                    />
+                    <span>I want ZIMRA FDMS enabled for the demo.</span>
+                  </label>
+
+                  {error && <div className="login-error">{error}</div>}
+
+                  <button className="login-btn" type="submit" disabled={submitting}>
+                    {submitting ? (
+                      <>
+                        <span className="spinner"></span>
+                        <span>Creating demo...</span>
+                      </>
+                    ) : (
+                      <span>Start demo</span>
+                    )}
+                  </button>
+                </form>
+              </>
+            ) : (
+              <div className="demo-session">
+                <div className="demo-form-head">
+                  <h2 className="login-card-title">{demo?.company_name || "Demo session"}</h2>
+                  <p className="login-card-sub">
+                    Your live session is active for 30 minutes from the time it was created.
+                  </p>
+                </div>
+
+                <div className={`demo-timer-card ${expired ? "expired" : ""}`}>
+                  <div className="demo-timer-label">Time remaining</div>
+                  <div className="demo-timer-value">{formatRemaining(timeRemaining)}</div>
+                  <div className="demo-timer-meta">
+                    {expired ? "This demo has expired." : `Expires at ${expiresAtLabel}`}
+                  </div>
+                </div>
+
+                {error && <div className="login-error">{error}</div>}
+
+                <div className="demo-link-row">
+                  <Link to="/demo" className="login-btn demo-secondary-btn">
+                    Create another demo later
+                  </Link>
+                  <Link to="/login" className="demo-text-link">
+                    Go to admin login
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="login-card-footer">
+            <span>
+              <strong>
+                <a
+                  style={{ textDecoration: "underline", color: "var(--blue-50)" }}
+                  target="_blank"
+                  rel="noreferrer"
+                  href="http://www.geenet.co.zw"
+                >
+                  Powered by GeeNet
+                </a>
+              </strong>
+            </span>
+          </div>
+        </div>
       </div>
+    </div>
+  );
+}
+
+function SummaryCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="demo-summary-card">
+      <div className="demo-summary-label">{label}</div>
+      <div className="demo-summary-value">{value}</div>
     </div>
   );
 }

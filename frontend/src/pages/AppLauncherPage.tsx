@@ -319,6 +319,7 @@ export default function AppLauncherPage() {
   const [activateSuccess, setActivateSuccess] = useState("");
   const [activating, setActivating] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [demoCountdown, setDemoCountdown] = useState<number | null>(null);
   const companyName = !isAdmin
     ? (me?.companies?.[0]?.name ??
       activationStatus?.find((s) => Boolean(s.company_name))?.company_name ??
@@ -339,6 +340,32 @@ export default function AppLauncherPage() {
         .catch(() => setActivationStatus([]))
         .finally(() => setActivationLoading(false));
     }
+  }, [isAdmin, me]);
+
+  useEffect(() => {
+    const demoEmail = localStorage.getItem("demo_email");
+    const demoExpiresAt = localStorage.getItem("demo_expires_at");
+    if (!me || isAdmin || !demoEmail || !demoExpiresAt || me.email !== demoEmail) {
+      setDemoCountdown(null);
+      return;
+    }
+
+    const computeRemaining = () => {
+      const remaining = Math.max(
+        0,
+        Math.floor((new Date(demoExpiresAt).getTime() - Date.now()) / 1000),
+      );
+      setDemoCountdown(remaining);
+      if (remaining === 0) {
+        localStorage.removeItem("demo_account_id");
+        localStorage.removeItem("demo_expires_at");
+        localStorage.removeItem("demo_email");
+      }
+    };
+
+    computeRemaining();
+    const timer = window.setInterval(computeRemaining, 1000);
+    return () => window.clearInterval(timer);
   }, [isAdmin, me]);
 
   const hasActiveSubscription = activationStatus?.some(
@@ -371,7 +398,16 @@ export default function AppLauncherPage() {
 
   const handleLogout = () => {
     localStorage.removeItem("access_token");
+    localStorage.removeItem("demo_account_id");
+    localStorage.removeItem("demo_expires_at");
+    localStorage.removeItem("demo_email");
     window.location.href = "/login";
+  };
+
+  const formatDemoCountdown = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   };
 
   // Show loading state
@@ -579,6 +615,14 @@ export default function AppLauncherPage() {
       {/* Header */}
       <header className="app-launcher-header">
         <div className="app-launcher-user">
+          {!isAdmin && demoCountdown !== null && (
+            <div className={`demo-launcher-banner ${demoCountdown === 0 ? "expired" : ""}`}>
+              <span className="demo-launcher-label">Demo time</span>
+              <strong>
+                {demoCountdown === 0 ? "Expired" : formatDemoCountdown(demoCountdown)}
+              </strong>
+            </div>
+          )}
           {!isAdmin && companyName && (
             <div className="text-decoration-line rounded-md p-2 flex items-center gap-2 font-bold">
               <span>{companyName}</span>

@@ -32,5 +32,12 @@ class DemoAccountRead(ORMBase):
     created_at: datetime
     expires_at: datetime
     notes: str
+    user_id: int | None = None
+    company_id: int | None = None
     time_remaining_seconds: int
     is_expired: bool
+
+
+class DemoSignupResponse(DemoAccountRead):
+    access_token: str
+    portal_redirect_url: str

@@ -130,6 +130,24 @@ def ensure_new_columns():
                 else:
                     _startup_logger.info(">>> users.name column already exists")
 
+            if "demo_accounts" in table_names:
+                demo_cols = {c["name"] for c in insp.get_columns("demo_accounts")}
+                if "user_id" not in demo_cols:
+                    _startup_logger.info(">>> Adding user_id column to demo_accounts")
+                    conn.execute(text(
+                        "ALTER TABLE demo_accounts ADD COLUMN user_id INTEGER"
+                    ))
+                else:
+                    _startup_logger.info(">>> demo_accounts.user_id column already exists")
+
+                if "company_id" not in demo_cols:
+                    _startup_logger.info(">>> Adding company_id column to demo_accounts")
+                    conn.execute(text(
+                        "ALTER TABLE demo_accounts ADD COLUMN company_id INTEGER"
+                    ))
+                else:
+                    _startup_logger.info(">>> demo_accounts.company_id column already exists")
+
             if "pos_tills" in table_names:
                 till_cols = {c["name"] for c in insp.get_columns("pos_tills")}
                 if "warehouse_id" not in till_cols:
