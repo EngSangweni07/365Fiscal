@@ -4,10 +4,14 @@ import {
   BadgeCheck,
   Building2,
   Clock3,
+  LayoutGrid,
+  List,
   Mail,
   Phone,
+  Search,
   ShieldCheck,
   Users,
+  X,
 } from "lucide-react";
 import { apiFetch } from "../api";
 import { Sidebar } from "../components/Sidebar";
@@ -26,9 +30,34 @@ type DemoLead = {
   notes: string;
   time_remaining_seconds: number;
   is_expired: boolean;
+  company_id?: number | null;
+  user_id?: number | null;
+};
+
+type CompanyPayload = {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  tin: string;
+  vat: string;
+  portal_apps: string[];
 };
 
 const statusOptions = ["all", "active", "expired", "converted"] as const;
+const PORTAL_APPS = [
+  "dashboard",
+  "invoices",
+  "purchases",
+  "contacts",
+  "quotations",
+  "inventory",
+  "pos",
+  "devices",
+  "reports",
+  "expenses",
+  "settings",
+];
 
 const formatTimer = (seconds: number) => {
   const total = Math.max(0, seconds);
@@ -55,40 +84,48 @@ const formatHarareDateTime = (value: string) =>
     hour12: true,
   });
 
+const buildInitialCompanyPayload = (lead: DemoLead): CompanyPayload => ({
+  name: lead.company_name,
+  email: lead.email,
+  phone: lead.phone_number,
+  address: "",
+  tin: "",
+  vat: "",
+  portal_apps: PORTAL_APPS,
+});
+
 export default function LeadsPage() {
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] =
     useState<(typeof statusOptions)[number]>("all");
+  const [viewMode, setViewMode] = useState<"cards" | "list">("cards");
+  const [searchQuery, setSearchQuery] = useState("");
   const [leads, setLeads] = useState<DemoLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedLead, setSelectedLead] = useState<DemoLead | null>(null);
+  const [companyForm, setCompanyForm] = useState<CompanyPayload | null>(null);
+  const [portalPassword, setPortalPassword] = useState("Temp12345!");
+  const [savingPortal, setSavingPortal] = useState(false);
+  const [actionMessage, setActionMessage] = useState("");
+
+  const loadLeads = async (filter: (typeof statusOptions)[number]) => {
+    setLoading(true);
+    setError("");
+    try {
+      const query =
+        filter === "all" ? "" : `?status_filter=${encodeURIComponent(filter)}`;
+      const payload = await apiFetch<DemoLead[]>(`/demo${query}`);
+      setLeads(payload);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load leads.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    let cancelled = false;
-
-    const loadLeads = async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const query =
-          statusFilter === "all"
-            ? ""
-            : `?status_filter=${encodeURIComponent(statusFilter)}`;
-        const payload = await apiFetch<DemoLead[]>(`/demo${query}`);
-        if (cancelled) return;
-        setLeads(payload);
-      } catch (err) {
-        if (cancelled) return;
-        setError(err instanceof Error ? err.message : "Failed to load leads.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    loadLeads();
-    return () => {
-      cancelled = true;
-    };
+    loadLeads(statusFilter);
   }, [statusFilter]);
 
   const counts = useMemo(() => {
@@ -97,6 +134,23 @@ export default function LeadsPage() {
     const converted = leads.filter((lead) => lead.status === "converted").length;
     return { active, expired, converted };
   }, [leads]);
+
+  const filteredLeads = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return leads;
+    return leads.filter((lead) =>
+      [
+        lead.company_name,
+        lead.email,
+        lead.phone_number,
+        lead.status,
+        String(lead.num_users),
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(query),
+    );
+  }, [leads, searchQuery]);
 
   const sidebarSections = useMemo<SidebarSection[]>(
     () => [
@@ -150,6 +204,78 @@ export default function LeadsPage() {
     [counts.active, counts.converted, counts.expired, leads.length, statusFilter],
   );
 
+  const openLead = (lead: DemoLead) => {
+    setSelectedLead(lead);
+    setCompanyForm(buildInitialCompanyPayload(lead));
+    setPortalPassword("Temp12345!");
+    setActionMessage("");
+  };
+
+  const closeLead = () => {
+    setSelectedLead(null);
+    setCompanyForm(null);
+    setPortalPassword("Temp12345!");
+    setActionMessage("");
+  };
+
+  const handleCreatePortal = async () => {
+    if (!selectedLead || !companyForm) return;
+    setSavingPortal(true);
+    setActionMessage("");
+
+    try {
+      let companyId = selectedLead.company_id ?? null;
+
+      if (companyId) {
+        const updated = await apiFetch<{ id: number }>(`/companies/${companyId}`, {
+          method: "PATCH",
+          body: JSON.stringify(companyForm),
+        });
+        companyId = updated.id;
+      } else {
+        const created = await apiFetch<{ id: number }>(`/companies`, {
+          method: "POST",
+          body: JSON.stringify(companyForm),
+        });
+        companyId = created.id;
+      }
+
+      await apiFetch(`/companies/${companyId}/portal-user`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          email: companyForm.email,
+          password: portalPassword,
+        }),
+      });
+
+      await apiFetch(`/demo/${selectedLead.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          status: "converted",
+          notes: `Lead converted to company portal on ${new Date().toISOString()}.`,
+        }),
+      });
+
+      setActionMessage("Company and portal user created successfully.");
+      await loadLeads(statusFilter);
+      setSelectedLead((current) =>
+        current
+          ? {
+              ...current,
+              status: "converted",
+              company_id: companyId,
+            }
+          : current,
+      );
+    } catch (err) {
+      setActionMessage(
+        err instanceof Error ? err.message : "Failed to create company portal.",
+      );
+    } finally {
+      setSavingPortal(false);
+    }
+  };
+
   return (
     <div className="content">
       <div className="two-panel two-panel-left">
@@ -159,8 +285,32 @@ export default function LeadsPage() {
           <div className="toolbar" style={{ marginBottom: 12 }}>
             <div className="toolbar-left">
               <h3>Leads</h3>
+              <div className="leads-search">
+                <Search size={16} />
+                <input
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Search company, email, phone, or status"
+                />
+              </div>
             </div>
             <div className="toolbar-right">
+              <button
+                className={viewMode === "cards" ? "tab active" : "tab"}
+                onClick={() => setViewMode("cards")}
+                type="button"
+                title="Card view"
+              >
+                <LayoutGrid size={16} />
+              </button>
+              <button
+                className={viewMode === "list" ? "tab active" : "tab"}
+                onClick={() => setViewMode("list")}
+                type="button"
+                title="List view"
+              >
+                <List size={16} />
+              </button>
               {statusOptions.map((option) => (
                 <button
                   key={option}
@@ -177,35 +327,6 @@ export default function LeadsPage() {
             </div>
           </div>
 
-          <div className="table-card full-width leads-summary-card">
-            <div className="table-header">
-              <h3>Demo Requests</h3>
-            </div>
-            <p className="leads-summary-text">
-              Public demo signups appear here for admin follow-up with company
-              details, contact information, requested user count, FDMS interest,
-              and live demo timing.
-            </p>
-            <div className="leads-stat-grid">
-              <div className="leads-stat-tile">
-                <span className="leads-stat-label">Total leads</span>
-                <strong>{leads.length}</strong>
-              </div>
-              <div className="leads-stat-tile">
-                <span className="leads-stat-label">Active demos</span>
-                <strong>{counts.active}</strong>
-              </div>
-              <div className="leads-stat-tile">
-                <span className="leads-stat-label">Expired demos</span>
-                <strong>{counts.expired}</strong>
-              </div>
-              <div className="leads-stat-tile">
-                <span className="leads-stat-label">Converted</span>
-                <strong>{counts.converted}</strong>
-              </div>
-            </div>
-          </div>
-
           {loading ? (
             <div className="table-card full-width">
               <div className="leads-empty-state">Loading demo leads...</div>
@@ -214,14 +335,55 @@ export default function LeadsPage() {
             <div className="table-card full-width">
               <div className="leads-error-state">{error}</div>
             </div>
-          ) : !leads.length ? (
+          ) : !filteredLeads.length ? (
             <div className="table-card full-width">
-              <div className="leads-empty-state">No demo leads yet.</div>
+              <div className="leads-empty-state">No matching leads found.</div>
+            </div>
+          ) : viewMode === "list" ? (
+            <div className="table-card full-width">
+              <table className="table leads-table">
+                <thead>
+                  <tr>
+                    <th>Company</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Users</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th>Expires</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredLeads.map((lead) => (
+                    <tr
+                      key={lead.id}
+                      className="leads-table-row"
+                      onClick={() => openLead(lead)}
+                    >
+                      <td>{lead.company_name}</td>
+                      <td>{lead.email}</td>
+                      <td>{lead.phone_number}</td>
+                      <td>{lead.num_users}</td>
+                      <td>
+                        <span className={`leads-status-chip status-${lead.status}`}>
+                          {lead.status}
+                        </span>
+                      </td>
+                      <td>{formatHarareDateTime(lead.created_at)} CAT</td>
+                      <td>{formatHarareDateTime(lead.expires_at)} CAT</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           ) : (
             <div className="leads-grid">
-              {leads.map((lead) => (
-                <article key={lead.id} className="table-card leads-lead-card">
+              {filteredLeads.map((lead) => (
+                <article
+                  key={lead.id}
+                  className="table-card leads-lead-card"
+                  onClick={() => openLead(lead)}
+                >
                   <div className="leads-lead-top">
                     <div>
                       <div className="leads-lead-title-row">
@@ -279,6 +441,109 @@ export default function LeadsPage() {
           )}
         </div>
       </div>
+
+      {selectedLead && companyForm && (
+        <div className="modal-overlay" onClick={closeLead}>
+          <div
+            className="modal modal-centered leads-modal"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="modal-header">
+              <h3>{selectedLead.company_name}</h3>
+              <button className="outline" onClick={closeLead} type="button">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="leads-modal-grid">
+                <LeadModalInfo label="Lead status" value={selectedLead.status} />
+                <LeadModalInfo
+                  label="Created"
+                  value={`${formatHarareDateTime(selectedLead.created_at)} CAT`}
+                />
+                <LeadModalInfo
+                  label="Expires"
+                  value={`${formatHarareDateTime(selectedLead.expires_at)} CAT`}
+                />
+                <LeadModalInfo
+                  label="Demo users"
+                  value={String(selectedLead.num_users)}
+                />
+              </div>
+
+              <div className="form-section">
+                <h4>Create Company / Portal</h4>
+                <div className="settings-modal-grid">
+                  <label className="input">
+                    <span>Company Name</span>
+                    <input
+                      value={companyForm.name}
+                      onChange={(event) =>
+                        setCompanyForm((current) =>
+                          current ? { ...current, name: event.target.value } : current,
+                        )
+                      }
+                    />
+                  </label>
+                  <label className="input">
+                    <span>Email</span>
+                    <input
+                      value={companyForm.email}
+                      onChange={(event) =>
+                        setCompanyForm((current) =>
+                          current ? { ...current, email: event.target.value } : current,
+                        )
+                      }
+                    />
+                  </label>
+                  <label className="input">
+                    <span>Phone</span>
+                    <input
+                      value={companyForm.phone}
+                      onChange={(event) =>
+                        setCompanyForm((current) =>
+                          current ? { ...current, phone: event.target.value } : current,
+                        )
+                      }
+                    />
+                  </label>
+                  <label className="input">
+                    <span>Portal Password</span>
+                    <input
+                      value={portalPassword}
+                      onChange={(event) => setPortalPassword(event.target.value)}
+                    />
+                  </label>
+                </div>
+                {actionMessage && (
+                  <div
+                    className={
+                      actionMessage.includes("successfully")
+                        ? "login-status leads-action-message"
+                        : "login-error leads-action-message"
+                    }
+                  >
+                    {actionMessage}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="outline" onClick={closeLead} type="button">
+                Close
+              </button>
+              <button
+                className="primary"
+                onClick={handleCreatePortal}
+                type="button"
+                disabled={savingPortal}
+              >
+                {savingPortal ? "Saving..." : "Create Company / Portal"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -299,6 +564,15 @@ function LeadInfo({
         <span>{label}</span>
       </div>
       <div className="leads-info-value">{value}</div>
+    </div>
+  );
+}
+
+function LeadModalInfo({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="leads-modal-info">
+      <span>{label}</span>
+      <strong>{value}</strong>
     </div>
   );
 }
