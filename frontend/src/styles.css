@@ -2774,7 +2774,7 @@ thead.table-light th {
 
 .demo-card {
   max-width: 430px;
-  background: rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(28px);
   -webkit-backdrop-filter: blur(28px);
   border-color: rgba(255, 255, 255, 0.88);
@@ -2798,7 +2798,7 @@ thead.table-light th {
 
 .demo-form-head .login-card-title {
   margin-bottom: 4px;
-  color: var(--brand-sherpa);
+  color: var(--black-500);
   font-weight: 700;
 }
 
@@ -2817,19 +2817,19 @@ thead.table-light th {
 
 .demo-field .input-label {
   font-size: 11px;
-  color: var(--brand-sherpa);
+  color: var(--black-500);
   opacity: 1;
 }
 
 .demo-field input {
   padding: 12px 14px;
-  color: var(--brand-sherpa);
+  color: var(--black-500);
   background: rgba(255, 255, 255, 0.96);
   border-color: rgba(137, 138, 142, 0.35);
 }
 
 .demo-field input::placeholder {
-  color: rgba(11, 69, 80, 0.45);
+  color: rgba(0, 0, 0, 0.42);
 }
 
 .demo-checkbox {
@@ -2839,10 +2839,10 @@ thead.table-light th {
   padding: 12px 14px;
   border-radius: 14px;
   border: 1px solid rgba(137, 138, 142, 0.35);
-  background: rgba(255, 255, 255, 0.82);
-  color: var(--brand-sherpa);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--black-500);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   line-height: 1.5;
 }
 
@@ -2915,6 +2915,54 @@ thead.table-light th {
 
 .demo-submit-btn:disabled {
   background: var(--brand-grey);
+}
+
+.demo-card .login-card-footer,
+.demo-card .login-card-footer a {
+  color: var(--black-500) !important;
+  font-weight: 700;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
+}
+
+.demo-whatsapp-float {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  width: 60px;
+  height: 60px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #25d366;
+  color: #ffffff;
+  box-shadow: 0 12px 28px rgba(37, 211, 102, 0.38);
+  border: 3px solid rgba(255, 255, 255, 0.92);
+  z-index: 40;
+  animation: demo-whatsapp-bounce 1.8s infinite;
+}
+
+.demo-whatsapp-float svg {
+  width: 30px;
+  height: 30px;
+}
+
+.demo-whatsapp-float:hover {
+  transform: scale(1.06);
+  box-shadow: 0 16px 32px rgba(37, 211, 102, 0.44);
+}
+
+@keyframes demo-whatsapp-bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-8px);
+  }
+  60% {
+    transform: translateY(-4px);
+  }
 }
 
 .demo-text-link {
