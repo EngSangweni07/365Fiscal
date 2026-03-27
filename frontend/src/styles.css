@@ -3046,6 +3046,108 @@ thead.table-light th {
   color: var(--red-600);
 }
 
+.demo-interest-modal {
+  max-width: 760px;
+  border-radius: 24px;
+  border: 1px solid rgba(11, 69, 80, 0.12);
+  box-shadow: 0 28px 60px rgba(15, 23, 42, 0.22);
+}
+
+.demo-interest-body {
+  display: grid;
+  gap: 16px;
+}
+
+.demo-interest-copy {
+  margin: 0;
+  color: var(--slate-600);
+  line-height: 1.6;
+}
+
+.demo-interest-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.demo-interest-grid .input-group {
+  gap: 8px;
+}
+
+.demo-interest-grid .input-label {
+  color: var(--slate-700);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.demo-interest-grid input,
+.demo-interest-grid textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.34);
+  background: rgba(248, 250, 252, 0.96);
+  color: var(--slate-900);
+  font: inherit;
+}
+
+.demo-interest-grid input:disabled {
+  color: var(--slate-500);
+  background: rgba(241, 245, 249, 0.95);
+}
+
+.demo-interest-grid textarea {
+  resize: vertical;
+  min-height: 92px;
+}
+
+.demo-interest-field-full {
+  grid-column: 1 / -1;
+}
+
+.demo-interest-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(11, 69, 80, 0.05);
+  border: 1px solid rgba(11, 69, 80, 0.08);
+  color: var(--slate-800);
+  font-weight: 600;
+}
+
+.demo-interest-check input {
+  width: 17px;
+  height: 17px;
+  margin-top: 2px;
+  accent-color: var(--brand-sherpa);
+}
+
+.demo-interest-submit {
+  min-width: 160px;
+}
+
+.demo-interest-modal .modal-footer .btn.secondary {
+  background: rgba(226, 232, 240, 0.85);
+  color: var(--slate-700);
+}
+
+.demo-interest-modal .modal-footer .btn.secondary:hover {
+  background: rgba(203, 213, 225, 0.95);
+}
+
+@media (max-width: 768px) {
+  .demo-interest-modal {
+    width: min(94vw, 760px);
+  }
+
+  .demo-interest-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .demo-summary-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

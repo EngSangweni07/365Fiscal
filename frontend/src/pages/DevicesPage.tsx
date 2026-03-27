@@ -761,7 +761,7 @@ export default function DevicesPage() {
               Model <span style={{ color: "var(--danger)" }}>*</span>
               <input
                 value={form.model}
-                placeholder="e.g. 365Fiscal"
+                placeholder="e.g. Three65"
                 onChange={(e) => setForm({ ...form, model: e.target.value })}
               />
             </label>
@@ -878,7 +878,7 @@ export default function DevicesPage() {
               Model <span style={{ color: "var(--danger)" }}>*</span>
               <input
                 value={editForm.model}
-                placeholder="e.g. 365Fiscal"
+                placeholder="e.g. Three65"
                 onChange={(e) =>
                   setEditForm({ ...editForm, model: e.target.value })
                 }

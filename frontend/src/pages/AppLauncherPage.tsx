@@ -30,6 +30,33 @@ type ActivationStatus = {
   company_name: string | null;
 };
 
+type DemoAccount = {
+  id: number;
+  company_name: string;
+  email: string;
+  phone_number: string;
+  wants_zimra_fdms: boolean;
+  num_users: number;
+  wants_actual_three65: boolean;
+  tin: string;
+  vat_number: string;
+  trade_name: string;
+  address: string;
+  status: string;
+};
+
+type DemoInterestForm = {
+  wants_actual_three65: boolean;
+  company_name: string;
+  phone_number: string;
+  num_users: number;
+  wants_zimra_fdms: boolean;
+  tin: string;
+  vat_number: string;
+  trade_name: string;
+  address: string;
+};
+
 // App icons powered by Lucide
 const DashboardIcon = LayoutDashboard;
 const InvoiceIcon = FileText;
@@ -326,6 +353,22 @@ export default function AppLauncherPage() {
   const [activating, setActivating] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [demoCountdown, setDemoCountdown] = useState<number | null>(null);
+  const [demoAccount, setDemoAccount] = useState<DemoAccount | null>(null);
+  const [demoInterestOpen, setDemoInterestOpen] = useState(false);
+  const [demoInterestError, setDemoInterestError] = useState("");
+  const [demoInterestSubmitting, setDemoInterestSubmitting] = useState(false);
+  const [demoInterestSubmitted, setDemoInterestSubmitted] = useState(false);
+  const [demoInterestForm, setDemoInterestForm] = useState<DemoInterestForm>({
+    wants_actual_three65: true,
+    company_name: "",
+    phone_number: "",
+    num_users: 1,
+    wants_zimra_fdms: false,
+    tin: "",
+    vat_number: "",
+    trade_name: "",
+    address: "",
+  });
   const companyName = !isAdmin
     ? (me?.companies?.[0]?.name ??
       activationStatus?.find((s) => Boolean(s.company_name))?.company_name ??
@@ -363,18 +406,61 @@ export default function AppLauncherPage() {
         Math.floor((expiresAtMs - Date.now()) / 1000),
       );
       setDemoCountdown(remaining);
-      if (remaining === 0) {
-        localStorage.removeItem("demo_account_id");
-        localStorage.removeItem("demo_expires_at");
-        localStorage.removeItem("demo_expires_at_ms");
-        localStorage.removeItem("demo_email");
-      }
     };
 
     computeRemaining();
     const timer = window.setInterval(computeRemaining, 1000);
     return () => window.clearInterval(timer);
   }, [isAdmin, me]);
+
+  useEffect(() => {
+    const demoAccountId = localStorage.getItem("demo_account_id");
+    const demoEmail = localStorage.getItem("demo_email");
+    if (!me || isAdmin || !demoAccountId || !demoEmail || me.email !== demoEmail) {
+      setDemoAccount(null);
+      return;
+    }
+
+    const submittedKey = `demo_interest_submitted_${demoAccountId}`;
+    setDemoInterestSubmitted(localStorage.getItem(submittedKey) === "true");
+
+    apiFetch<DemoAccount>(`/demo/${demoAccountId}`, {
+      auth: false,
+      suppress401Redirect: true,
+    })
+      .then((data) => {
+        setDemoAccount(data);
+        setDemoInterestForm({
+          wants_actual_three65:
+            typeof data.wants_actual_three65 === "boolean"
+              ? data.wants_actual_three65
+              : true,
+          company_name: data.company_name || me.companies?.[0]?.name || "",
+          phone_number: data.phone_number || "",
+          num_users: data.num_users || 1,
+          wants_zimra_fdms: data.wants_zimra_fdms,
+          tin: data.tin || "",
+          vat_number: data.vat_number || "",
+          trade_name: data.trade_name || "",
+          address: data.address || "",
+        });
+      })
+      .catch(() => setDemoAccount(null));
+  }, [isAdmin, me]);
+
+  useEffect(() => {
+    const demoAccountId = localStorage.getItem("demo_account_id");
+    if (
+      isAdmin ||
+      demoCountdown === null ||
+      demoCountdown > 0 ||
+      !demoAccountId ||
+      demoInterestSubmitted
+    ) {
+      return;
+    }
+    setDemoInterestOpen(true);
+  }, [demoCountdown, demoInterestSubmitted, isAdmin]);
 
   const hasActiveSubscription = activationStatus?.some(
     (s) => s.activated && s.status === "active",
@@ -411,6 +497,48 @@ export default function AppLauncherPage() {
     localStorage.removeItem("demo_expires_at_ms");
     localStorage.removeItem("demo_email");
     window.location.href = "/login";
+  };
+
+  const handleDemoInterestSubmit = async () => {
+    const demoAccountId = localStorage.getItem("demo_account_id");
+    if (!demoAccountId) {
+      setDemoInterestError("Demo account could not be found.");
+      return;
+    }
+    if (!demoInterestForm.company_name.trim() || !demoInterestForm.phone_number.trim()) {
+      setDemoInterestError("Company name and phone number are required.");
+      return;
+    }
+    if (demoInterestForm.wants_zimra_fdms) {
+      const zimraFieldsFilled =
+        demoInterestForm.tin.trim() &&
+        demoInterestForm.vat_number.trim() &&
+        demoInterestForm.trade_name.trim() &&
+        demoInterestForm.address.trim();
+      if (!zimraFieldsFilled) {
+        setDemoInterestError("TIN, VAT, trade name and address are required for ZIMRA fiscalization.");
+        return;
+      }
+    }
+
+    setDemoInterestSubmitting(true);
+    setDemoInterestError("");
+    try {
+      const data = await apiFetch<DemoAccount>(`/demo/${demoAccountId}/confirm-interest`, {
+        method: "POST",
+        auth: false,
+        suppress401Redirect: true,
+        body: JSON.stringify(demoInterestForm),
+      });
+      setDemoAccount(data);
+      setDemoInterestSubmitted(true);
+      localStorage.setItem(`demo_interest_submitted_${demoAccountId}`, "true");
+      setDemoInterestOpen(false);
+    } catch (err: any) {
+      setDemoInterestError(err.message || "Failed to send your request.");
+    } finally {
+      setDemoInterestSubmitting(false);
+    }
   };
 
   const formatDemoCountdown = (seconds: number) => {
@@ -487,7 +615,7 @@ export default function AppLauncherPage() {
                   <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                 </svg>
               </div> */}
-              <img src="/three.png" alt="365 Fiscal" className="logo-365" />
+              <img src="/three.png" alt="Three65" className="logo-365" />
               <h2 className="login-card-title activation-title">
                 Enter your subscription code
               </h2>
@@ -700,6 +828,178 @@ export default function AppLauncherPage() {
           ))}
         </div>
       </div>
+
+      {demoInterestOpen && demoAccount && (
+        <div className="modal-overlay">
+          <div className="modal modal--centered demo-interest-modal">
+            <div className="modal-header">
+              <h3>Continue with the actual Three65</h3>
+            </div>
+            <div className="modal-body demo-interest-body">
+              <p className="demo-interest-copy">
+                Your 3-minute demo has ended. Confirm your details and we will email
+                {" "}
+                <strong>courageg@geenet.co.zw</strong>
+                {" "}
+                for follow-up.
+              </p>
+
+              <label className="demo-interest-check">
+                <input
+                  type="checkbox"
+                  checked={demoInterestForm.wants_actual_three65}
+                  onChange={(event) =>
+                    setDemoInterestForm((current) => ({
+                      ...current,
+                      wants_actual_three65: event.target.checked,
+                    }))
+                  }
+                />
+                <span>Please contact me about the actual Three65 system.</span>
+              </label>
+
+              <div className="demo-interest-grid">
+                <div className="input-group">
+                  <label className="input-label">Company name</label>
+                  <input
+                    value={demoInterestForm.company_name}
+                    onChange={(event) =>
+                      setDemoInterestForm((current) => ({
+                        ...current,
+                        company_name: event.target.value,
+                      }))
+                    }
+                  />
+                </div>
+
+                <div className="input-group">
+                  <label className="input-label">Phone number</label>
+                  <input
+                    value={demoInterestForm.phone_number}
+                    onChange={(event) =>
+                      setDemoInterestForm((current) => ({
+                        ...current,
+                        phone_number: event.target.value,
+                      }))
+                    }
+                  />
+                </div>
+
+                <div className="input-group">
+                  <label className="input-label">Email</label>
+                  <input value={demoAccount.email} disabled />
+                </div>
+
+                <div className="input-group">
+                  <label className="input-label">Number of users required</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={500}
+                    value={demoInterestForm.num_users}
+                    onChange={(event) =>
+                      setDemoInterestForm((current) => ({
+                        ...current,
+                        num_users: Number(event.target.value) || 1,
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+
+              <label className="demo-interest-check">
+                <input
+                  type="checkbox"
+                  checked={demoInterestForm.wants_zimra_fdms}
+                  onChange={(event) =>
+                    setDemoInterestForm((current) => ({
+                      ...current,
+                      wants_zimra_fdms: event.target.checked,
+                    }))
+                  }
+                />
+                <span>I want ZIMRA fiscalization.</span>
+              </label>
+
+              {demoInterestForm.wants_zimra_fdms && (
+                <div className="demo-interest-grid">
+                  <div className="input-group">
+                    <label className="input-label">TIN</label>
+                    <input
+                      value={demoInterestForm.tin}
+                      onChange={(event) =>
+                        setDemoInterestForm((current) => ({
+                          ...current,
+                          tin: event.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+
+                  <div className="input-group">
+                    <label className="input-label">VAT</label>
+                    <input
+                      value={demoInterestForm.vat_number}
+                      onChange={(event) =>
+                        setDemoInterestForm((current) => ({
+                          ...current,
+                          vat_number: event.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+
+                  <div className="input-group">
+                    <label className="input-label">Trade name</label>
+                    <input
+                      value={demoInterestForm.trade_name}
+                      onChange={(event) =>
+                        setDemoInterestForm((current) => ({
+                          ...current,
+                          trade_name: event.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+
+                  <div className="input-group demo-interest-field-full">
+                    <label className="input-label">Address</label>
+                    <textarea
+                      value={demoInterestForm.address}
+                      onChange={(event) =>
+                        setDemoInterestForm((current) => ({
+                          ...current,
+                          address: event.target.value,
+                        }))
+                      }
+                      rows={3}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {demoInterestError && <div className="login-error">{demoInterestError}</div>}
+            </div>
+            <div className="modal-footer">
+              <button
+                className="btn secondary"
+                type="button"
+                onClick={() => setDemoInterestOpen(false)}
+              >
+                Later
+              </button>
+              <button
+                className="login-btn demo-interest-submit"
+                type="button"
+                onClick={handleDemoInterestSubmit}
+                disabled={demoInterestSubmitting}
+              >
+                {demoInterestSubmitting ? "Sending..." : "Send request"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

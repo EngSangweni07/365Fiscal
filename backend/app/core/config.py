@@ -2,13 +2,21 @@
 
 
 class Settings(BaseSettings):
-    app_name: str = "365 FISCAL"
+    app_name: str = "Three65"
     env: str = "dev"
     secret_key: str
     access_token_expire_minutes: int = 60
     database_url: str
     otp_ttl_minutes: int = 10
     otp_dev_mode: bool = True
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_username: str | None = None
+    smtp_password: str | None = None
+    smtp_use_tls: bool = True
+    smtp_use_ssl: bool = False
+    smtp_from_email: str | None = None
+    smtp_from_name: str = "Three65"
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
     default_admin_email: str | None = None
     default_admin_password: str | None = None

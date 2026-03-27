@@ -97,7 +97,7 @@ export default function CustomerDisplayPage() {
   const total = data?.total || 0;
   const subtotal = data?.subtotal || 0;
   const tax = data?.tax || 0;
-  const companyName = data?.companyName || "365 Fiscal";
+  const companyName = data?.companyName || "Three65";
   const companyLogo = data?.companyLogo || "";
   const currencySymbol = data?.currency_symbol || "";
   const currencyCode = data?.currency_code || "";

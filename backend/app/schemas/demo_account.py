@@ -17,8 +17,25 @@ class DemoAccountUpdate(BaseModel):
     phone_number: str | None = None
     wants_zimra_fdms: bool | None = None
     num_users: int | None = None
+    wants_actual_three65: bool | None = None
+    tin: str | None = None
+    vat_number: str | None = None
+    trade_name: str | None = None
+    address: str | None = None
     status: str | None = None
     notes: str | None = None
+
+
+class DemoInterestRequest(BaseModel):
+    wants_actual_three65: bool = True
+    company_name: str = Field(min_length=2, max_length=255)
+    phone_number: str = Field(min_length=5, max_length=20)
+    num_users: int = Field(default=1, ge=1, le=500)
+    wants_zimra_fdms: bool = False
+    tin: str | None = Field(default=None, max_length=100)
+    vat_number: str | None = Field(default=None, max_length=100)
+    trade_name: str | None = Field(default=None, max_length=255)
+    address: str | None = Field(default=None, max_length=1000)
 
 
 class DemoAccountRead(ORMBase):
@@ -28,6 +45,11 @@ class DemoAccountRead(ORMBase):
     phone_number: str
     wants_zimra_fdms: bool
     num_users: int
+    wants_actual_three65: bool
+    tin: str
+    vat_number: str
+    trade_name: str
+    address: str
     status: str
     created_at: datetime
     expires_at: datetime

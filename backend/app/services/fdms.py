@@ -75,7 +75,7 @@ def _call_fdms(
     # ZIMRA requires these headers on EVERY request
     headers = {
         "Content-Type": "application/json",
-        "DeviceModelName": device.model or "365Fiscal",
+        "DeviceModelName": device.model or "Three65",
         "DeviceModelVersion": "1.0",
     }
 

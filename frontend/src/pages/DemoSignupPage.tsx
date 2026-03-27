@@ -5,7 +5,7 @@ import { apiFetch } from "../api";
 
 const GEE_NET_SUPPORT_EMAIL = "support@geenet.co.zw";
 const GEE_NET_WHATSAPP_URL =
-  "https://wa.me/263777589119?text=Hello%20GeeNet,%20I%20need%20help%20with%20the%20365Fiscal%20demo.";
+  "https://wa.me/263777589119?text=Hello%20GeeNet,%20I%20need%20help%20with%20the%20Three65%20demo.";
 
 type DemoAccount = {
   id: number;
@@ -14,6 +14,11 @@ type DemoAccount = {
   phone_number: string;
   wants_zimra_fdms: boolean;
   num_users: number;
+  wants_actual_three65: boolean;
+  tin: string;
+  vat_number: string;
+  trade_name: string;
+  address: string;
   status: string;
   created_at: string;
   expires_at: string;
@@ -157,7 +162,7 @@ export default function DemoSignupPage() {
       <div className="demo-shell demo-shell-single">
         <div className="login-card login-card-glass demo-card">
           <div className="login-card-body demo-card-body">
-            <img src="/three.png" alt="365 Fiscal" className="logo-365 demo-card-logo" />
+            <img src="/three.png" alt="Three65" className="logo-365 demo-card-logo" />
 
             {!isDemoView ? (
               <>
@@ -282,7 +287,7 @@ export default function DemoSignupPage() {
                 <div className="demo-form-head">
                   <h2 className="login-card-title">{demo?.company_name || "Demo session"}</h2>
                   <p className="login-card-sub">
-                    Your live session is active for 30 minutes from the time it was created.
+                    Your live session is active for 3 minutes from the time it was created.
                   </p>
                 </div>
 

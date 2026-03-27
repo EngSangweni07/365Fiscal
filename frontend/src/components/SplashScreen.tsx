@@ -18,9 +18,9 @@ export default function SplashScreen({ label = "Loading" }: SplashProps) {
     <div className="splash">
       <div className="splash-card">
         <div className="splash-logo">
-          <img src="/three.png" alt="365 Fiscal" />
+          <img src="/three.png" alt="Three65" />
         </div>
-        <div className="splash-title">365 Fiscal</div>
+        <div className="splash-title">Three65</div>
         <div className="splash-sub">{label}{dots}</div>
         <div className="splash-bar">
           <span className="splash-line" />

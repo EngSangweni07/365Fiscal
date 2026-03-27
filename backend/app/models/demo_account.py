@@ -15,6 +15,11 @@ class DemoAccount(Base, TimestampMixin):
     phone_number: Mapped[str] = mapped_column(String(20))
     wants_zimra_fdms: Mapped[bool] = mapped_column(Boolean, default=False)
     num_users: Mapped[int] = mapped_column(Integer, default=1)
+    wants_actual_three65: Mapped[bool] = mapped_column(Boolean, default=False)
+    tin: Mapped[str] = mapped_column(String(100), default="")
+    vat_number: Mapped[str] = mapped_column(String(100), default="")
+    trade_name: Mapped[str] = mapped_column(String(255), default="")
+    address: Mapped[str] = mapped_column(String(1000), default="")
     status: Mapped[str] = mapped_column(String(50), default="active")  # active, expired, converted
     expires_at: Mapped[datetime] = mapped_column(DateTime)
     notes: Mapped[str] = mapped_column(String(1000), default="")
@@ -39,7 +44,7 @@ class DemoAccount(Base, TimestampMixin):
         phone_number: str,
         wants_zimra_fdms: bool,
         num_users: int,
-        demo_duration_minutes: int = 30,
+        demo_duration_minutes: int = 3,
     ):
         """Factory method to create a demo account with expiry."""
         demo = DemoAccount(

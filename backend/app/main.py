@@ -148,6 +148,36 @@ def ensure_new_columns():
                 else:
                     _startup_logger.info(">>> demo_accounts.company_id column already exists")
 
+                if "wants_actual_three65" not in demo_cols:
+                    _startup_logger.info(">>> Adding wants_actual_three65 column to demo_accounts")
+                    conn.execute(text(
+                        "ALTER TABLE demo_accounts ADD COLUMN wants_actual_three65 BOOLEAN DEFAULT FALSE"
+                    ))
+
+                if "tin" not in demo_cols:
+                    _startup_logger.info(">>> Adding tin column to demo_accounts")
+                    conn.execute(text(
+                        "ALTER TABLE demo_accounts ADD COLUMN tin VARCHAR(100) DEFAULT ''"
+                    ))
+
+                if "vat_number" not in demo_cols:
+                    _startup_logger.info(">>> Adding vat_number column to demo_accounts")
+                    conn.execute(text(
+                        "ALTER TABLE demo_accounts ADD COLUMN vat_number VARCHAR(100) DEFAULT ''"
+                    ))
+
+                if "trade_name" not in demo_cols:
+                    _startup_logger.info(">>> Adding trade_name column to demo_accounts")
+                    conn.execute(text(
+                        "ALTER TABLE demo_accounts ADD COLUMN trade_name VARCHAR(255) DEFAULT ''"
+                    ))
+
+                if "address" not in demo_cols:
+                    _startup_logger.info(">>> Adding address column to demo_accounts")
+                    conn.execute(text(
+                        "ALTER TABLE demo_accounts ADD COLUMN address VARCHAR(1000) DEFAULT ''"
+                    ))
+
             if "pos_tills" in table_names:
                 till_cols = {c["name"] for c in insp.get_columns("pos_tills")}
                 if "warehouse_id" not in till_cols:

@@ -100,10 +100,10 @@ export default function LoginPage() {
       {/* Centered Login Card */}
       <div className="login-card login-card-glass">
         {/* <div className="login-floating-logo">
-          <img src="/three.png" alt="365 Fiscal" className="logo-365" />
+          <img src="/three.png" alt="Three65" className="logo-365" />
         </div> */}
         <div className="login-card-body">
-          <img src="/three.png" alt="365 Fiscal" className="logo-365" />
+          <img src="/three.png" alt="Three65" className="logo-365" />
           <form className="login-form" onSubmit={signIn}>
             <div className="input-group">
               <input

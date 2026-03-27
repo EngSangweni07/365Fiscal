@@ -250,7 +250,7 @@ function buildReceiptHtml(
     ${order.mobile_amount ? `<div class="summary-row"><span>Mobile</span><span>${order.currency} ${fmt(order.mobile_amount)}</span></div>` : ""}
     ${order.change_amount ? `<div class="summary-row"><span>Change</span><span>${order.currency} ${fmt(order.change_amount)}</span></div>` : ""}
   </div>
-  <div class="footer">Thank you for your business!<br>Powered by 365 Fiscal</div>
+  <div class="footer">Thank you for your business!<br>Powered by Three65</div>
 </body></html>`;
   }
 
@@ -1171,7 +1171,7 @@ export default function POSPage() {
       total: cartTotal,
       currency_code: posCurrencyCode,
       currency_symbol: posCurrencySymbol || posCurrencyCode,
-      companyName: companyInfo?.name || "365 Fiscal",
+      companyName: companyInfo?.name || "Three65",
       companyLogo: companyInfo?.logo_data || "",
       company: companyInfo
         ? {
@@ -3812,7 +3812,7 @@ export default function POSPage() {
                   />
                 )}
                 <div className="pos-receipt-company-name">
-                  {companyInfo?.name || "365 Fiscal"}
+                  {companyInfo?.name || "Three65"}
                 </div>
                 {companyInfo?.address && (
                   <div className="pos-receipt-company-detail">
@@ -3972,7 +3972,7 @@ export default function POSPage() {
               <div className="pos-receipt-footer">
                 Thank you for your business!
                 <br />
-                Powered by 365 Fiscal
+                Powered by Three65
               </div>
             </div>
 
