@@ -167,7 +167,6 @@ export default function DemoSignupPage() {
             {!isDemoView ? (
               <>
                 <div className="demo-form-head">
-                  <div className="demo-brand-chip">Three65 demo</div>
                   <h2 className="login-card-title">Create demo account</h2>
                 </div>
 
