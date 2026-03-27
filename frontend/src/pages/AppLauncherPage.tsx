@@ -837,11 +837,7 @@ export default function AppLauncherPage() {
             </div>
             <div className="modal-body demo-interest-body">
               <p className="demo-interest-copy">
-                Your 3-minute demo has ended. Confirm your details and we will email
-                {" "}
-                <strong>courageg@geenet.co.zw</strong>
-                {" "}
-                for follow-up.
+                Your demo has ended, Confirm detail to sign up for the Main System
               </p>
 
               <label className="demo-interest-check">
