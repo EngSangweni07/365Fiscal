@@ -394,6 +394,7 @@ export default function AppLauncherPage() {
       activationStatus?.find((s) => Boolean(s.company_name))?.company_name ??
       "")
     : "";
+  const isDemoWorkspace = companyName === "Three65 Demo Workspace";
 
   const formatActivationCode = (raw: string) => {
     const cleaned = raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -799,7 +800,7 @@ export default function AppLauncherPage() {
       {/* Header */}
       <header className="app-launcher-header">
         <div className="app-launcher-user">
-          {!isAdmin && !hasActiveSubscription && demoCountdown !== null && (
+          {!isAdmin && demoCountdown !== null && isDemoWorkspace && (
             <div className={`demo-launcher-banner ${demoCountdown === 0 ? "expired" : ""}`}>
               <span className="demo-launcher-label">Demo time</span>
               <strong>
