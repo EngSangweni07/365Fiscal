@@ -2080,7 +2080,7 @@ thead.table-light th {
 .demo-page-shell {
   align-items: flex-start;
   justify-content: center;
-  padding-block: 24px 48px;
+  padding-block: 34px 48px;
 }
 
 .login-split {
@@ -2807,7 +2807,7 @@ thead.table-light th {
 }
 
 .demo-card-logo {
-  width: 128px;
+  width: 144px;
   padding: 0.7rem 0.8rem 0;
   align-self: center;
 }
@@ -2997,7 +2997,7 @@ thead.table-light th {
 
 @media (max-height: 820px) {
   .demo-page-shell {
-    padding-block: 12px 20px;
+    padding-block: 20px 20px;
   }
 
   .demo-card {
@@ -3010,7 +3010,7 @@ thead.table-light th {
   }
 
   .demo-card-logo {
-    width: min(100%, 104px);
+    width: min(100%, 116px);
     padding: 0.35rem 0.5rem 0.05rem;
   }
 
@@ -3071,7 +3071,7 @@ thead.table-light th {
 
 @media (max-height: 720px) {
   .demo-page-shell {
-    padding-block: 8px 14px;
+    padding-block: 14px 14px;
   }
 
   .demo-card {
@@ -3083,7 +3083,7 @@ thead.table-light th {
   }
 
   .demo-card-logo {
-    width: min(100%, 92px);
+    width: min(100%, 102px);
     padding-top: 0.25rem;
   }
 
@@ -3177,7 +3177,7 @@ thead.table-light th {
   }
 
   .demo-page-shell {
-    padding-block: 14px 28px;
+    padding-block: 20px 28px;
   }
 
   .login-card {
@@ -3205,7 +3205,7 @@ thead.table-light th {
   }
 
   .demo-card-logo {
-    width: min(100%, 118px);
+    width: min(100%, 128px);
     padding: 0.75rem 0.75rem 0.2rem;
   }
 
@@ -3257,7 +3257,7 @@ thead.table-light th {
   }
 
   .demo-page-shell {
-    padding-block: 10px 20px;
+    padding-block: 16px 20px;
   }
 
   .login-card {
@@ -3273,7 +3273,7 @@ thead.table-light th {
   }
 
   .demo-card-logo {
-    width: min(100%, 104px);
+    width: min(100%, 114px);
   }
 
   .demo-form-head .login-card-title {
