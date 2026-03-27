@@ -261,7 +261,7 @@ export default function DemoSignupPage() {
                         }))
                       }
                     />
-                    <span>I want ZIMRA FDMS on the system.</span>
+                    <span>Do you want ZIMRA fiscalization of your main system?</span>
                   </label>
 
                   {error && <div className="login-error">{error}</div>}
