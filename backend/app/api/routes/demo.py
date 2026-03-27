@@ -587,6 +587,25 @@ def update_demo_account(
     return serialize_demo(demo)
 
 
+@router.delete("/{demo_id}")
+def delete_demo_account(
+    demo_id: int,
+    db: Session = Depends(get_db),
+    _: object = Depends(require_admin),
+):
+    demo = db.query(DemoAccount).filter(DemoAccount.id == demo_id).first()
+
+    if not demo:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Demo account not found",
+        )
+
+    db.delete(demo)
+    db.commit()
+    return {"status": "deleted"}
+
+
 def serialize_demo(demo: DemoAccount) -> dict:
     return {
         "id": demo.id,

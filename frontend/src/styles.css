@@ -3793,6 +3793,11 @@ thead.table-light th {
   width: 100%;
 }
 
+.leads-actions-cell {
+  width: 64px;
+  text-align: right;
+}
+
 .leads-table-row {
   cursor: pointer;
 }
@@ -3803,6 +3808,36 @@ thead.table-light th {
 
 .leads-modal {
   max-width: 760px;
+}
+
+.leads-delete-btn {
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(239, 68, 68, 0.16);
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(254, 242, 242, 0.95);
+  color: var(--red-500);
+  transition: all 0.2s ease;
+}
+
+.leads-delete-btn:hover:not(:disabled) {
+  background: rgba(254, 226, 226, 1);
+  border-color: rgba(239, 68, 68, 0.28);
+}
+
+.leads-delete-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.leads-delete-btn-card {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 2;
 }
 
 .leads-modal-grid {

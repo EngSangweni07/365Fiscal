@@ -10,6 +10,7 @@ import {
   Phone,
   Search,
   ShieldCheck,
+  Trash2,
   Users,
   X,
 } from "lucide-react";
@@ -108,6 +109,9 @@ export default function LeadsPage() {
   const [portalPassword, setPortalPassword] = useState("Temp12345!");
   const [savingPortal, setSavingPortal] = useState(false);
   const [actionMessage, setActionMessage] = useState("");
+  const [deletingLeadId, setDeletingLeadId] = useState<number | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const loadLeads = async (filter: (typeof statusOptions)[number]) => {
     setLoading(true);
@@ -127,6 +131,10 @@ export default function LeadsPage() {
   useEffect(() => {
     loadLeads(statusFilter);
   }, [statusFilter]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, searchQuery, viewMode, pageSize]);
 
   const counts = useMemo(() => {
     const active = leads.filter((lead) => lead.status === "active").length;
@@ -151,6 +159,16 @@ export default function LeadsPage() {
         .includes(query),
     );
   }, [leads, searchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredLeads.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedLeads = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredLeads.slice(start, start + pageSize);
+  }, [currentPage, filteredLeads, pageSize]);
+
+  const pageStart = filteredLeads.length ? (currentPage - 1) * pageSize + 1 : 0;
+  const pageEnd = Math.min(currentPage * pageSize, filteredLeads.length);
 
   const sidebarSections = useMemo<SidebarSection[]>(
     () => [
@@ -216,6 +234,28 @@ export default function LeadsPage() {
     setCompanyForm(null);
     setPortalPassword("Temp12345!");
     setActionMessage("");
+  };
+
+  const handleDeleteLead = async (lead: DemoLead) => {
+    const confirmed = window.confirm(`Delete lead for ${lead.company_name}?`);
+    if (!confirmed) return;
+
+    setDeletingLeadId(lead.id);
+    setActionMessage("");
+    try {
+      await apiFetch(`/demo/${lead.id}`, { method: "DELETE" });
+      const remaining = leads.filter((item) => item.id !== lead.id);
+      setLeads(remaining);
+      if (selectedLead?.id === lead.id) {
+        closeLead();
+      }
+    } catch (err) {
+      setActionMessage(
+        err instanceof Error ? err.message : "Failed to delete lead.",
+      );
+    } finally {
+      setDeletingLeadId(null);
+    }
   };
 
   const handleCreatePortal = async () => {
@@ -354,7 +394,7 @@ export default function LeadsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredLeads.map((lead) => (
+                  {paginatedLeads.map((lead) => (
                     <tr
                       key={lead.id}
                       className="leads-table-row"
@@ -371,6 +411,17 @@ export default function LeadsPage() {
                       </td>
                       <td>{formatHarareDateTime(lead.created_at)} CAT</td>
                       <td>{formatHarareDateTime(lead.expires_at)} CAT</td>
+                      <td className="leads-actions-cell" onClick={(event) => event.stopPropagation()}>
+                        <button
+                          className="leads-delete-btn"
+                          type="button"
+                          onClick={() => handleDeleteLead(lead)}
+                          disabled={deletingLeadId === lead.id}
+                          title="Delete lead"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -378,12 +429,24 @@ export default function LeadsPage() {
             </div>
           ) : (
             <div className="leads-grid">
-              {filteredLeads.map((lead) => (
+              {paginatedLeads.map((lead) => (
                 <article
                   key={lead.id}
                   className="table-card leads-lead-card"
                   onClick={() => openLead(lead)}
                 >
+                  <button
+                    className="leads-delete-btn leads-delete-btn-card"
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleDeleteLead(lead);
+                    }}
+                    disabled={deletingLeadId === lead.id}
+                    title="Delete lead"
+                  >
+                    <Trash2 size={15} />
+                  </button>
                   <div className="leads-lead-top">
                     <div>
                       <div className="leads-lead-title-row">
@@ -437,6 +500,53 @@ export default function LeadsPage() {
                   </div>
                 </article>
               ))}
+            </div>
+          )}
+
+          {!loading && !error && filteredLeads.length > 0 && (
+            <div className="table-pagination">
+              <div className="pager-left">
+                <label className="pager-size-label">
+                  Show
+                  <select
+                    className="pager-size-select"
+                    value={pageSize}
+                    onChange={(event) => setPageSize(Number(event.target.value))}
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                  </select>
+                </label>
+                <span className="pager-info">
+                  {pageStart}-{pageEnd} of {filteredLeads.length}
+                </span>
+              </div>
+
+              <div className="pager-buttons">
+                <button
+                  className="pager-btn"
+                  type="button"
+                  onClick={() => setPage((current) => Math.max(1, current - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </button>
+                <span className="pager-page">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  className="pager-btn"
+                  type="button"
+                  onClick={() =>
+                    setPage((current) => Math.min(totalPages, current + 1))
+                  }
+                  disabled={currentPage >= totalPages}
+                >
+                  Next
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -529,6 +639,14 @@ export default function LeadsPage() {
               </div>
             </div>
             <div className="modal-footer">
+              <button
+                className="outline danger"
+                onClick={() => handleDeleteLead(selectedLead)}
+                type="button"
+                disabled={deletingLeadId === selectedLead.id}
+              >
+                {deletingLeadId === selectedLead.id ? "Deleting..." : "Delete Lead"}
+              </button>
               <button className="outline" onClick={closeLead} type="button">
                 Close
               </button>
