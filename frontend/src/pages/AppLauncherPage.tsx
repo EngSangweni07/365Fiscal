@@ -534,6 +534,7 @@ export default function AppLauncherPage() {
       setDemoInterestSubmitted(true);
       localStorage.setItem(`demo_interest_submitted_${demoAccountId}`, "true");
       setDemoInterestOpen(false);
+      window.location.href = "/subscriptions";
     } catch (err: any) {
       setDemoInterestError(err.message || "Failed to send your request.");
     } finally {
