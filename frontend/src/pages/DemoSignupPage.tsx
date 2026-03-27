@@ -167,7 +167,12 @@ export default function DemoSignupPage() {
             {!isDemoView ? (
               <>
                 <div className="demo-form-head">
+                  <div className="demo-brand-chip">Three65 demo</div>
                   <h2 className="login-card-title">Create demo account</h2>
+                  <p className="demo-form-caption">
+                    Explore the live portal in minutes and let us know if you want the
+                    full Three65 setup for your business.
+                  </p>
                 </div>
 
                 <form className="login-form demo-form-compact" onSubmit={handleSubmit}>
@@ -280,6 +285,10 @@ export default function DemoSignupPage() {
                       <span>Start demo</span>
                     )}
                   </button>
+
+                  <p className="demo-support-copy">
+                    Need help before starting? Chat with our team on WhatsApp.
+                  </p>
                 </form>
               </>
             ) : (
