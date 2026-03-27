@@ -3,13 +3,14 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from datetime import datetime, timedelta
 import secrets
+from urllib.parse import urlsplit
 
 from app.api.deps import get_db, require_admin
 from app.models.company import Company
 from app.models.company_user import CompanyUser
 from app.models.demo_account import DemoAccount
 from app.models.role import Role
-from app.models.subscription import Subscription
+from app.models.subscription import ActivationCode, Subscription
 from app.models.user import User
 from app.schemas.demo_account import (
     DemoAccountCreate,
@@ -68,6 +69,22 @@ def build_portal_apps(requested_apps: list[str] | None) -> list[str]:
 
 def generate_portal_password() -> str:
     return f"Three65@{secrets.token_hex(3).upper()}"
+
+
+def generate_activation_code_value(length: int = 16) -> str:
+    alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    raw = "".join(secrets.choice(alphabet) for _ in range(length))
+    return "-".join(raw[i : i + 4] for i in range(0, len(raw), 4))
+
+
+def build_login_link(payment_link: str | None) -> str:
+    raw = (payment_link or "").strip()
+    if not raw:
+        return "/login"
+    parts = urlsplit(raw)
+    if parts.scheme and parts.netloc:
+        return f"{parts.scheme}://{parts.netloc}/login"
+    return "/login"
 
 
 @router.post("/signup", response_model=DemoSignupResponse)
@@ -259,6 +276,7 @@ def confirm_demo_interest(
     subscription_days = 365 if payload.subscription_period == "yearly" else 30
     now = datetime.utcnow()
     subscription_expires_at = now + timedelta(days=subscription_days)
+    login_link = build_login_link(demo.payment_link)
 
     company.name = payload.company_name
     company.email = demo.email
@@ -321,10 +339,27 @@ def confirm_demo_interest(
         subscription.max_invoices_per_month = max(subscription.max_invoices_per_month, 1000)
         subscription.notes = "Created from Three65 demo follow-up form."
 
+    activation_code_value = generate_activation_code_value()
+    while db.query(ActivationCode).filter(ActivationCode.code == activation_code_value).first():
+        activation_code_value = generate_activation_code_value()
+
+    activation_code = ActivationCode(
+        code=activation_code_value,
+        company_id=company.id,
+        plan="starter",
+        duration_days=subscription_days,
+        max_users=max(payload.num_users, 1),
+        max_devices=2,
+        max_invoices_per_month=1000,
+        expires_at=now + timedelta(days=30),
+    )
+    db.add(activation_code)
+
     note_parts = [
         f"Actual Three65 requested: {'Yes' if payload.wants_actual_three65 else 'No'}",
         f"Subscription period: {payload.subscription_period}",
         f"Users required: {payload.num_users}",
+        f"Subscription code: {activation_code_value}",
     ]
     if requested_apps:
         note_parts.append(f"Apps: {', '.join(requested_apps)}")
@@ -344,7 +379,9 @@ def confirm_demo_interest(
         wants_actual_three65=demo.wants_actual_three65,
         requested_apps=portal_apps,
         subscription_period=demo.subscription_period,
+        activation_code=activation_code_value,
         payment_link=demo.payment_link,
+        login_link=login_link,
         portal_username=demo.email,
         portal_password=portal_password,
         wants_zimra_fdms=demo.wants_zimra_fdms,

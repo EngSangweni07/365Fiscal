@@ -144,7 +144,9 @@ def send_demo_interest_email(
     wants_actual_three65: bool,
     requested_apps: list[str] | None = None,
     subscription_period: str = "monthly",
+    activation_code: str = "",
     payment_link: str = "",
+    login_link: str = "",
     portal_username: str = "",
     portal_password: str = "",
     wants_zimra_fdms: bool,
@@ -169,7 +171,9 @@ def send_demo_interest_email(
             "",
             f"Portal username: {portal_username or demo_email}",
             f"Portal password: {portal_password or '-'}",
+            f"Subscription code: {activation_code or '-'}",
             f"Subscription period: {period_label}",
+            f"Login link: {login_link or '-'}",
             f"Payment link: {payment_link or '-'}",
             f"Apps enabled: {apps_summary}",
             "",
@@ -202,8 +206,10 @@ def send_demo_interest_email(
         <td align="center">
           <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:720px;background:#ffffff;border-radius:24px;overflow:hidden;border:1px solid #dbe5ea;box-shadow:0 24px 60px rgba(15,23,42,.12);">
             <tr>
-              <td style="background:#0b4550;padding:22px 28px;border-bottom:4px solid #d1e826;">
-                <img src="cid:three65-logo" alt="Three65" style="display:block;width:56px;max-width:56px;height:auto;margin:0 0 14px;" />
+              <td style="background:linear-gradient(135deg,#0b4550 0%,#145563 100%);padding:22px 28px;border-bottom:4px solid #d1e826;">
+                <div style="display:inline-flex;align-items:center;justify-content:center;padding:12px 14px;border-radius:18px;background:#f8fbfc;border:1px solid rgba(255,255,255,.4);box-shadow:0 10px 24px rgba(0,0,0,.14);margin:0 0 14px;">
+                  <img src="cid:three65-logo" alt="Three65" style="display:block;width:108px;max-width:108px;max-height:40px;height:auto;" />
+                </div>
                 <div style="font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#d7f25a;">Three65 Main System</div>
                 <h1 style="margin:10px 0 8px;font-size:28px;line-height:1.15;color:#ffffff;">Your sign-up details are ready</h1>
                 <p style="margin:0;max-width:44ch;font-size:15px;line-height:1.7;color:rgba(255,255,255,.82);">Thank you for your interest in Three65. We have prepared your main system access, app selection, and subscription setup details below.</p>
@@ -235,8 +241,22 @@ def send_demo_interest_email(
                     </td>
                     <td width="50%" style="padding:0 0 16px 8px;">
                       <div style="background:#f8fbfc;border:1px solid #dbe5ea;border-radius:18px;padding:16px 18px;">
+                        <div style="font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#667085;">Subscription code</div>
+                        <div style="margin-top:8px;font-size:18px;font-weight:800;color:#0b4550;">{html.escape(activation_code or "-")}</div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td width="50%" style="padding:0 8px 16px 0;">
+                      <div style="background:#f8fbfc;border:1px solid #dbe5ea;border-radius:18px;padding:16px 18px;">
                         <div style="font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#667085;">Required users</div>
                         <div style="margin-top:8px;font-size:18px;font-weight:800;color:#101828;">{num_users}</div>
+                      </div>
+                    </td>
+                    <td width="50%" style="padding:0 0 16px 8px;">
+                      <div style="background:#f8fbfc;border:1px solid #dbe5ea;border-radius:18px;padding:16px 18px;">
+                        <div style="font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#667085;">App login</div>
+                        <div style="margin-top:8px;font-size:15px;font-weight:800;color:#0b4550;word-break:break-all;">{html.escape(login_link or "-")}</div>
                       </div>
                     </td>
                   </tr>
@@ -256,6 +276,7 @@ def send_demo_interest_email(
             </tr>
             <tr>
               <td style="padding:16px 28px 8px;">
+                <a href="{html.escape(login_link or '#')}" style="display:inline-block;margin:0 12px 12px 0;background:#d1e826;color:#0b4550;text-decoration:none;font-size:15px;font-weight:800;padding:14px 22px;border-radius:14px;">Open Three65 login</a>
                 <a href="{html.escape(payment_link or '#')}" style="display:inline-block;background:#0b4550;color:#ffffff;text-decoration:none;font-size:15px;font-weight:800;padding:14px 22px;border-radius:14px;">Open payment and subscription link</a>
               </td>
             </tr>
@@ -283,13 +304,6 @@ def send_demo_interest_email(
                     </td>
                   </tr>
                 </table>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:0 28px 28px;">
-                <div style="padding:16px 18px;border-radius:16px;background:#f8fbfc;border:1px solid #dbe5ea;color:#475467;font-size:13px;line-height:1.7;">
-                  This message was generated automatically from the Three65 demo portal follow-up form. Please keep the portal credentials safe and update the password after first sign-in.
-                </div>
               </td>
             </tr>
           </table>
