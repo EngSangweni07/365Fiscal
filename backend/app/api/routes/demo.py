@@ -105,6 +105,20 @@ def get_or_create_demo_workspace(db: Session) -> Company:
     return company
 
 
+def is_demo_only_user(user: User, db: Session) -> bool:
+    if user.is_admin:
+        return False
+    links = (
+        db.query(CompanyUser, Company)
+        .join(Company, Company.id == CompanyUser.company_id)
+        .filter(CompanyUser.user_id == user.id)
+        .all()
+    )
+    if not links:
+        return True
+    return all(company.name == DEMO_WORKSPACE_NAME for _, company in links)
+
+
 @router.post("/signup", response_model=DemoSignupResponse)
 def create_demo_account(
     payload: DemoAccountCreate,
@@ -134,7 +148,11 @@ def create_demo_account(
         .first()
     )
 
-    if existing_user and (not reusable_demo or reusable_demo.user_id != existing_user.id):
+    if (
+        existing_user
+        and (not reusable_demo or reusable_demo.user_id != existing_user.id)
+        and not is_demo_only_user(existing_user, db)
+    ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="This email already belongs to an existing account. Please use another email for the demo or log in with your existing account.",
