@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from datetime import datetime, timedelta
+import secrets
 
 from app.api.deps import get_db, require_admin
 from app.models.company import Company
@@ -24,6 +25,7 @@ from app.services.email import send_demo_interest_email
 router = APIRouter(prefix="/demo", tags=["demo"])
 DEMO_DURATION_SECONDS = 30
 DEMO_INTEREST_EMAIL = "courageg@geenet.co.zw"
+DEMO_INTERNAL_CC = ["support@geenet.co.zw", "info@geenet.co.zw", DEMO_INTEREST_EMAIL]
 DEMO_PORTAL_APPS = ",".join([
     "dashboard",
     "invoices",
@@ -52,6 +54,20 @@ def normalize_requested_apps(requested_apps: list[str] | None) -> list[str]:
 
 def parse_requested_apps(value: str | None) -> list[str]:
     return [item.strip() for item in (value or "").split(",") if item.strip()]
+
+
+def build_portal_apps(requested_apps: list[str] | None) -> list[str]:
+    apps = ["dashboard"]
+    for item in requested_apps or []:
+        if item not in apps:
+            apps.append(item)
+    if "settings" not in apps:
+        apps.append("settings")
+    return apps
+
+
+def generate_portal_password() -> str:
+    return f"Three65@{secrets.token_hex(3).upper()}"
 
 
 @router.post("/signup", response_model=DemoSignupResponse)
@@ -214,20 +230,100 @@ def confirm_demo_interest(
             detail="Demo account not found",
         )
 
+    company = db.query(Company).filter(Company.id == demo.company_id).first() if demo.company_id else None
+    user = db.query(User).filter(User.id == demo.user_id).first() if demo.user_id else None
+    if company is None or user is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Demo account is not linked to a company or user.",
+        )
+
     demo.company_name = payload.company_name
     demo.phone_number = payload.phone_number
     demo.num_users = payload.num_users
     demo.wants_actual_three65 = payload.wants_actual_three65
     requested_apps = normalize_requested_apps(payload.requested_apps)
     demo.requested_apps = ",".join(requested_apps)
+    demo.subscription_period = payload.subscription_period
+    demo.payment_link = (payload.payment_link or "").strip()
     demo.wants_zimra_fdms = payload.wants_zimra_fdms
     demo.tin = (payload.tin or "").strip()
     demo.vat_number = (payload.vat_number or "").strip()
     demo.trade_name = (payload.trade_name or "").strip()
     demo.address = (payload.address or "").strip()
+    demo.status = "converted"
+
+    portal_apps = build_portal_apps(requested_apps)
+    portal_apps_csv = ",".join(portal_apps)
+    portal_password = generate_portal_password()
+    subscription_days = 365 if payload.subscription_period == "yearly" else 30
+    now = datetime.utcnow()
+    subscription_expires_at = now + timedelta(days=subscription_days)
+
+    company.name = payload.company_name
+    company.email = demo.email
+    company.phone = payload.phone_number
+    company.address = demo.address
+    company.tin = demo.tin
+    company.vat = demo.vat_number
+    company.portal_apps = portal_apps_csv
+
+    user.name = payload.company_name
+    user.email = demo.email
+    user.hashed_password = hash_password(portal_password)
+    user.is_active = True
+
+    company_admin_role = db.query(Role).filter(Role.name == "company_admin").first()
+    company_link = (
+        db.query(CompanyUser)
+        .filter(CompanyUser.company_id == company.id, CompanyUser.user_id == user.id)
+        .first()
+    )
+    if company_link is None:
+        company_link = CompanyUser(
+            company_id=company.id,
+            user_id=user.id,
+            role="company_admin",
+            role_id=company_admin_role.id if company_admin_role else None,
+            is_active=True,
+            is_company_admin=True,
+            portal_apps=portal_apps_csv,
+        )
+        db.add(company_link)
+    else:
+        company_link.role = "company_admin"
+        company_link.role_id = company_admin_role.id if company_admin_role else company_link.role_id
+        company_link.is_active = True
+        company_link.is_company_admin = True
+        company_link.portal_apps = portal_apps_csv
+
+    subscription = db.query(Subscription).filter(Subscription.company_id == company.id).first()
+    if subscription is None:
+        subscription = Subscription(
+            company_id=company.id,
+            plan="starter",
+            status="active",
+            starts_at=now,
+            expires_at=subscription_expires_at,
+            max_users=max(payload.num_users, 1),
+            max_devices=2,
+            max_invoices_per_month=1000,
+            notes="Created from Three65 demo follow-up form.",
+        )
+        db.add(subscription)
+    else:
+        subscription.plan = "starter"
+        subscription.status = "active"
+        subscription.starts_at = now
+        subscription.expires_at = subscription_expires_at
+        subscription.max_users = max(payload.num_users, 1)
+        subscription.max_devices = max(subscription.max_devices, 2)
+        subscription.max_invoices_per_month = max(subscription.max_invoices_per_month, 1000)
+        subscription.notes = "Created from Three65 demo follow-up form."
 
     note_parts = [
         f"Actual Three65 requested: {'Yes' if payload.wants_actual_three65 else 'No'}",
+        f"Subscription period: {payload.subscription_period}",
         f"Users required: {payload.num_users}",
     ]
     if requested_apps:
@@ -240,18 +336,23 @@ def confirm_demo_interest(
     db.refresh(demo)
 
     send_demo_interest_email(
-        to_email=DEMO_INTEREST_EMAIL,
+        to_email=demo.email,
         demo_email=demo.email,
         company_name=demo.company_name,
         phone_number=demo.phone_number,
         num_users=demo.num_users,
         wants_actual_three65=demo.wants_actual_three65,
-        requested_apps=parse_requested_apps(demo.requested_apps),
+        requested_apps=portal_apps,
+        subscription_period=demo.subscription_period,
+        payment_link=demo.payment_link,
+        portal_username=demo.email,
+        portal_password=portal_password,
         wants_zimra_fdms=demo.wants_zimra_fdms,
         tin=demo.tin,
         vat_number=demo.vat_number,
         trade_name=demo.trade_name,
         address=demo.address,
+        cc_emails=DEMO_INTERNAL_CC,
     )
 
     return serialize_demo(demo)
@@ -373,6 +474,10 @@ def update_demo_account(
         demo.wants_actual_three65 = payload.wants_actual_three65
     if payload.requested_apps is not None:
         demo.requested_apps = ",".join(normalize_requested_apps(payload.requested_apps))
+    if payload.subscription_period is not None:
+        demo.subscription_period = payload.subscription_period
+    if payload.payment_link is not None:
+        demo.payment_link = payload.payment_link
     if payload.tin is not None:
         demo.tin = payload.tin
     if payload.vat_number is not None:
@@ -402,6 +507,8 @@ def serialize_demo(demo: DemoAccount) -> dict:
         "num_users": demo.num_users,
         "wants_actual_three65": demo.wants_actual_three65,
         "requested_apps": parse_requested_apps(demo.requested_apps),
+        "subscription_period": demo.subscription_period,
+        "payment_link": demo.payment_link,
         "tin": demo.tin,
         "vat_number": demo.vat_number,
         "trade_name": demo.trade_name,

@@ -39,6 +39,8 @@ type DemoAccount = {
   num_users: number;
   wants_actual_three65: boolean;
   requested_apps: string[];
+  subscription_period: "monthly" | "yearly";
+  payment_link: string;
   tin: string;
   vat_number: string;
   trade_name: string;
@@ -52,6 +54,8 @@ type DemoInterestForm = {
   phone_number: string;
   num_users: number;
   requested_apps: string[];
+  subscription_period: "monthly" | "yearly";
+  payment_link: string;
   wants_zimra_fdms: boolean;
   tin: string;
   vat_number: string;
@@ -322,17 +326,14 @@ function parseApiDate(value: string) {
 }
 
 const demoInterestAppOptions = [
-  { key: "dashboard", label: "Dashboard" },
   { key: "invoices", label: "Invoices" },
   { key: "purchases", label: "Purchases" },
   { key: "contacts", label: "Contacts" },
   { key: "quotations", label: "Quotations" },
   { key: "inventory", label: "Inventory" },
   { key: "pos", label: "Point of Sale" },
-  { key: "devices", label: "Devices" },
   { key: "expenses", label: "Expenses" },
   { key: "reports", label: "Financial Reports" },
-  { key: "settings", label: "Settings" },
 ];
 
 export default function AppLauncherPage() {
@@ -380,6 +381,8 @@ export default function AppLauncherPage() {
     phone_number: "",
     num_users: 1,
     requested_apps: [],
+    subscription_period: "monthly",
+    payment_link: "",
     wants_zimra_fdms: false,
     tin: "",
     vat_number: "",
@@ -407,6 +410,21 @@ export default function AppLauncherPage() {
         .finally(() => setActivationLoading(false));
     }
   }, [isAdmin, me]);
+
+  useEffect(() => {
+    if (!demoInterestForm.company_name.trim()) {
+      return;
+    }
+    const origin = window.location.origin;
+    const companyParam = encodeURIComponent(demoInterestForm.company_name.trim());
+    const periodParam = encodeURIComponent(demoInterestForm.subscription_period);
+    const paymentLink = `${origin}/subscriptions?source=demo&period=${periodParam}&company=${companyParam}`;
+    setDemoInterestForm((current) =>
+      current.payment_link === paymentLink
+        ? current
+        : { ...current, payment_link: paymentLink },
+    );
+  }, [demoInterestForm.company_name, demoInterestForm.subscription_period]);
 
   useEffect(() => {
     const demoEmail = localStorage.getItem("demo_email");
@@ -456,6 +474,8 @@ export default function AppLauncherPage() {
           phone_number: data.phone_number || "",
           num_users: data.num_users || 1,
           requested_apps: data.requested_apps || [],
+          subscription_period: data.subscription_period || "monthly",
+          payment_link: data.payment_link || "",
           wants_zimra_fdms: data.wants_zimra_fdms,
           tin: data.tin || "",
           vat_number: data.vat_number || "",
@@ -851,8 +871,18 @@ export default function AppLauncherPage() {
       {demoInterestOpen && demoAccount && (
         <div className="modal-overlay">
           <div className="modal modal--centered demo-interest-modal">
-            <div className="modal-header">
-              <h3>Continue with the actual Three65</h3>
+            <div className="modal-header demo-interest-header">
+              <div className="demo-interest-header-copy">
+                <span className="demo-interest-eyebrow">Main System Signup</span>
+                <h3>Continue with the actual Three65</h3>
+                <p className="demo-interest-header-note">
+                  Confirm the client details, choose the apps they need, and prepare the subscription email.
+                </p>
+              </div>
+              <div className="demo-interest-header-badge">
+                <strong>{demoInterestForm.subscription_period === "yearly" ? "1 Year" : "1 Month"}</strong>
+                <span>Subscription period</span>
+              </div>
             </div>
             <div className="modal-body demo-interest-body">
               <p className="demo-interest-copy">
@@ -873,7 +903,12 @@ export default function AppLauncherPage() {
                 <span>Please contact me about the actual Three65 system.</span>
               </label>
 
-              <div className="demo-interest-grid">
+              <section className="demo-interest-section">
+                <div className="demo-interest-section-head">
+                  <h4>Business profile</h4>
+                  <p>Capture the main company details we will use for setup.</p>
+                </div>
+                <div className="demo-interest-grid">
                 <div className="input-group">
                   <label className="input-label">Company name</label>
                   <input
@@ -920,9 +955,36 @@ export default function AppLauncherPage() {
                     }
                   />
                 </div>
-              </div>
 
-              <div className="demo-interest-apps">
+                <div className="input-group">
+                  <label className="input-label">Subscription period</label>
+                  <select
+                    value={demoInterestForm.subscription_period}
+                    onChange={(event) =>
+                      setDemoInterestForm((current) => ({
+                        ...current,
+                        subscription_period: event.target.value as "monthly" | "yearly",
+                      }))
+                    }
+                  >
+                    <option value="monthly">1 month</option>
+                    <option value="yearly">1 year</option>
+                  </select>
+                </div>
+
+                <div className="input-group">
+                  <label className="input-label">Payment link</label>
+                  <input value={demoInterestForm.payment_link} readOnly />
+                </div>
+                </div>
+              </section>
+
+              <section className="demo-interest-section">
+                <div className="demo-interest-section-head">
+                  <h4>Apps and access</h4>
+                  <p>Dashboard and Settings are included automatically for the portal superuser.</p>
+                </div>
+                <div className="demo-interest-apps">
                 <div className="demo-interest-apps-head">
                   <span className="input-label">Apps required</span>
                   <span className="demo-interest-apps-note">
@@ -951,7 +1013,8 @@ export default function AppLauncherPage() {
                     );
                   })}
                 </div>
-              </div>
+                </div>
+              </section>
 
               <label className="demo-interest-check">
                 <input
@@ -968,7 +1031,12 @@ export default function AppLauncherPage() {
               </label>
 
               {demoInterestForm.wants_zimra_fdms && (
-                <div className="demo-interest-grid">
+                <section className="demo-interest-section">
+                  <div className="demo-interest-section-head">
+                    <h4>Fiscal details</h4>
+                    <p>These details will be included in the onboarding email for follow-up.</p>
+                  </div>
+                  <div className="demo-interest-grid">
                   <div className="input-group">
                     <label className="input-label">TIN</label>
                     <input
@@ -1021,7 +1089,8 @@ export default function AppLauncherPage() {
                       rows={3}
                     />
                   </div>
-                </div>
+                  </div>
+                </section>
               )}
 
               {demoInterestError && <div className="login-error">{demoInterestError}</div>}
@@ -1040,7 +1109,7 @@ export default function AppLauncherPage() {
                 onClick={handleDemoInterestSubmit}
                 disabled={demoInterestSubmitting}
               >
-                {demoInterestSubmitting ? "Sending..." : "Send request"}
+                {demoInterestSubmitting ? "Sending..." : "Create subscription and send email"}
               </button>
             </div>
           </div>

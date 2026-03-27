@@ -3339,20 +3339,119 @@ thead.table-light th {
 
 .demo-interest-modal {
   max-width: 760px;
-  border-radius: 24px;
+  border-radius: 28px;
+  border: 1px solid rgba(11, 69, 80, 0.14);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 250, 252, 0.98));
+  box-shadow:
+    0 28px 60px rgba(15, 23, 42, 0.22),
+    0 8px 24px rgba(11, 69, 80, 0.08);
+}
+
+.demo-interest-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 24px 28px;
+  background:
+    radial-gradient(circle at top left, rgba(209, 232, 38, 0.18), transparent 38%),
+    linear-gradient(135deg, rgba(11, 69, 80, 0.08), rgba(11, 69, 80, 0.02));
+}
+
+.demo-interest-header-copy {
+  display: grid;
+  gap: 8px;
+}
+
+.demo-interest-eyebrow {
+  display: inline-flex;
+  width: fit-content;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: rgba(11, 69, 80, 0.08);
   border: 1px solid rgba(11, 69, 80, 0.12);
-  box-shadow: 0 28px 60px rgba(15, 23, 42, 0.22);
+  color: var(--brand-sherpa);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.demo-interest-header-note {
+  margin: 0;
+  max-width: 52ch;
+  color: var(--slate-600);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.demo-interest-header-badge {
+  display: grid;
+  gap: 4px;
+  min-width: 130px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid rgba(11, 69, 80, 0.12);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  text-align: right;
+}
+
+.demo-interest-header-badge strong {
+  color: var(--brand-sherpa);
+  font-size: 20px;
+  line-height: 1;
+}
+
+.demo-interest-header-badge span {
+  color: var(--slate-500);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .demo-interest-body {
   display: grid;
-  gap: 16px;
+  gap: 18px;
+  padding: 22px 28px 18px;
 }
 
 .demo-interest-copy {
   margin: 0;
   color: var(--slate-600);
-  line-height: 1.6;
+  line-height: 1.7;
+  font-size: 14px;
+}
+
+.demo-interest-section {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(255, 255, 255, 0.74);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.demo-interest-section-head {
+  display: grid;
+  gap: 4px;
+}
+
+.demo-interest-section-head h4 {
+  margin: 0;
+  color: var(--slate-900);
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.demo-interest-section-head p {
+  margin: 0;
+  color: var(--slate-500);
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .demo-interest-grid {
@@ -3366,21 +3465,24 @@ thead.table-light th {
 }
 
 .demo-interest-grid .input-label {
-  color: var(--slate-700);
+  color: var(--brand-sherpa);
   font-size: 12px;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
+  font-weight: 800;
 }
 
 .demo-interest-grid input,
-.demo-interest-grid textarea {
+.demo-interest-grid textarea,
+.demo-interest-grid select {
   width: 100%;
-  padding: 12px 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(148, 163, 184, 0.34);
-  background: rgba(248, 250, 252, 0.96);
+  padding: 13px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(248, 250, 252, 0.98);
   color: var(--slate-900);
   font: inherit;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
 }
 
 .demo-interest-grid input:disabled {
@@ -3391,6 +3493,14 @@ thead.table-light th {
 .demo-interest-grid textarea {
   resize: vertical;
   min-height: 92px;
+}
+
+.demo-interest-grid input:focus,
+.demo-interest-grid textarea:focus,
+.demo-interest-grid select:focus {
+  outline: none;
+  border-color: rgba(11, 69, 80, 0.4);
+  box-shadow: 0 0 0 4px rgba(11, 69, 80, 0.08);
 }
 
 .demo-interest-apps {
@@ -3408,7 +3518,7 @@ thead.table-light th {
 .demo-interest-apps-note {
   color: var(--slate-500);
   font-size: 12px;
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 .demo-interest-apps-grid {
@@ -3421,20 +3531,22 @@ thead.table-light th {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 14px;
+  padding: 14px 15px;
   border-radius: 14px;
   border: 1px solid rgba(148, 163, 184, 0.24);
-  background: rgba(248, 250, 252, 0.92);
+  background: rgba(248, 250, 252, 0.98);
   color: var(--slate-800);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
 }
 
 .demo-interest-app-option.selected {
-  border-color: rgba(11, 69, 80, 0.3);
-  background: rgba(11, 69, 80, 0.08);
+  border-color: rgba(11, 69, 80, 0.32);
+  background: linear-gradient(180deg, rgba(11, 69, 80, 0.08), rgba(11, 69, 80, 0.04));
   color: var(--brand-sherpa);
+  box-shadow: 0 10px 18px rgba(11, 69, 80, 0.08);
 }
 
 .demo-interest-app-option input {
@@ -3452,10 +3564,10 @@ thead.table-light th {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 14px 16px;
-  border-radius: 14px;
-  background: rgba(11, 69, 80, 0.05);
-  border: 1px solid rgba(11, 69, 80, 0.08);
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(11, 69, 80, 0.06), rgba(11, 69, 80, 0.03));
+  border: 1px solid rgba(11, 69, 80, 0.12);
   color: var(--slate-800);
   font-weight: 600;
 }
@@ -3468,7 +3580,8 @@ thead.table-light th {
 }
 
 .demo-interest-submit {
-  min-width: 160px;
+  min-width: 240px;
+  box-shadow: 0 16px 28px rgba(11, 69, 80, 0.18);
 }
 
 .demo-interest-modal .modal-footer .btn.secondary {
@@ -3483,6 +3596,16 @@ thead.table-light th {
 @media (max-width: 768px) {
   .demo-interest-modal {
     width: min(94vw, 760px);
+  }
+
+  .demo-interest-header {
+    flex-direction: column;
+  }
+
+  .demo-interest-header-badge {
+    min-width: 0;
+    width: 100%;
+    text-align: left;
   }
 
   .demo-interest-grid {

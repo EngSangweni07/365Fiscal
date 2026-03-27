@@ -17,6 +17,8 @@ class DemoAccount(Base, TimestampMixin):
     num_users: Mapped[int] = mapped_column(Integer, default=1)
     wants_actual_three65: Mapped[bool] = mapped_column(Boolean, default=False)
     requested_apps: Mapped[str] = mapped_column(String(1000), default="")
+    subscription_period: Mapped[str] = mapped_column(String(20), default="monthly")
+    payment_link: Mapped[str] = mapped_column(String(1000), default="")
     tin: Mapped[str] = mapped_column(String(100), default="")
     vat_number: Mapped[str] = mapped_column(String(100), default="")
     trade_name: Mapped[str] = mapped_column(String(255), default="")

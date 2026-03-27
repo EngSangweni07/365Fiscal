@@ -160,6 +160,18 @@ def ensure_new_columns():
                         "ALTER TABLE demo_accounts ADD COLUMN requested_apps VARCHAR(1000) DEFAULT ''"
                     ))
 
+                if "subscription_period" not in demo_cols:
+                    _startup_logger.info(">>> Adding subscription_period column to demo_accounts")
+                    conn.execute(text(
+                        "ALTER TABLE demo_accounts ADD COLUMN subscription_period VARCHAR(20) DEFAULT 'monthly'"
+                    ))
+
+                if "payment_link" not in demo_cols:
+                    _startup_logger.info(">>> Adding payment_link column to demo_accounts")
+                    conn.execute(text(
+                        "ALTER TABLE demo_accounts ADD COLUMN payment_link VARCHAR(1000) DEFAULT ''"
+                    ))
+
                 if "tin" not in demo_cols:
                     _startup_logger.info(">>> Adding tin column to demo_accounts")
                     conn.execute(text(

@@ -23,6 +23,8 @@ class DemoAccountUpdate(BaseModel):
     vat_number: str | None = None
     trade_name: str | None = None
     address: str | None = None
+    subscription_period: str | None = None
+    payment_link: str | None = None
     status: str | None = None
     notes: str | None = None
 
@@ -33,6 +35,8 @@ class DemoInterestRequest(BaseModel):
     phone_number: str = Field(min_length=5, max_length=20)
     num_users: int = Field(default=1, ge=1, le=500)
     requested_apps: list[str] = Field(default_factory=list)
+    subscription_period: str = Field(default="monthly", pattern="^(monthly|yearly)$")
+    payment_link: str | None = Field(default=None, max_length=1000)
     wants_zimra_fdms: bool = False
     tin: str | None = Field(default=None, max_length=100)
     vat_number: str | None = Field(default=None, max_length=100)
@@ -49,6 +53,8 @@ class DemoAccountRead(ORMBase):
     num_users: int
     wants_actual_three65: bool
     requested_apps: list[str]
+    subscription_period: str
+    payment_link: str
     tin: str
     vat_number: str
     trade_name: str
