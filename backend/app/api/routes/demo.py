@@ -22,7 +22,7 @@ from app.services.email import send_demo_interest_email
 
 
 router = APIRouter(prefix="/demo", tags=["demo"])
-DEMO_DURATION_MINUTES = 3
+DEMO_DURATION_SECONDS = 30
 DEMO_INTEREST_EMAIL = "courageg@geenet.co.zw"
 DEMO_PORTAL_APPS = ",".join([
     "dashboard",
@@ -61,7 +61,7 @@ def create_demo_account(
 ):
     """
     Create a new demo account.
-    Demo accounts expire after 3 minutes.
+    Demo accounts expire after 30 seconds.
     """
     # Check if email already has an active demo account
     existing = db.query(DemoAccount).filter(
@@ -72,7 +72,7 @@ def create_demo_account(
     if existing and not existing.is_expired():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="An active demo account already exists for this email. Please wait 3 minutes before creating another."
+            detail="An active demo account already exists for this email. Please wait 30 seconds before creating another."
         )
 
     existing_user = db.query(User).filter(User.email == payload.email).first()
@@ -153,7 +153,7 @@ def create_demo_account(
         company_link.portal_apps = DEMO_PORTAL_APPS
 
     subscription = db.query(Subscription).filter(Subscription.company_id == company.id).first()
-    expires_at = datetime.utcnow() + timedelta(minutes=DEMO_DURATION_MINUTES)
+    expires_at = datetime.utcnow() + timedelta(seconds=DEMO_DURATION_SECONDS)
     if subscription is None:
         subscription = Subscription(
             company_id=company.id,
@@ -164,7 +164,7 @@ def create_demo_account(
             max_users=max(payload.num_users, 1),
             max_devices=2,
             max_invoices_per_month=100,
-            notes="Auto-created 3-minute demo subscription.",
+            notes="Auto-created 30-second demo subscription.",
         )
         db.add(subscription)
     else:
@@ -175,7 +175,7 @@ def create_demo_account(
         subscription.max_users = max(payload.num_users, 1)
         subscription.max_devices = max(subscription.max_devices, 2)
         subscription.max_invoices_per_month = max(subscription.max_invoices_per_month, 100)
-        subscription.notes = "Auto-created 3-minute demo subscription."
+        subscription.notes = "Auto-created 30-second demo subscription."
     
     # Create new demo account
     demo_account = DemoAccount.create_demo_account(
@@ -184,7 +184,7 @@ def create_demo_account(
         phone_number=payload.phone_number,
         wants_zimra_fdms=payload.wants_zimra_fdms,
         num_users=payload.num_users,
-        demo_duration_minutes=DEMO_DURATION_MINUTES,
+        demo_duration_seconds=DEMO_DURATION_SECONDS,
     )
     demo_account.user_id = user.id
     demo_account.company_id = company.id

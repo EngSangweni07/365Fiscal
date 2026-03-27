@@ -45,7 +45,7 @@ class DemoAccount(Base, TimestampMixin):
         phone_number: str,
         wants_zimra_fdms: bool,
         num_users: int,
-        demo_duration_minutes: int = 3,
+        demo_duration_seconds: int = 30,
     ):
         """Factory method to create a demo account with expiry."""
         demo = DemoAccount(
@@ -54,7 +54,7 @@ class DemoAccount(Base, TimestampMixin):
             phone_number=phone_number,
             wants_zimra_fdms=wants_zimra_fdms,
             num_users=num_users,
-            expires_at=datetime.utcnow() + timedelta(minutes=demo_duration_minutes),
+            expires_at=datetime.utcnow() + timedelta(seconds=demo_duration_seconds),
             status="active",
         )
         return demo

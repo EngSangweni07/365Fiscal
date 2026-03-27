@@ -291,7 +291,7 @@ export default function DemoSignupPage() {
                 <div className="demo-form-head">
                   <h2 className="login-card-title">{demo?.company_name || "Demo session"}</h2>
                   <p className="login-card-sub">
-                    Your live session is active for 3 minutes from the time it was created.
+                    Your live session is active for 30 seconds from the time it was created.
                   </p>
                 </div>
 
