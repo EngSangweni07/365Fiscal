@@ -25,6 +25,7 @@ from app.models.purchase_order_line import PurchaseOrderLine
 from app.models.subscription import Subscription, ActivationCode
 from app.models.demo_account import DemoAccount
 from app.models.notification import Notification
+from app.models.audit_log import AuditLog
 from app.models.expense import Expense
 from app.models.expense_category import ExpenseCategory
 from app.models.payment import Payment, PaymentMethod
@@ -240,6 +241,7 @@ def delete_company(company_id: int, db: Session = Depends(get_db)):
     if pos_session_ids:
         db.query(POSOrder).filter(POSOrder.session_id.in_(pos_session_ids)).delete(synchronize_session=False)
     db.query(Notification).filter(Notification.company_id == company_id).delete(synchronize_session=False)
+    db.query(AuditLog).filter(AuditLog.company_id == company_id).delete(synchronize_session=False)
     db.query(ActivationCode).filter(ActivationCode.company_id == company_id).delete(synchronize_session=False)
     db.query(DemoAccount).filter(DemoAccount.company_id == company_id).delete(synchronize_session=False)
     db.query(Subscription).filter(Subscription.company_id == company_id).delete(synchronize_session=False)
