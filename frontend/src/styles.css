@@ -2077,6 +2077,12 @@ thead.table-light th {
   z-index: 2;
 }
 
+.demo-page-shell {
+  align-items: flex-start;
+  justify-content: center;
+  padding-block: 24px 48px;
+}
+
 .login-split {
   display: grid;
   grid-template-columns: 1fr minmax(380px, 460px);
@@ -2727,6 +2733,7 @@ thead.table-light th {
   width: min(100%, 430px);
   grid-template-columns: minmax(0, 1fr);
   justify-content: center;
+  margin: 0 auto;
 }
 
 .demo-panel {
@@ -2782,6 +2789,7 @@ thead.table-light th {
 .demo-card {
   width: min(100%, 430px);
   max-width: 430px;
+  margin: 0 auto;
   background: rgba(255, 255, 255, 0.52);
   backdrop-filter: blur(34px);
   -webkit-backdrop-filter: blur(34px);
@@ -2996,6 +3004,10 @@ thead.table-light th {
     align-items: flex-start;
   }
 
+  .demo-page-shell {
+    padding-block: 14px 28px;
+  }
+
   .login-card {
     max-width: none;
     border-radius: 24px;
@@ -3046,7 +3058,7 @@ thead.table-light th {
 
   .demo-whatsapp-float {
     right: 16px;
-    bottom: 16px;
+    bottom: 20px;
     width: 60px;
     height: 60px;
     border-radius: 18px;
@@ -3065,6 +3077,10 @@ thead.table-light th {
 @media (max-width: 480px) {
   .login-shell {
     padding: 10px;
+  }
+
+  .demo-page-shell {
+    padding-block: 10px 20px;
   }
 
   .login-card {
@@ -3094,6 +3110,11 @@ thead.table-light th {
   .demo-checkbox {
     font-size: 11px;
     line-height: 1.45;
+  }
+
+  .demo-whatsapp-float {
+    right: 12px;
+    bottom: 14px;
   }
 }
 

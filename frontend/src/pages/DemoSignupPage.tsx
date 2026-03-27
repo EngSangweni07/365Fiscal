@@ -158,7 +158,7 @@ export default function DemoSignupPage() {
     demo?.is_expired || timeRemaining <= 0 || demo?.status === "expired";
 
   return (
-    <div className="login-shell login-centered">
+    <div className="login-shell login-centered demo-page-shell">
       <div className="demo-shell demo-shell-single">
         <div className="login-card login-card-glass demo-card">
           <div className="login-card-body demo-card-body">
