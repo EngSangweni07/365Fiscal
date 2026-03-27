@@ -206,13 +206,13 @@ def send_demo_interest_email(
         <td align="center">
           <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:720px;background:#ffffff;border-radius:24px;overflow:hidden;border:1px solid #dbe5ea;box-shadow:0 24px 60px rgba(15,23,42,.12);">
             <tr>
-              <td style="background:linear-gradient(135deg,#0b4550 0%,#145563 100%);padding:22px 28px;border-bottom:4px solid #d1e826;">
-                <div style="display:inline-flex;align-items:center;justify-content:center;padding:12px 14px;border-radius:18px;background:#f8fbfc;border:1px solid rgba(255,255,255,.4);box-shadow:0 10px 24px rgba(0,0,0,.14);margin:0 0 14px;">
+              <td style="background:#ffffff;padding:22px 28px;border-bottom:4px solid #d1e826;">
+                <div style="display:inline-flex;align-items:center;justify-content:center;padding:12px 14px;border-radius:18px;background:#f8fbfc;border:1px solid #dbe5ea;box-shadow:0 10px 24px rgba(15,23,42,.08);margin:0 0 14px;">
                   <img src="cid:three65-logo" alt="Three65" style="display:block;width:108px;max-width:108px;max-height:40px;height:auto;" />
                 </div>
-                <div style="font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#d7f25a;">Three65 Main System</div>
-                <h1 style="margin:10px 0 8px;font-size:28px;line-height:1.15;color:#ffffff;">Your sign-up details are ready</h1>
-                <p style="margin:0;max-width:44ch;font-size:15px;line-height:1.7;color:rgba(255,255,255,.82);">Thank you for your interest in Three65. We have prepared your main system access, app selection, and subscription setup details below.</p>
+                <div style="font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#0b4550;">Three65 Main System</div>
+                <h1 style="margin:10px 0 8px;font-size:28px;line-height:1.15;color:#101828;">Your sign-up details are ready</h1>
+                <p style="margin:0;max-width:44ch;font-size:15px;line-height:1.7;color:#475467;">Thank you for your interest in Three65. We have prepared your main system access, app selection, and subscription setup details below.</p>
               </td>
             </tr>
             <tr>

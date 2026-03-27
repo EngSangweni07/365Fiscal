@@ -572,7 +572,8 @@ export default function AppLauncherPage() {
       setDemoInterestSubmitted(true);
       localStorage.setItem(`demo_interest_submitted_${demoAccountId}`, "true");
       setDemoInterestOpen(false);
-      window.location.href = "/subscriptions";
+      window.location.assign("/subscriptions");
+      return;
     } catch (err: any) {
       setDemoInterestError(err.message || "Failed to send your request.");
     } finally {
@@ -875,13 +876,6 @@ export default function AppLauncherPage() {
               <div className="demo-interest-header-copy">
                 <span className="demo-interest-eyebrow">Main System Signup</span>
                 <h3>Continue with the actual Three65</h3>
-                <p className="demo-interest-header-note">
-                  Confirm the client details, choose the apps they need, and prepare the subscription email.
-                </p>
-              </div>
-              <div className="demo-interest-header-badge">
-                <strong>{demoInterestForm.subscription_period === "yearly" ? "1 Year" : "1 Month"}</strong>
-                <span>Subscription period</span>
               </div>
             </div>
             <div className="modal-body demo-interest-body">
