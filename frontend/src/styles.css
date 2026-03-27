@@ -3003,8 +3003,8 @@ thead.table-light th {
   .demo-whatsapp-float {
     width: 56px;
     height: 56px;
-    right: 14px;
-    bottom: 14px;
+    right: max(18px, calc(50vw - 320px));
+    bottom: 18px;
   }
 
   .demo-whatsapp-float::before {
@@ -3060,7 +3060,7 @@ thead.table-light th {
 
 .demo-whatsapp-float {
   position: fixed;
-  right: 24px;
+  right: max(24px, calc(50vw - 340px));
   bottom: 24px;
   width: 68px;
   height: 68px;
@@ -3173,7 +3173,7 @@ thead.table-light th {
   }
 
   .demo-whatsapp-float {
-    right: 16px;
+    right: max(16px, calc(50vw - 300px));
     bottom: 20px;
     width: 60px;
     height: 60px;
