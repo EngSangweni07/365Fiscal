@@ -38,6 +38,7 @@ type DemoAccount = {
   wants_zimra_fdms: boolean;
   num_users: number;
   wants_actual_three65: boolean;
+  requested_apps: string[];
   tin: string;
   vat_number: string;
   trade_name: string;
@@ -50,6 +51,7 @@ type DemoInterestForm = {
   company_name: string;
   phone_number: string;
   num_users: number;
+  requested_apps: string[];
   wants_zimra_fdms: boolean;
   tin: string;
   vat_number: string;
@@ -319,6 +321,20 @@ function parseApiDate(value: string) {
   return new Date(hasTimezone ? value : `${value}Z`);
 }
 
+const demoInterestAppOptions = [
+  { key: "dashboard", label: "Dashboard" },
+  { key: "invoices", label: "Invoices" },
+  { key: "purchases", label: "Purchases" },
+  { key: "contacts", label: "Contacts" },
+  { key: "quotations", label: "Quotations" },
+  { key: "inventory", label: "Inventory" },
+  { key: "pos", label: "Point of Sale" },
+  { key: "devices", label: "Devices" },
+  { key: "expenses", label: "Expenses" },
+  { key: "reports", label: "Financial Reports" },
+  { key: "settings", label: "Settings" },
+];
+
 export default function AppLauncherPage() {
   const { me, loading } = useMe();
   const isAdmin = Boolean(me?.is_admin);
@@ -363,6 +379,7 @@ export default function AppLauncherPage() {
     company_name: "",
     phone_number: "",
     num_users: 1,
+    requested_apps: [],
     wants_zimra_fdms: false,
     tin: "",
     vat_number: "",
@@ -438,6 +455,7 @@ export default function AppLauncherPage() {
           company_name: data.company_name || me.companies?.[0]?.name || "",
           phone_number: data.phone_number || "",
           num_users: data.num_users || 1,
+          requested_apps: data.requested_apps || [],
           wants_zimra_fdms: data.wants_zimra_fdms,
           tin: data.tin || "",
           vat_number: data.vat_number || "",
@@ -901,6 +919,37 @@ export default function AppLauncherPage() {
                       }))
                     }
                   />
+                </div>
+              </div>
+
+              <div className="demo-interest-apps">
+                <div className="demo-interest-apps-head">
+                  <span className="input-label">Apps required</span>
+                  <span className="demo-interest-apps-note">
+                    Select the modules the client wants in the main system.
+                  </span>
+                </div>
+                <div className="demo-interest-apps-grid">
+                  {demoInterestAppOptions.map((appOption) => {
+                    const selected = demoInterestForm.requested_apps.includes(appOption.key);
+                    return (
+                      <label key={appOption.key} className={`demo-interest-app-option ${selected ? "selected" : ""}`}>
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={(event) =>
+                            setDemoInterestForm((current) => ({
+                              ...current,
+                              requested_apps: event.target.checked
+                                ? [...current.requested_apps, appOption.key]
+                                : current.requested_apps.filter((item) => item !== appOption.key),
+                            }))
+                          }
+                        />
+                        <span>{appOption.label}</span>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
 

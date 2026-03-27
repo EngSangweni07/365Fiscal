@@ -39,6 +39,21 @@ DEMO_PORTAL_APPS = ",".join([
 ])
 
 
+def normalize_requested_apps(requested_apps: list[str] | None) -> list[str]:
+    allowed = [item.strip() for item in DEMO_PORTAL_APPS.split(",") if item.strip()]
+    allowed_set = set(allowed)
+    cleaned: list[str] = []
+    for item in requested_apps or []:
+        key = str(item).strip().lower()
+        if key in allowed_set and key not in cleaned:
+            cleaned.append(key)
+    return cleaned
+
+
+def parse_requested_apps(value: str | None) -> list[str]:
+    return [item.strip() for item in (value or "").split(",") if item.strip()]
+
+
 @router.post("/signup", response_model=DemoSignupResponse)
 def create_demo_account(
     payload: DemoAccountCreate,
@@ -203,6 +218,8 @@ def confirm_demo_interest(
     demo.phone_number = payload.phone_number
     demo.num_users = payload.num_users
     demo.wants_actual_three65 = payload.wants_actual_three65
+    requested_apps = normalize_requested_apps(payload.requested_apps)
+    demo.requested_apps = ",".join(requested_apps)
     demo.wants_zimra_fdms = payload.wants_zimra_fdms
     demo.tin = (payload.tin or "").strip()
     demo.vat_number = (payload.vat_number or "").strip()
@@ -213,6 +230,8 @@ def confirm_demo_interest(
         f"Actual Three65 requested: {'Yes' if payload.wants_actual_three65 else 'No'}",
         f"Users required: {payload.num_users}",
     ]
+    if requested_apps:
+        note_parts.append(f"Apps: {', '.join(requested_apps)}")
     if payload.wants_zimra_fdms:
         note_parts.append("ZIMRA fiscalization requested")
     demo.notes = " | ".join(note_parts)
@@ -227,6 +246,7 @@ def confirm_demo_interest(
         phone_number=demo.phone_number,
         num_users=demo.num_users,
         wants_actual_three65=demo.wants_actual_three65,
+        requested_apps=parse_requested_apps(demo.requested_apps),
         wants_zimra_fdms=demo.wants_zimra_fdms,
         tin=demo.tin,
         vat_number=demo.vat_number,
@@ -351,6 +371,8 @@ def update_demo_account(
         demo.num_users = payload.num_users
     if payload.wants_actual_three65 is not None:
         demo.wants_actual_three65 = payload.wants_actual_three65
+    if payload.requested_apps is not None:
+        demo.requested_apps = ",".join(normalize_requested_apps(payload.requested_apps))
     if payload.tin is not None:
         demo.tin = payload.tin
     if payload.vat_number is not None:
@@ -379,6 +401,7 @@ def serialize_demo(demo: DemoAccount) -> dict:
         "wants_zimra_fdms": demo.wants_zimra_fdms,
         "num_users": demo.num_users,
         "wants_actual_three65": demo.wants_actual_three65,
+        "requested_apps": parse_requested_apps(demo.requested_apps),
         "tin": demo.tin,
         "vat_number": demo.vat_number,
         "trade_name": demo.trade_name,

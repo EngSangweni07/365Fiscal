@@ -154,6 +154,12 @@ def ensure_new_columns():
                         "ALTER TABLE demo_accounts ADD COLUMN wants_actual_three65 BOOLEAN DEFAULT FALSE"
                     ))
 
+                if "requested_apps" not in demo_cols:
+                    _startup_logger.info(">>> Adding requested_apps column to demo_accounts")
+                    conn.execute(text(
+                        "ALTER TABLE demo_accounts ADD COLUMN requested_apps VARCHAR(1000) DEFAULT ''"
+                    ))
+
                 if "tin" not in demo_cols:
                     _startup_logger.info(">>> Adding tin column to demo_accounts")
                     conn.execute(text(

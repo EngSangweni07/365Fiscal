@@ -18,6 +18,7 @@ class DemoAccountUpdate(BaseModel):
     wants_zimra_fdms: bool | None = None
     num_users: int | None = None
     wants_actual_three65: bool | None = None
+    requested_apps: list[str] | None = None
     tin: str | None = None
     vat_number: str | None = None
     trade_name: str | None = None
@@ -31,6 +32,7 @@ class DemoInterestRequest(BaseModel):
     company_name: str = Field(min_length=2, max_length=255)
     phone_number: str = Field(min_length=5, max_length=20)
     num_users: int = Field(default=1, ge=1, le=500)
+    requested_apps: list[str] = Field(default_factory=list)
     wants_zimra_fdms: bool = False
     tin: str | None = Field(default=None, max_length=100)
     vat_number: str | None = Field(default=None, max_length=100)
@@ -46,6 +48,7 @@ class DemoAccountRead(ORMBase):
     wants_zimra_fdms: bool
     num_users: int
     wants_actual_three65: bool
+    requested_apps: list[str]
     tin: str
     vat_number: str
     trade_name: str

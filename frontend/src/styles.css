@@ -3393,6 +3393,57 @@ thead.table-light th {
   min-height: 92px;
 }
 
+.demo-interest-apps {
+  display: grid;
+  gap: 12px;
+}
+
+.demo-interest-apps-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.demo-interest-apps-note {
+  color: var(--slate-500);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.demo-interest-apps-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.demo-interest-app-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: rgba(248, 250, 252, 0.92);
+  color: var(--slate-800);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.demo-interest-app-option.selected {
+  border-color: rgba(11, 69, 80, 0.3);
+  background: rgba(11, 69, 80, 0.08);
+  color: var(--brand-sherpa);
+}
+
+.demo-interest-app-option input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--brand-sherpa);
+  flex: 0 0 auto;
+}
+
 .demo-interest-field-full {
   grid-column: 1 / -1;
 }
@@ -3435,6 +3486,15 @@ thead.table-light th {
   }
 
   .demo-interest-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .demo-interest-apps-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .demo-interest-apps-grid {
     grid-template-columns: 1fr;
   }
 }

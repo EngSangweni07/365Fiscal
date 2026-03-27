@@ -7,6 +7,19 @@ from app.core.config import settings
 
 
 LOGO_PATH = Path(__file__).resolve().parents[3] / "frontend" / "public" / "three.png"
+APP_LABELS = {
+    "dashboard": "Dashboard",
+    "invoices": "Invoices",
+    "purchases": "Purchases",
+    "contacts": "Contacts",
+    "quotations": "Quotations",
+    "inventory": "Inventory",
+    "pos": "Point of Sale",
+    "devices": "Devices",
+    "expenses": "Expenses",
+    "reports": "Financial Reports",
+    "settings": "Settings",
+}
 
 
 def _build_message(
@@ -41,6 +54,7 @@ def _build_message(
                 subtype="png",
                 cid="<three65-logo>",
                 filename="three.png",
+                disposition="inline",
             )
 
     return message
@@ -113,6 +127,11 @@ def _summary_row(label: str, value: str, accent: bool = False) -> str:
         if accent
         else "font-weight:600;color:#0f172a;"
     )
+
+
+def _format_requested_apps(requested_apps: list[str] | None) -> str:
+    labels = [APP_LABELS.get(item, item.replace("_", " ").title()) for item in (requested_apps or [])]
+    return ", ".join(labels) or "-"
     return (
         "<tr>"
         f"<td style=\"padding:10px 0;color:#64748b;font-size:12px;font-weight:700;"
@@ -130,6 +149,7 @@ def send_demo_interest_email(
     phone_number: str,
     num_users: int,
     wants_actual_three65: bool,
+    requested_apps: list[str] | None = None,
     wants_zimra_fdms: bool,
     tin: str = "",
     vat_number: str = "",
@@ -140,6 +160,7 @@ def send_demo_interest_email(
     subject = f"Three65 demo follow-up: {company_name}"
     wants_main_system = "Yes" if wants_actual_three65 else "No"
     wants_fiscalization = "Yes" if wants_zimra_fdms else "No"
+    apps_summary = _format_requested_apps(requested_apps)
     plain_body = "\n".join(
         [
             "A demo user requested follow-up.",
@@ -149,6 +170,7 @@ def send_demo_interest_email(
             f"Contact email: {demo_email}",
             f"Phone number: {phone_number}",
             f"Required users: {num_users}",
+            f"Requested apps: {apps_summary}",
             f"Wants ZIMRA fiscalization: {wants_fiscalization}",
             f"TIN: {tin or '-'}",
             f"VAT: {vat_number or '-'}",
@@ -166,32 +188,70 @@ def send_demo_interest_email(
         <td align="center">
           <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:680px;background:#ffffff;border-radius:28px;overflow:hidden;border:1px solid rgba(148,163,184,.18);box-shadow:0 28px 60px rgba(15,23,42,.14);">
             <tr>
-              <td style="padding:28px 32px 20px;background:linear-gradient(180deg, rgba(11,69,80,.08), rgba(209,232,38,.08));border-bottom:1px solid rgba(148,163,184,.14);">
+              <td style="padding:0;background:linear-gradient(135deg,#0b4550 0%,#114f5b 58%,#1d6070 100%);">
+                <div style="height:8px;background:#d1e826;"></div>
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
                   <tr>
-                    <td align="left">
-                      <img src="cid:three65-logo" alt="Three65" style="display:block;width:150px;max-width:100%;height:auto;margin:0 0 18px;" />
-                      <div style="display:inline-block;padding:8px 14px;border-radius:999px;background:rgba(11,69,80,.1);color:#0b4550;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;">Demo follow-up</div>
-                      <h1 style="margin:18px 0 8px;font-size:32px;line-height:1.1;color:#0f172a;">New Three65 lead</h1>
-                      <p style="margin:0;font-size:15px;line-height:1.6;color:#475569;">A demo user has confirmed interest in the main system. Their contact and business details are below.</p>
+                    <td style="padding:24px 32px 22px;">
+                      <img src="cid:three65-logo" alt="Three65" style="display:block;width:88px;max-width:88px;height:auto;margin:0 0 16px;" />
+                      <div style="display:inline-block;padding:7px 12px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.14);color:#f8fafc;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;">Demo follow-up</div>
+                      <h1 style="margin:16px 0 8px;font-size:30px;line-height:1.05;color:#ffffff;">New Three65 lead</h1>
+                      <p style="margin:0;max-width:40ch;font-size:15px;line-height:1.6;color:rgba(248,250,252,.82);">A demo user has confirmed interest in the main system. Their business details are ready for follow-up.</p>
                     </td>
                   </tr>
                 </table>
               </td>
             </tr>
             <tr>
-              <td style="padding:28px 32px 12px;">
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f8fafc;border:1px solid rgba(148,163,184,.16);border-radius:22px;padding:0 22px;">
-                  {_summary_row("Main system requested", wants_main_system, accent=True)}
-                  {_summary_row("Company name", company_name)}
-                  {_summary_row("Contact email", demo_email, accent=True)}
-                  {_summary_row("Phone number", phone_number)}
-                  {_summary_row("Required users", str(num_users))}
-                  {_summary_row("ZIMRA fiscalization", wants_fiscalization, accent=True)}
-                  {_summary_row("TIN", tin or "-")}
-                  {_summary_row("VAT", vat_number or "-")}
-                  {_summary_row("Trade name", trade_name or "-")}
-                  {_summary_row("Address", address or "-")}
+              <td style="padding:24px 32px 14px;background:#ffffff;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td width="33.33%" style="padding-right:10px;">
+                      <div style="border-radius:20px;background:#f8fafc;border:1px solid rgba(148,163,184,.14);padding:16px 18px;">
+                        <div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#64748b;">Company</div>
+                        <div style="margin-top:8px;font-size:18px;font-weight:800;color:#0f172a;">{html.escape(company_name)}</div>
+                      </div>
+                    </td>
+                    <td width="33.33%" style="padding:0 5px;">
+                      <div style="border-radius:20px;background:#f8fafc;border:1px solid rgba(148,163,184,.14);padding:16px 18px;">
+                        <div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#64748b;">Users</div>
+                        <div style="margin-top:8px;font-size:18px;font-weight:800;color:#0b4550;">{num_users}</div>
+                      </div>
+                    </td>
+                    <td width="33.33%" style="padding-left:10px;">
+                      <div style="border-radius:20px;background:#f8fafc;border:1px solid rgba(148,163,184,.14);padding:16px 18px;">
+                        <div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#64748b;">Apps selected</div>
+                        <div style="margin-top:8px;font-size:14px;font-weight:800;color:#0f172a;line-height:1.45;">{html.escape(apps_summary)}</div>
+                      </div>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 32px 12px;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid rgba(148,163,184,.16);border-radius:24px;overflow:hidden;">
+                  <tr>
+                    <td style="padding:18px 22px;background:linear-gradient(180deg, rgba(11,69,80,.04), rgba(11,69,80,.01));border-bottom:1px solid rgba(148,163,184,.12);">
+                      <div style="font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#0b4550;">Lead summary</div>
+                      <div style="margin-top:6px;font-size:14px;line-height:1.6;color:#475569;">Everything submitted by the client is listed below for follow-up and onboarding.</div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:10px 22px 8px;background:#ffffff;">
+                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                        {_summary_row("Main system requested", wants_main_system, accent=True)}
+                        {_summary_row("Contact email", demo_email, accent=True)}
+                        {_summary_row("Phone number", phone_number)}
+                        {_summary_row("Requested apps", apps_summary, accent=True)}
+                        {_summary_row("ZIMRA fiscalization", wants_fiscalization)}
+                        {_summary_row("Trade name", trade_name or "-")}
+                        {_summary_row("TIN", tin or "-")}
+                        {_summary_row("VAT", vat_number or "-")}
+                        {_summary_row("Address", address or "-")}
+                      </table>
+                    </td>
+                  </tr>
                 </table>
               </td>
             </tr>
