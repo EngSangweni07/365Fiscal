@@ -99,7 +99,7 @@ export default function LeadsPage() {
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] =
     useState<(typeof statusOptions)[number]>("all");
-  const [viewMode, setViewMode] = useState<"cards" | "list">("cards");
+  const [viewMode, setViewMode] = useState<"cards" | "list">("list");
   const [searchQuery, setSearchQuery] = useState("");
   const [leads, setLeads] = useState<DemoLead[]>([]);
   const [loading, setLoading] = useState(true);

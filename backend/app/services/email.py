@@ -207,8 +207,8 @@ def send_demo_interest_email(
           <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:720px;background:#ffffff;border-radius:24px;overflow:hidden;border:1px solid #dbe5ea;box-shadow:0 24px 60px rgba(15,23,42,.12);">
             <tr>
               <td style="background:#ffffff;padding:22px 28px;border-bottom:4px solid #d1e826;">
-                <div style="display:inline-flex;align-items:center;justify-content:center;padding:12px 14px;border-radius:18px;background:#f8fbfc;border:1px solid #dbe5ea;box-shadow:0 10px 24px rgba(15,23,42,.08);margin:0 0 14px;">
-                  <img src="cid:three65-logo" alt="Three65" style="display:block;width:108px;max-width:108px;max-height:40px;height:auto;" />
+                <div style="display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:18px;background:#f8fbfc;border:1px solid #dbe5ea;box-shadow:0 10px 24px rgba(15,23,42,.08);margin:0 0 14px;">
+                  <img src="cid:three65-logo" alt="Three65" style="display:block;width:160px;max-width:160px;max-height:none;height:auto;" />
                 </div>
                 <div style="font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#0b4550;">Three65 Main System</div>
                 <h1 style="margin:10px 0 8px;font-size:28px;line-height:1.15;color:#101828;">Your sign-up details are ready</h1>
