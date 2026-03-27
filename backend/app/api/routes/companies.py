@@ -9,6 +9,7 @@ from app.models.user import User
 from app.models.company import Company
 from app.models.device import Device
 from app.models.company_certificate import CompanyCertificate
+from app.models.company_settings import CompanySettings
 from app.models.warehouse import Warehouse
 from app.models.location import Location
 from app.models.tax_setting import TaxSetting
@@ -16,8 +17,23 @@ from app.models.quotation import Quotation
 from app.models.quotation_line import QuotationLine
 from app.models.product import Product
 from app.models.invoice import Invoice
+from app.models.invoice_line import InvoiceLine
 from app.models.contact import Contact
 from app.models.category import Category
+from app.models.purchase_order import PurchaseOrder
+from app.models.purchase_order_line import PurchaseOrderLine
+from app.models.subscription import Subscription, ActivationCode
+from app.models.demo_account import DemoAccount
+from app.models.notification import Notification
+from app.models.expense import Expense
+from app.models.expense_category import ExpenseCategory
+from app.models.payment import Payment, PaymentMethod
+from app.models.pos_employee import POSEmployee
+from app.models.pos_session import POSSession, POSOrder, POSOrderLine
+from app.models.pos_till import POSTill
+from app.models.stock_move import StockMove
+from app.models.stock_quant import StockQuant
+from app.models.currency import Currency, CurrencyRate
 from app.schemas.company import CompanyCreate, CompanyRead, CompanyUpdate
 
 router = APIRouter(prefix="/companies", tags=["companies"])
@@ -200,25 +216,58 @@ def delete_company(company_id: int, db: Session = Depends(get_db)):
     company = db.query(Company).filter(Company.id == company_id).first()
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
-    # Delete all associated records first (order matters due to FK constraints)
-    # First get all quotation IDs for this company to delete their lines
+
     quotation_ids = [q.id for q in db.query(Quotation.id).filter(Quotation.company_id == company_id).all()]
+    invoice_ids = [i.id for i in db.query(Invoice.id).filter(Invoice.company_id == company_id).all()]
+    purchase_order_ids = [
+        p.id for p in db.query(PurchaseOrder.id).filter(PurchaseOrder.company_id == company_id).all()
+    ]
+    pos_order_ids = [o.id for o in db.query(POSOrder.id).filter(POSOrder.company_id == company_id).all()]
+    pos_session_ids = [s.id for s in db.query(POSSession.id).filter(POSSession.company_id == company_id).all()]
+    warehouse_ids = [w.id for w in db.query(Warehouse.id).filter(Warehouse.company_id == company_id).all()]
+
+    # Delete all associated records first (order matters due to FK constraints)
     if quotation_ids:
         db.query(QuotationLine).filter(QuotationLine.quotation_id.in_(quotation_ids)).delete(synchronize_session=False)
-    db.query(Invoice).filter(Invoice.company_id == company_id).delete()
+    if invoice_ids:
+        db.query(InvoiceLine).filter(InvoiceLine.invoice_id.in_(invoice_ids)).delete(synchronize_session=False)
+    if purchase_order_ids:
+        db.query(PurchaseOrderLine).filter(
+            PurchaseOrderLine.purchase_order_id.in_(purchase_order_ids)
+        ).delete(synchronize_session=False)
+    if pos_order_ids:
+        db.query(POSOrderLine).filter(POSOrderLine.order_id.in_(pos_order_ids)).delete(synchronize_session=False)
+    if pos_session_ids:
+        db.query(POSOrder).filter(POSOrder.session_id.in_(pos_session_ids)).delete(synchronize_session=False)
+    db.query(Notification).filter(Notification.company_id == company_id).delete(synchronize_session=False)
+    db.query(ActivationCode).filter(ActivationCode.company_id == company_id).delete(synchronize_session=False)
+    db.query(DemoAccount).filter(DemoAccount.company_id == company_id).delete(synchronize_session=False)
+    db.query(Subscription).filter(Subscription.company_id == company_id).delete(synchronize_session=False)
+    db.query(CompanySettings).filter(CompanySettings.company_id == company_id).delete(synchronize_session=False)
+    db.query(Payment).filter(Payment.company_id == company_id).delete(synchronize_session=False)
+    db.query(PaymentMethod).filter(PaymentMethod.company_id == company_id).delete(synchronize_session=False)
+    db.query(Expense).filter(Expense.company_id == company_id).delete(synchronize_session=False)
+    db.query(ExpenseCategory).filter(ExpenseCategory.company_id == company_id).delete(synchronize_session=False)
+    db.query(StockMove).filter(StockMove.company_id == company_id).delete(synchronize_session=False)
+    db.query(StockQuant).filter(StockQuant.company_id == company_id).delete(synchronize_session=False)
+    db.query(CurrencyRate).filter(CurrencyRate.company_id == company_id).delete(synchronize_session=False)
+    db.query(Currency).filter(Currency.company_id == company_id).delete(synchronize_session=False)
+    db.query(POSEmployee).filter(POSEmployee.company_id == company_id).delete(synchronize_session=False)
+    db.query(POSTill).filter(POSTill.company_id == company_id).delete(synchronize_session=False)
+    db.query(POSSession).filter(POSSession.company_id == company_id).delete(synchronize_session=False)
+    db.query(PurchaseOrder).filter(PurchaseOrder.company_id == company_id).delete(synchronize_session=False)
+    db.query(Invoice).filter(Invoice.company_id == company_id).delete(synchronize_session=False)
     db.query(Quotation).filter(Quotation.company_id == company_id).delete()
     db.query(Product).filter(Product.company_id == company_id).delete()
     db.query(Contact).filter(Contact.company_id == company_id).delete()
     db.query(Category).filter(Category.company_id == company_id).delete()
-    db.query(Device).filter(Device.company_id == company_id).delete()
-    # Get warehouse IDs and delete locations first
-    warehouse_ids = [w.id for w in db.query(Warehouse.id).filter(Warehouse.company_id == company_id).all()]
     if warehouse_ids:
         db.query(Location).filter(Location.warehouse_id.in_(warehouse_ids)).delete(synchronize_session=False)
+    db.query(Device).filter(Device.company_id == company_id).delete(synchronize_session=False)
     db.query(Warehouse).filter(Warehouse.company_id == company_id).delete()
     db.query(TaxSetting).filter(TaxSetting.company_id == company_id).delete()
     db.query(CompanyCertificate).filter(CompanyCertificate.company_id == company_id).delete()
-    db.query(CompanyUser).filter(CompanyUser.company_id == company_id).delete()
+    db.query(CompanyUser).filter(CompanyUser.company_id == company_id).delete(synchronize_session=False)
     db.delete(company)
     db.commit()
     return {"detail": "Company deleted"}
