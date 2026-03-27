@@ -16,6 +16,7 @@ def _build_message(
     body: str,
     html_body: str | None = None,
     embed_logo: bool = False,
+    cc_emails: list[str] | None = None,
 ) -> EmailMessage:
     message = EmailMessage()
     message["Subject"] = subject
@@ -25,6 +26,8 @@ def _build_message(
         else settings.smtp_from_email
     )
     message["To"] = to_email
+    if cc_emails:
+        message["Cc"] = ", ".join(cc_emails)
     message.set_content(body)
 
     if html_body:
@@ -77,6 +80,7 @@ def _deliver_email(
     body: str,
     html_body: str | None = None,
     embed_logo: bool = False,
+    cc_emails: list[str] | None = None,
 ) -> None:
     message = _build_message(
         to_email=to_email,
@@ -84,6 +88,7 @@ def _deliver_email(
         body=body,
         html_body=html_body,
         embed_logo=embed_logo,
+        cc_emails=cc_emails,
     )
     _deliver_message(message)
 
@@ -131,6 +136,7 @@ def send_demo_interest_email(
     trade_name: str = "",
     address: str = "",
 ) -> None:
+    cc_emails = ["support@geenet.co.zw", "info@geenet.co.zw"]
     subject = f"Three65 demo follow-up: {company_name}"
     wants_main_system = "Yes" if wants_actual_three65 else "No"
     wants_fiscalization = "Yes" if wants_zimra_fdms else "No"
@@ -210,4 +216,5 @@ def send_demo_interest_email(
         body=plain_body,
         html_body=html_body,
         embed_logo=True,
+        cc_emails=cc_emails,
     )
