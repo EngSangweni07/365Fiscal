@@ -2807,7 +2807,7 @@ thead.table-light th {
 }
 
 .demo-card-logo {
-  width: 112px;
+  width: 128px;
   padding: 0.7rem 0.8rem 0;
   align-self: center;
 }
@@ -2836,7 +2836,7 @@ thead.table-light th {
   margin-bottom: 2px;
   color: #0f172a;
   font-weight: 800;
-  font-size: clamp(1.8rem, 3.3vw, 2.35rem);
+  font-size: clamp(1.6rem, 3vw, 2.1rem);
   line-height: 1.04;
 }
 
@@ -3010,12 +3010,12 @@ thead.table-light th {
   }
 
   .demo-card-logo {
-    width: min(100%, 94px);
+    width: min(100%, 104px);
     padding: 0.35rem 0.5rem 0.05rem;
   }
 
   .demo-form-head .login-card-title {
-    font-size: clamp(1.6rem, 3.4vw, 2rem);
+    font-size: clamp(1.45rem, 3vw, 1.8rem);
     line-height: 1.05;
     margin-bottom: 2px;
   }
