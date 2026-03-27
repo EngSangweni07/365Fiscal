@@ -516,11 +516,18 @@ export default function AppLauncherPage() {
       });
       setActivateSuccess("Subscription activated successfully!");
       setActivationCode("");
+      localStorage.removeItem("demo_account_id");
+      localStorage.removeItem("demo_expires_at");
+      localStorage.removeItem("demo_expires_at_ms");
+      localStorage.removeItem("demo_email");
       // Reload status
       const data = await apiFetch<ActivationStatus[]>(
         "/subscriptions/my-status",
       );
       setActivationStatus(data);
+      setDemoCountdown(null);
+      setDemoAccount(null);
+      setDemoInterestOpen(false);
     } catch (err: any) {
       setActivateError(err.message || "Invalid or expired activation code.");
     } finally {
@@ -792,7 +799,7 @@ export default function AppLauncherPage() {
       {/* Header */}
       <header className="app-launcher-header">
         <div className="app-launcher-user">
-          {!isAdmin && demoCountdown !== null && (
+          {!isAdmin && !hasActiveSubscription && demoCountdown !== null && (
             <div className={`demo-launcher-banner ${demoCountdown === 0 ? "expired" : ""}`}>
               <span className="demo-launcher-label">Demo time</span>
               <strong>
