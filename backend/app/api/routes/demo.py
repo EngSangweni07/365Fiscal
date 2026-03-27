@@ -327,7 +327,14 @@ def confirm_demo_interest(
         company_link.is_company_admin = True
         company_link.portal_apps = portal_apps_csv
 
-    subscription = db.query(Subscription).filter(Subscription.company_id == company.id).first()
+    subscription = company.subscription
+    if subscription is None:
+        subscription = (
+            db.query(Subscription)
+            .filter(Subscription.company_id == company.id)
+            .order_by(desc(Subscription.id))
+            .first()
+        )
     if subscription is None:
         subscription = Subscription(
             company_id=company.id,
@@ -350,6 +357,7 @@ def confirm_demo_interest(
         subscription.max_devices = max(subscription.max_devices, 2)
         subscription.max_invoices_per_month = max(subscription.max_invoices_per_month, 1000)
         subscription.notes = "Created from Three65 demo follow-up form."
+        subscription.company_id = company.id
 
     activation_code_value = generate_activation_code_value()
     while db.query(ActivationCode).filter(ActivationCode.code == activation_code_value).first():
