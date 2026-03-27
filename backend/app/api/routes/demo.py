@@ -8,6 +8,7 @@ from urllib.parse import urlsplit
 from app.api.deps import get_db, require_admin
 from app.models.company import Company
 from app.models.company_user import CompanyUser
+from app.models.company_settings import CompanySettings
 from app.models.demo_account import DemoAccount
 from app.models.role import Role
 from app.models.subscription import ActivationCode, Subscription
@@ -285,6 +286,18 @@ def confirm_demo_interest(
     company.tin = demo.tin
     company.vat = demo.vat_number
     company.portal_apps = portal_apps_csv
+
+    company_settings = (
+        db.query(CompanySettings)
+        .filter(CompanySettings.company_id == company.id)
+        .first()
+    )
+    if company_settings is None:
+        company_settings = CompanySettings(company_id=company.id)
+        db.add(company_settings)
+    else:
+        company_settings.company_id = company.id
+    company.settings = company_settings
 
     user.name = payload.company_name
     user.email = demo.email
