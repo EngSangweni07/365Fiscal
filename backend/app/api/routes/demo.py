@@ -297,7 +297,6 @@ def confirm_demo_interest(
         db.add(company_settings)
     else:
         company_settings.company_id = company.id
-    company.settings = company_settings
 
     user.name = payload.company_name
     user.email = demo.email
