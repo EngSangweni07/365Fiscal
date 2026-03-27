@@ -2807,7 +2807,7 @@ thead.table-light th {
 }
 
 .demo-card-logo {
-  width: 144px;
+  width: 168px;
   padding: 0.7rem 0.8rem 0;
   align-self: center;
 }
@@ -2836,7 +2836,7 @@ thead.table-light th {
   margin-bottom: 2px;
   color: #0f172a;
   font-weight: 800;
-  font-size: clamp(1.6rem, 3vw, 2.1rem);
+  font-size: 14px;
   line-height: 1.04;
 }
 
@@ -3010,7 +3010,7 @@ thead.table-light th {
   }
 
   .demo-card-logo {
-    width: min(100%, 116px);
+    width: min(100%, 132px);
     padding: 0.35rem 0.5rem 0.05rem;
   }
 
@@ -3083,7 +3083,7 @@ thead.table-light th {
   }
 
   .demo-card-logo {
-    width: min(100%, 102px);
+    width: min(100%, 118px);
     padding-top: 0.25rem;
   }
 
@@ -3205,7 +3205,7 @@ thead.table-light th {
   }
 
   .demo-card-logo {
-    width: min(100%, 128px);
+    width: min(100%, 142px);
     padding: 0.75rem 0.75rem 0.2rem;
   }
 
@@ -3273,7 +3273,7 @@ thead.table-light th {
   }
 
   .demo-card-logo {
-    width: min(100%, 114px);
+    width: min(100%, 126px);
   }
 
   .demo-form-head .login-card-title {
