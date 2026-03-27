@@ -2045,6 +2045,7 @@ thead.table-light th {
   right: 0;
   bottom: 0;
   overflow: auto;
+  overflow-x: hidden;
   box-sizing: border-box;
 }
 
@@ -2714,7 +2715,7 @@ thead.table-light th {
 .demo-shell {
   width: min(1180px, 100%);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(380px, 430px);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 430px);
   gap: 56px;
   align-items: center;
   position: relative;
@@ -2723,7 +2724,8 @@ thead.table-light th {
 }
 
 .demo-shell-single {
-  grid-template-columns: minmax(380px, 430px);
+  width: min(100%, 430px);
+  grid-template-columns: minmax(0, 1fr);
   justify-content: center;
 }
 
@@ -2778,6 +2780,7 @@ thead.table-light th {
 }
 
 .demo-card {
+  width: min(100%, 430px);
   max-width: 430px;
   background: rgba(255, 255, 255, 0.52);
   backdrop-filter: blur(34px);
@@ -2849,6 +2852,7 @@ thead.table-light th {
   font-size: 13px;
   font-weight: 600;
   line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .demo-checkbox input {
@@ -2987,6 +2991,59 @@ thead.table-light th {
 }
 
 @media (max-width: 768px) {
+  .login-shell {
+    padding: 16px;
+    align-items: flex-start;
+  }
+
+  .login-card {
+    max-width: none;
+    border-radius: 24px;
+  }
+
+  .login-card-body {
+    padding: 0 18px 20px;
+  }
+
+  .login-card-footer {
+    padding: 12px 18px 16px;
+  }
+
+  .logo-365 {
+    width: min(100%, 170px);
+    max-height: 88px;
+    padding-top: 0.8rem;
+  }
+
+  .demo-card {
+    width: 100%;
+    max-width: none;
+  }
+
+  .demo-card-logo {
+    width: min(100%, 150px);
+    padding: 0.8rem 0.8rem 0.25rem;
+  }
+
+  .demo-form-head .login-card-title {
+    font-size: clamp(1.8rem, 5vw, 2.2rem);
+    line-height: 1.1;
+  }
+
+  .demo-form-compact {
+    gap: 10px;
+  }
+
+  .demo-field input {
+    padding: 11px 12px;
+  }
+
+  .demo-checkbox {
+    gap: 10px;
+    padding: 11px 12px;
+    font-size: 12px;
+  }
+
   .demo-whatsapp-float {
     right: 16px;
     bottom: 16px;
@@ -3002,6 +3059,41 @@ thead.table-light th {
   .demo-whatsapp-float svg {
     width: 30px;
     height: 30px;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-shell {
+    padding: 10px;
+  }
+
+  .login-card {
+    border-radius: 20px;
+  }
+
+  .login-card-body {
+    padding: 0 14px 16px;
+  }
+
+  .login-card-footer {
+    padding: 10px 14px 14px;
+  }
+
+  .demo-card-logo {
+    width: min(100%, 132px);
+  }
+
+  .demo-form-head .login-card-title {
+    font-size: 1.95rem;
+  }
+
+  .demo-field .input-label {
+    font-size: 10px;
+  }
+
+  .demo-checkbox {
+    font-size: 11px;
+    line-height: 1.45;
   }
 }
 
