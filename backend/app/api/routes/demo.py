@@ -28,6 +28,7 @@ router = APIRouter(prefix="/demo", tags=["demo"])
 DEMO_DURATION_SECONDS = 30
 DEMO_INTEREST_EMAIL = "courageg@geenet.co.zw"
 DEMO_INTERNAL_CC = ["support@geenet.co.zw", "info@geenet.co.zw", DEMO_INTEREST_EMAIL]
+DEMO_WORKSPACE_NAME = "Three65 Demo Workspace"
 DEMO_PORTAL_APPS = ",".join([
     "dashboard",
     "invoices",
@@ -88,6 +89,22 @@ def build_login_link(payment_link: str | None) -> str:
     return "/login"
 
 
+def get_or_create_demo_workspace(db: Session) -> Company:
+    company = db.query(Company).filter(Company.name == DEMO_WORKSPACE_NAME).first()
+    if company is None:
+        company = Company(
+            name=DEMO_WORKSPACE_NAME,
+            email="support@geenet.co.zw",
+            phone="",
+            portal_apps=DEMO_PORTAL_APPS,
+        )
+        db.add(company)
+        db.flush()
+    else:
+        company.portal_apps = DEMO_PORTAL_APPS
+    return company
+
+
 @router.post("/signup", response_model=DemoSignupResponse)
 def create_demo_account(
     payload: DemoAccountCreate,
@@ -126,24 +143,7 @@ def create_demo_account(
     company_admin_role = db.query(Role).filter(Role.name == "company_admin").first()
     company = None
     user = existing_user
-
-    if reusable_demo and reusable_demo.company_id:
-        company = db.query(Company).filter(Company.id == reusable_demo.company_id).first()
-
-    if company is None:
-        company = Company(
-            name=payload.company_name,
-            email=payload.email,
-            phone=payload.phone_number,
-            portal_apps=DEMO_PORTAL_APPS,
-        )
-        db.add(company)
-        db.flush()
-    else:
-        company.name = payload.company_name
-        company.email = payload.email
-        company.phone = payload.phone_number
-        company.portal_apps = DEMO_PORTAL_APPS
+    company = get_or_create_demo_workspace(db)
 
     if user is None:
         user = User(
@@ -248,12 +248,15 @@ def confirm_demo_interest(
             detail="Demo account not found",
         )
 
-    company_id = demo.company_id
+    previous_company_id = demo.company_id
+    current_company = db.query(Company).filter(Company.id == previous_company_id).first() if previous_company_id else None
+    using_demo_workspace = bool(current_company and current_company.name == DEMO_WORKSPACE_NAME)
+    company_id = previous_company_id
     user = db.query(User).filter(User.id == demo.user_id).first() if demo.user_id else None
     company_exists = (
         db.query(Company.id).filter(Company.id == company_id).first() if company_id else None
     )
-    if not company_exists or user is None:
+    if (not company_exists and not using_demo_workspace) or user is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Demo account is not linked to a company or user.",
@@ -282,18 +285,42 @@ def confirm_demo_interest(
     subscription_expires_at = now + timedelta(days=subscription_days)
     login_link = build_login_link(demo.payment_link)
 
-    db.query(Company).filter(Company.id == company_id).update(
-        {
-            Company.name: payload.company_name,
-            Company.email: demo.email,
-            Company.phone: payload.phone_number,
-            Company.address: demo.address,
-            Company.tin: demo.tin,
-            Company.vat: demo.vat_number,
-            Company.portal_apps: portal_apps_csv,
-        },
-        synchronize_session=False,
-    )
+    if using_demo_workspace or company_id is None:
+        actual_company = Company(
+            name=payload.company_name,
+            email=demo.email,
+            phone=payload.phone_number,
+            address=demo.address,
+            tin=demo.tin,
+            vat=demo.vat_number,
+            portal_apps=portal_apps_csv,
+        )
+        db.add(actual_company)
+        db.flush()
+        company_id = actual_company.id
+        demo.company_id = company_id
+    else:
+        db.query(Company).filter(Company.id == company_id).update(
+            {
+                Company.name: payload.company_name,
+                Company.email: demo.email,
+                Company.phone: payload.phone_number,
+                Company.address: demo.address,
+                Company.tin: demo.tin,
+                Company.vat: demo.vat_number,
+                Company.portal_apps: portal_apps_csv,
+            },
+            synchronize_session=False,
+        )
+
+    if previous_company_id and using_demo_workspace:
+        previous_link = (
+            db.query(CompanyUser)
+            .filter(CompanyUser.company_id == previous_company_id, CompanyUser.user_id == user.id)
+            .first()
+        )
+        if previous_link:
+            previous_link.is_active = False
 
     company_settings = (
         db.query(CompanySettings)
