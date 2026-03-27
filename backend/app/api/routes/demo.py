@@ -248,9 +248,12 @@ def confirm_demo_interest(
             detail="Demo account not found",
         )
 
-    company = db.query(Company).filter(Company.id == demo.company_id).first() if demo.company_id else None
+    company_id = demo.company_id
     user = db.query(User).filter(User.id == demo.user_id).first() if demo.user_id else None
-    if company is None or user is None:
+    company_exists = (
+        db.query(Company.id).filter(Company.id == company_id).first() if company_id else None
+    )
+    if not company_exists or user is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Demo account is not linked to a company or user.",
@@ -279,24 +282,29 @@ def confirm_demo_interest(
     subscription_expires_at = now + timedelta(days=subscription_days)
     login_link = build_login_link(demo.payment_link)
 
-    company.name = payload.company_name
-    company.email = demo.email
-    company.phone = payload.phone_number
-    company.address = demo.address
-    company.tin = demo.tin
-    company.vat = demo.vat_number
-    company.portal_apps = portal_apps_csv
+    db.query(Company).filter(Company.id == company_id).update(
+        {
+            Company.name: payload.company_name,
+            Company.email: demo.email,
+            Company.phone: payload.phone_number,
+            Company.address: demo.address,
+            Company.tin: demo.tin,
+            Company.vat: demo.vat_number,
+            Company.portal_apps: portal_apps_csv,
+        },
+        synchronize_session=False,
+    )
 
     company_settings = (
         db.query(CompanySettings)
-        .filter(CompanySettings.company_id == company.id)
+        .filter(CompanySettings.company_id == company_id)
         .first()
     )
     if company_settings is None:
-        company_settings = CompanySettings(company_id=company.id)
+        company_settings = CompanySettings(company_id=company_id)
         db.add(company_settings)
     else:
-        company_settings.company_id = company.id
+        company_settings.company_id = company_id
 
     user.name = payload.company_name
     user.email = demo.email
@@ -306,12 +314,12 @@ def confirm_demo_interest(
     company_admin_role = db.query(Role).filter(Role.name == "company_admin").first()
     company_link = (
         db.query(CompanyUser)
-        .filter(CompanyUser.company_id == company.id, CompanyUser.user_id == user.id)
+        .filter(CompanyUser.company_id == company_id, CompanyUser.user_id == user.id)
         .first()
     )
     if company_link is None:
         company_link = CompanyUser(
-            company_id=company.id,
+            company_id=company_id,
             user_id=user.id,
             role="company_admin",
             role_id=company_admin_role.id if company_admin_role else None,
@@ -327,17 +335,15 @@ def confirm_demo_interest(
         company_link.is_company_admin = True
         company_link.portal_apps = portal_apps_csv
 
-    subscription = company.subscription
-    if subscription is None:
-        subscription = (
-            db.query(Subscription)
-            .filter(Subscription.company_id == company.id)
-            .order_by(desc(Subscription.id))
-            .first()
-        )
+    subscription = (
+        db.query(Subscription)
+        .filter(Subscription.company_id == company_id)
+        .order_by(desc(Subscription.id))
+        .first()
+    )
     if subscription is None:
         subscription = Subscription(
-            company_id=company.id,
+            company_id=company_id,
             plan="starter",
             status="active",
             starts_at=now,
@@ -357,7 +363,7 @@ def confirm_demo_interest(
         subscription.max_devices = max(subscription.max_devices, 2)
         subscription.max_invoices_per_month = max(subscription.max_invoices_per_month, 1000)
         subscription.notes = "Created from Three65 demo follow-up form."
-        subscription.company_id = company.id
+        subscription.company_id = company_id
 
     activation_code_value = generate_activation_code_value()
     while db.query(ActivationCode).filter(ActivationCode.code == activation_code_value).first():
@@ -365,7 +371,7 @@ def confirm_demo_interest(
 
     activation_code = ActivationCode(
         code=activation_code_value,
-        company_id=company.id,
+        company_id=company_id,
         plan="starter",
         duration_days=subscription_days,
         max_users=max(payload.num_users, 1),
