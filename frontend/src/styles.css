@@ -2790,6 +2790,7 @@ thead.table-light th {
   width: min(100%, 430px);
   max-width: 430px;
   margin: 0 auto;
+  min-height: auto;
   background: rgba(255, 255, 255, 0.52);
   backdrop-filter: blur(34px);
   -webkit-backdrop-filter: blur(34px);
@@ -2940,6 +2941,121 @@ thead.table-light th {
   font-weight: 700;
   text-decoration-thickness: 2px;
   text-underline-offset: 2px;
+}
+
+@media (max-height: 820px) {
+  .demo-page-shell {
+    padding-block: 12px 20px;
+  }
+
+  .demo-card {
+    max-width: 400px;
+  }
+
+  .demo-card-body {
+    gap: 6px;
+    padding: 0 22px 16px;
+  }
+
+  .demo-card-logo {
+    width: min(100%, 118px);
+    padding: 0.45rem 0.6rem 0.15rem;
+  }
+
+  .demo-form-head .login-card-title {
+    font-size: clamp(2rem, 4vw, 2.4rem);
+    line-height: 1.05;
+    margin-bottom: 2px;
+  }
+
+  .demo-form-compact {
+    gap: 8px;
+  }
+
+  .demo-field {
+    gap: 4px;
+  }
+
+  .demo-field .input-label {
+    font-size: 10px;
+  }
+
+  .demo-field input {
+    padding: 10px 12px;
+  }
+
+  .demo-checkbox {
+    gap: 10px;
+    padding: 10px 12px;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .demo-submit-btn {
+    min-height: 52px;
+  }
+
+  .demo-card .login-card-footer {
+    padding: 8px 18px 12px;
+    font-size: 0.95rem;
+  }
+
+  .demo-whatsapp-float {
+    width: 56px;
+    height: 56px;
+    right: 14px;
+    bottom: 14px;
+  }
+
+  .demo-whatsapp-float::before {
+    border-radius: 16px;
+  }
+
+  .demo-whatsapp-float svg {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+@media (max-height: 720px) {
+  .demo-page-shell {
+    padding-block: 8px 14px;
+  }
+
+  .demo-card {
+    max-width: 380px;
+  }
+
+  .demo-card-body {
+    padding: 0 18px 12px;
+  }
+
+  .demo-card-logo {
+    width: min(100%, 96px);
+    padding-top: 0.25rem;
+  }
+
+  .demo-form-head .login-card-title {
+    font-size: 1.85rem;
+  }
+
+  .demo-field input {
+    padding: 9px 11px;
+  }
+
+  .demo-checkbox {
+    font-size: 11px;
+    padding: 9px 11px;
+  }
+
+  .demo-submit-btn {
+    min-height: 48px;
+  }
+
+  .demo-card .login-card-footer {
+    padding: 6px 14px 10px;
+    font-size: 0.88rem;
+  }
 }
 
 .demo-whatsapp-float {
