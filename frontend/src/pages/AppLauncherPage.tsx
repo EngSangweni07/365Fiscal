@@ -383,6 +383,7 @@ export default function AppLauncherPage() {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
     "ecocash" | "visa" | ""
   >("");
+  const [ecocashPhoneNumber, setEcocashPhoneNumber] = useState("");
   const [demoInterestForm, setDemoInterestForm] = useState<DemoInterestForm>({
     wants_actual_three65: true,
     company_name: "",
@@ -1099,6 +1100,19 @@ export default function AppLauncherPage() {
                       );
                     })}
                   </div>
+                  {selectedPaymentMethod === "ecocash" && (
+                    <div className="input-group" style={{ marginTop: 12 }}>
+                      <label className="input-label">EcoCash phone number</label>
+                      <input
+                        type="tel"
+                        value={ecocashPhoneNumber}
+                        onChange={(event) =>
+                          setEcocashPhoneNumber(event.target.value)
+                        }
+                        placeholder="Enter phone number"
+                      />
+                    </div>
+                  )}
                 </div>
               </section>
 
