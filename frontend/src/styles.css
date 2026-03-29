@@ -3549,6 +3549,12 @@ thead.table-light th {
   box-shadow: 0 10px 18px rgba(11, 69, 80, 0.08);
 }
 
+button.demo-interest-app-option {
+  width: 100%;
+  text-align: left;
+  font: inherit;
+}
+
 .demo-interest-app-option input {
   width: 16px;
   height: 16px;
