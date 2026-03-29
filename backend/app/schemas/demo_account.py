@@ -25,6 +25,11 @@ class DemoAccountUpdate(BaseModel):
     address: str | None = None
     subscription_period: str | None = None
     payment_link: str | None = None
+    payment_method: str | None = None
+    ecocash_phone_number: str | None = None
+    paynow_reference: str | None = None
+    paynow_poll_url: str | None = None
+    paynow_status: str | None = None
     status: str | None = None
     notes: str | None = None
 
@@ -37,6 +42,8 @@ class DemoInterestRequest(BaseModel):
     requested_apps: list[str] = Field(default_factory=list)
     subscription_period: str = Field(default="monthly", pattern="^(monthly|yearly)$")
     payment_link: str | None = Field(default=None, max_length=1000)
+    payment_method: str | None = Field(default=None, pattern="^(ecocash|visa)?$")
+    ecocash_phone_number: str | None = Field(default=None, max_length=20)
     wants_zimra_fdms: bool = False
     tin: str | None = Field(default=None, max_length=100)
     vat_number: str | None = Field(default=None, max_length=100)
@@ -55,6 +62,12 @@ class DemoAccountRead(ORMBase):
     requested_apps: list[str]
     subscription_period: str
     payment_link: str
+    payment_method: str
+    ecocash_phone_number: str
+    paynow_reference: str
+    paynow_poll_url: str
+    paynow_status: str
+    paynow_paid_at: datetime | None = None
     tin: str
     vat_number: str
     trade_name: str

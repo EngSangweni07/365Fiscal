@@ -41,6 +41,9 @@ type DemoAccount = {
   requested_apps: string[];
   subscription_period: "monthly" | "yearly";
   payment_link: string;
+  payment_method?: "ecocash" | "visa" | "";
+  ecocash_phone_number?: string;
+  paynow_status?: string;
   tin: string;
   vat_number: string;
   trade_name: string;
@@ -56,6 +59,8 @@ type DemoInterestForm = {
   requested_apps: string[];
   subscription_period: "monthly" | "yearly";
   payment_link: string;
+  payment_method?: "ecocash" | "visa" | "";
+  ecocash_phone_number?: string;
   wants_zimra_fdms: boolean;
   tin: string;
   vat_number: string;
@@ -491,6 +496,8 @@ export default function AppLauncherPage() {
     })
       .then((data) => {
         setDemoAccount(data);
+        setSelectedPaymentMethod(data.payment_method || "");
+        setEcocashPhoneNumber(data.ecocash_phone_number || "");
         setDemoInterestForm({
           wants_actual_three65:
             typeof data.wants_actual_three65 === "boolean"
@@ -502,6 +509,8 @@ export default function AppLauncherPage() {
           requested_apps: data.requested_apps || [],
           subscription_period: data.subscription_period || "monthly",
           payment_link: data.payment_link || "",
+          payment_method: data.payment_method || "",
+          ecocash_phone_number: data.ecocash_phone_number || "",
           wants_zimra_fdms: data.wants_zimra_fdms,
           tin: data.tin || "",
           vat_number: data.vat_number || "",
@@ -596,6 +605,14 @@ export default function AppLauncherPage() {
         return;
       }
     }
+    if (!selectedPaymentMethod) {
+      setDemoInterestError("Select a payment method.");
+      return;
+    }
+    if (selectedPaymentMethod === "ecocash" && !ecocashPhoneNumber.trim()) {
+      setDemoInterestError("Enter an EcoCash phone number.");
+      return;
+    }
 
     setDemoInterestSubmitting(true);
     setDemoInterestError("");
@@ -606,13 +623,24 @@ export default function AppLauncherPage() {
           method: "POST",
           auth: false,
           suppress401Redirect: true,
-          body: JSON.stringify(demoInterestForm),
+          body: JSON.stringify({
+            ...demoInterestForm,
+            payment_method: selectedPaymentMethod,
+            ecocash_phone_number:
+              selectedPaymentMethod === "ecocash"
+                ? ecocashPhoneNumber.trim()
+                : undefined,
+          }),
         },
       );
       setDemoAccount(data);
       setDemoInterestSubmitted(true);
       localStorage.setItem(`demo_interest_submitted_${demoAccountId}`, "true");
       setDemoInterestOpen(false);
+      if (data.payment_method === "visa" && /^https?:\/\//i.test(data.payment_link || "")) {
+        window.location.assign(data.payment_link);
+        return;
+      }
       window.location.assign("/subscriptions");
       return;
     } catch (err: any) {

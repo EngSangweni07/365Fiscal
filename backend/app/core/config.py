@@ -26,6 +26,12 @@ class Settings(BaseSettings):
     fdms_api_url: str = "https://fdmsapitest.zimra.co.zw"
     fdms_verify_ssl: bool = True
     fdms_timeout_seconds: int = 30
+    paynow_integration_id: str | None = None
+    paynow_integration_key: str | None = None
+    paynow_return_url: str | None = None
+    paynow_result_url: str | None = None
+    paynow_monthly_amount_usd: float = 13.0
+    paynow_yearly_amount_usd: float = 130.0
 
     class Config:
         env_file = ".env"

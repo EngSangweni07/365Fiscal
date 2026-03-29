@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from datetime import datetime, timedelta
@@ -22,6 +22,13 @@ from app.schemas.demo_account import (
 )
 from app.security.security import create_access_token, hash_password
 from app.services.email import send_demo_interest_email
+from app.services.paynow import (
+    PaynowError,
+    create_paynow_transaction,
+    paynow_is_configured,
+    verify_paynow_transaction,
+)
+from app.core.config import settings
 
 
 router = APIRouter(prefix="/demo", tags=["demo"])
@@ -87,6 +94,15 @@ def build_login_link(payment_link: str | None) -> str:
     if parts.scheme and parts.netloc:
         return f"{parts.scheme}://{parts.netloc}/login"
     return "/login"
+
+
+def normalize_payment_method(value: str | None) -> str:
+    return (value or "").strip().lower()
+
+
+def is_paid_paynow_status(value: str | None) -> bool:
+    normalized = (value or "").strip().lower()
+    return normalized in {"paid", "awaiting delivery", "delivered"}
 
 
 def get_or_create_demo_workspace(db: Session) -> Company:
@@ -288,12 +304,18 @@ def confirm_demo_interest(
     demo.requested_apps = ",".join(requested_apps)
     demo.subscription_period = payload.subscription_period
     demo.payment_link = (payload.payment_link or "").strip()
+    demo.payment_method = normalize_payment_method(payload.payment_method)
+    demo.ecocash_phone_number = (payload.ecocash_phone_number or "").strip()
+    demo.paynow_reference = ""
+    demo.paynow_poll_url = ""
+    demo.paynow_status = ""
+    demo.paynow_paid_at = None
     demo.wants_zimra_fdms = payload.wants_zimra_fdms
     demo.tin = (payload.tin or "").strip()
     demo.vat_number = (payload.vat_number or "").strip()
     demo.trade_name = (payload.trade_name or "").strip()
     demo.address = (payload.address or "").strip()
-    demo.status = "converted"
+    demo.status = "active" if demo.payment_method else "converted"
 
     portal_apps = build_portal_apps(requested_apps)
     portal_apps_csv = ",".join(portal_apps)
@@ -302,6 +324,17 @@ def confirm_demo_interest(
     now = datetime.utcnow()
     subscription_expires_at = now + timedelta(days=subscription_days)
     login_link = build_login_link(demo.payment_link)
+
+    if demo.payment_method and demo.payment_method not in {"ecocash", "visa"}:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Unsupported payment method. Allowed values: ecocash, visa.",
+        )
+    if demo.payment_method == "ecocash" and not demo.ecocash_phone_number:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="EcoCash phone number is required for EcoCash payments.",
+        )
 
     if using_demo_workspace or company_id is None:
         actual_company = Company(
@@ -426,12 +459,67 @@ def confirm_demo_interest(
     )
     db.add(activation_code)
 
+    if demo.payment_method:
+        if not paynow_is_configured():
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Paynow is not configured on the server.",
+            )
+        if not settings.paynow_result_url:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="PAYNOW_RESULT_URL is not configured on the server.",
+            )
+
+        amount = (
+            settings.paynow_yearly_amount_usd
+            if payload.subscription_period == "yearly"
+            else settings.paynow_monthly_amount_usd
+        )
+        merchant_reference = f"DEMO-{demo.id}-{int(now.timestamp())}"
+        return_url = (settings.paynow_return_url or demo.payment_link or "").strip()
+        result_url = (settings.paynow_result_url or "").strip()
+        if not return_url:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="PAYNOW_RETURN_URL or payment link is required for Paynow.",
+            )
+
+        try:
+            paynow_txn = create_paynow_transaction(
+                reference=merchant_reference,
+                amount_usd=amount,
+                additional_info=f"Three65 {payload.subscription_period} subscription",
+                customer_email=demo.email,
+                return_url=return_url,
+                result_url=result_url,
+                payment_method=demo.payment_method,
+                ecocash_phone_number=demo.ecocash_phone_number,
+            )
+        except PaynowError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Paynow transaction failed: {exc}",
+            ) from exc
+
+        demo.paynow_reference = paynow_txn.reference
+        demo.paynow_poll_url = paynow_txn.poll_url
+        demo.paynow_status = paynow_txn.status
+        if paynow_txn.redirect_url:
+            demo.payment_link = paynow_txn.redirect_url
+            login_link = build_login_link(demo.payment_link)
+
     note_parts = [
         f"Actual Three65 requested: {'Yes' if payload.wants_actual_three65 else 'No'}",
         f"Subscription period: {payload.subscription_period}",
         f"Users required: {payload.num_users}",
         f"Subscription code: {activation_code_value}",
     ]
+    if demo.payment_method:
+        note_parts.append(f"Payment method: {demo.payment_method}")
+        note_parts.append("Payment awaiting Paynow confirmation")
+    if demo.paynow_reference:
+        note_parts.append(f"Paynow reference: {demo.paynow_reference}")
     if requested_apps:
         note_parts.append(f"Apps: {', '.join(requested_apps)}")
     if payload.wants_zimra_fdms:
@@ -464,6 +552,67 @@ def confirm_demo_interest(
     )
 
     return serialize_demo(demo)
+
+
+@router.api_route("/paynow/result", methods=["GET", "POST"])
+async def paynow_result_callback(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    params: dict[str, str] = {k: str(v) for k, v in request.query_params.items()}
+    if request.method == "POST":
+        content_type = (request.headers.get("content-type") or "").lower()
+        if "application/json" in content_type:
+            payload = await request.json()
+            if isinstance(payload, dict):
+                params.update({str(k): str(v) for k, v in payload.items()})
+        else:
+            form_data = await request.form()
+            params.update({str(k): str(v) for k, v in form_data.items()})
+
+    reference = (
+        params.get("reference")
+        or params.get("merchantreference")
+        or params.get("paynowreference")
+        or ""
+    ).strip()
+    if not reference:
+        return {"status": "ignored", "detail": "No reference provided"}
+
+    demo = (
+        db.query(DemoAccount)
+        .filter(DemoAccount.paynow_reference == reference)
+        .first()
+    )
+    if demo is None:
+        return {"status": "ignored", "detail": "No matching transaction"}
+    if not demo.paynow_poll_url:
+        return {"status": "ignored", "detail": "No poll url available"}
+
+    return_url = (settings.paynow_return_url or demo.payment_link or "").strip()
+    result_url = (settings.paynow_result_url or "").strip()
+    if not return_url or not result_url:
+        return {"status": "ignored", "detail": "Paynow callback URLs not configured"}
+
+    try:
+        verified_status = verify_paynow_transaction(
+            poll_url=demo.paynow_poll_url,
+            return_url=return_url,
+            result_url=result_url,
+        )
+    except PaynowError as exc:
+        demo.paynow_status = f"verify_error:{exc}"
+        db.commit()
+        return {"status": "error", "detail": str(exc)}
+
+    demo.paynow_status = verified_status
+    if is_paid_paynow_status(verified_status):
+        demo.paynow_paid_at = datetime.utcnow()
+        if demo.status != "converted":
+            demo.status = "converted"
+    db.commit()
+
+    return {"status": "ok", "payment_status": verified_status}
 
 
 @router.get("/{demo_id}", response_model=DemoAccountRead)
@@ -586,6 +735,16 @@ def update_demo_account(
         demo.subscription_period = payload.subscription_period
     if payload.payment_link is not None:
         demo.payment_link = payload.payment_link
+    if payload.payment_method is not None:
+        demo.payment_method = normalize_payment_method(payload.payment_method)
+    if payload.ecocash_phone_number is not None:
+        demo.ecocash_phone_number = payload.ecocash_phone_number
+    if payload.paynow_reference is not None:
+        demo.paynow_reference = payload.paynow_reference
+    if payload.paynow_poll_url is not None:
+        demo.paynow_poll_url = payload.paynow_poll_url
+    if payload.paynow_status is not None:
+        demo.paynow_status = payload.paynow_status
     if payload.tin is not None:
         demo.tin = payload.tin
     if payload.vat_number is not None:
@@ -636,6 +795,12 @@ def serialize_demo(demo: DemoAccount) -> dict:
         "requested_apps": parse_requested_apps(demo.requested_apps),
         "subscription_period": demo.subscription_period,
         "payment_link": demo.payment_link,
+        "payment_method": demo.payment_method,
+        "ecocash_phone_number": demo.ecocash_phone_number,
+        "paynow_reference": demo.paynow_reference,
+        "paynow_poll_url": demo.paynow_poll_url,
+        "paynow_status": demo.paynow_status,
+        "paynow_paid_at": demo.paynow_paid_at,
         "tin": demo.tin,
         "vat_number": demo.vat_number,
         "trade_name": demo.trade_name,

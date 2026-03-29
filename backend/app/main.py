@@ -172,6 +172,42 @@ def ensure_new_columns():
                         "ALTER TABLE demo_accounts ADD COLUMN payment_link VARCHAR(1000) DEFAULT ''"
                     ))
 
+                if "payment_method" not in demo_cols:
+                    _startup_logger.info(">>> Adding payment_method column to demo_accounts")
+                    conn.execute(text(
+                        "ALTER TABLE demo_accounts ADD COLUMN payment_method VARCHAR(20) DEFAULT ''"
+                    ))
+
+                if "ecocash_phone_number" not in demo_cols:
+                    _startup_logger.info(">>> Adding ecocash_phone_number column to demo_accounts")
+                    conn.execute(text(
+                        "ALTER TABLE demo_accounts ADD COLUMN ecocash_phone_number VARCHAR(20) DEFAULT ''"
+                    ))
+
+                if "paynow_reference" not in demo_cols:
+                    _startup_logger.info(">>> Adding paynow_reference column to demo_accounts")
+                    conn.execute(text(
+                        "ALTER TABLE demo_accounts ADD COLUMN paynow_reference VARCHAR(100) DEFAULT ''"
+                    ))
+
+                if "paynow_poll_url" not in demo_cols:
+                    _startup_logger.info(">>> Adding paynow_poll_url column to demo_accounts")
+                    conn.execute(text(
+                        "ALTER TABLE demo_accounts ADD COLUMN paynow_poll_url VARCHAR(1000) DEFAULT ''"
+                    ))
+
+                if "paynow_status" not in demo_cols:
+                    _startup_logger.info(">>> Adding paynow_status column to demo_accounts")
+                    conn.execute(text(
+                        "ALTER TABLE demo_accounts ADD COLUMN paynow_status VARCHAR(50) DEFAULT ''"
+                    ))
+
+                if "paynow_paid_at" not in demo_cols:
+                    _startup_logger.info(">>> Adding paynow_paid_at column to demo_accounts")
+                    conn.execute(text(
+                        "ALTER TABLE demo_accounts ADD COLUMN paynow_paid_at DATETIME"
+                    ))
+
                 if "tin" not in demo_cols:
                     _startup_logger.info(">>> Adding tin column to demo_accounts")
                     conn.execute(text(
