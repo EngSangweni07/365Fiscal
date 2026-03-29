@@ -1069,6 +1069,85 @@ export default function AppLauncherPage() {
                       );
                     })}
                   </div>
+                  <label className="demo-interest-check">
+                    <input
+                      type="checkbox"
+                      checked={demoInterestForm.wants_zimra_fdms}
+                      onChange={(event) =>
+                        setDemoInterestForm((current) => ({
+                          ...current,
+                          wants_zimra_fdms: event.target.checked,
+                        }))
+                      }
+                    />
+                    <span>I want ZIMRA fiscalization.</span>
+                  </label>
+
+                  {demoInterestForm.wants_zimra_fdms && (
+                    <section className="demo-interest-section">
+                      <div className="demo-interest-section-head">
+                        <h4>Fiscal details</h4>
+                        <p>
+                          These details will be included in the onboarding email
+                          for follow-up.
+                        </p>
+                      </div>
+                      <div className="demo-interest-grid">
+                        <div className="input-group">
+                          <label className="input-label">TIN</label>
+                          <input
+                            value={demoInterestForm.tin}
+                            onChange={(event) =>
+                              setDemoInterestForm((current) => ({
+                                ...current,
+                                tin: event.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+
+                        <div className="input-group">
+                          <label className="input-label">VAT</label>
+                          <input
+                            value={demoInterestForm.vat_number}
+                            onChange={(event) =>
+                              setDemoInterestForm((current) => ({
+                                ...current,
+                                vat_number: event.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+
+                        <div className="input-group">
+                          <label className="input-label">Trade name</label>
+                          <input
+                            value={demoInterestForm.trade_name}
+                            onChange={(event) =>
+                              setDemoInterestForm((current) => ({
+                                ...current,
+                                trade_name: event.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+
+                        <div className="input-group demo-interest-field-full">
+                          <label className="input-label">Address</label>
+                          <textarea
+                            value={demoInterestForm.address}
+                            onChange={(event) =>
+                              setDemoInterestForm((current) => ({
+                                ...current,
+                                address: event.target.value,
+                              }))
+                            }
+                            rows={3}
+                          />
+                        </div>
+                      </div>
+                    </section>
+                  )}
                 </div>
               </section>
               <section className="demo-interest-section">
@@ -1102,7 +1181,9 @@ export default function AppLauncherPage() {
                   </div>
                   {selectedPaymentMethod === "ecocash" && (
                     <div className="input-group" style={{ marginTop: 12 }}>
-                      <label className="input-label">EcoCash phone number</label>
+                      <label className="input-label">
+                        EcoCash phone number
+                      </label>
                       <input
                         type="tel"
                         value={ecocashPhoneNumber}
@@ -1115,86 +1196,6 @@ export default function AppLauncherPage() {
                   )}
                 </div>
               </section>
-
-              <label className="demo-interest-check">
-                <input
-                  type="checkbox"
-                  checked={demoInterestForm.wants_zimra_fdms}
-                  onChange={(event) =>
-                    setDemoInterestForm((current) => ({
-                      ...current,
-                      wants_zimra_fdms: event.target.checked,
-                    }))
-                  }
-                />
-                <span>I want ZIMRA fiscalization.</span>
-              </label>
-
-              {demoInterestForm.wants_zimra_fdms && (
-                <section className="demo-interest-section">
-                  <div className="demo-interest-section-head">
-                    <h4>Fiscal details</h4>
-                    <p>
-                      These details will be included in the onboarding email for
-                      follow-up.
-                    </p>
-                  </div>
-                  <div className="demo-interest-grid">
-                    <div className="input-group">
-                      <label className="input-label">TIN</label>
-                      <input
-                        value={demoInterestForm.tin}
-                        onChange={(event) =>
-                          setDemoInterestForm((current) => ({
-                            ...current,
-                            tin: event.target.value,
-                          }))
-                        }
-                      />
-                    </div>
-
-                    <div className="input-group">
-                      <label className="input-label">VAT</label>
-                      <input
-                        value={demoInterestForm.vat_number}
-                        onChange={(event) =>
-                          setDemoInterestForm((current) => ({
-                            ...current,
-                            vat_number: event.target.value,
-                          }))
-                        }
-                      />
-                    </div>
-
-                    <div className="input-group">
-                      <label className="input-label">Trade name</label>
-                      <input
-                        value={demoInterestForm.trade_name}
-                        onChange={(event) =>
-                          setDemoInterestForm((current) => ({
-                            ...current,
-                            trade_name: event.target.value,
-                          }))
-                        }
-                      />
-                    </div>
-
-                    <div className="input-group demo-interest-field-full">
-                      <label className="input-label">Address</label>
-                      <textarea
-                        value={demoInterestForm.address}
-                        onChange={(event) =>
-                          setDemoInterestForm((current) => ({
-                            ...current,
-                            address: event.target.value,
-                          }))
-                        }
-                        rows={3}
-                      />
-                    </div>
-                  </div>
-                </section>
-              )}
 
               {demoInterestError && (
                 <div className="login-error">{demoInterestError}</div>
