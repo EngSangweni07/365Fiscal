@@ -3669,55 +3669,6 @@ button.demo-interest-app-option {
   box-shadow: 0 16px 28px rgba(11, 69, 80, 0.18);
 }
 
-.demo-interest-summary-modal {
-  max-width: 460px;
-}
-
-.demo-interest-pricing {
-  gap: 0;
-  padding: 0;
-  border: none;
-  background: transparent;
-  box-shadow: none;
-}
-
-.demo-interest-pricing-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
-  padding: 12px 0;
-  border-bottom: 1px dashed rgba(148, 163, 184, 0.35);
-  color: var(--slate-700);
-}
-
-.demo-interest-pricing-row span {
-  line-height: 1.4;
-}
-
-.demo-interest-pricing-row strong {
-  color: var(--slate-900);
-  font-size: 15px;
-  white-space: nowrap;
-}
-
-.demo-interest-summary-footer {
-  justify-content: stretch;
-}
-
-.demo-interest-pricing-total {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: var(--brand-sherpa);
-}
-
-.demo-interest-pricing-total strong {
-  font-size: 24px;
-  line-height: 1;
-}
-
 .demo-interest-modal .modal-footer .btn.secondary {
   background: rgba(226, 232, 240, 0.85);
   color: var(--slate-700);

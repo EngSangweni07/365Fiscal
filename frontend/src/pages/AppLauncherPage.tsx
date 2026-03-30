@@ -330,11 +330,6 @@ function parseApiDate(value: string) {
   return new Date(hasTimezone ? value : `${value}Z`);
 }
 
-function parseMoneyEnv(value: unknown, fallback: number) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
-}
-
 const demoInterestAppOptions = [
   { key: "invoices", label: "Invoices" },
   { key: "purchases", label: "Purchases" },
@@ -560,22 +555,6 @@ export default function AppLauncherPage() {
   );
 
   const lastDemoInterestStep = demoInterestSteps.length - 1;
-  const subscriptionPricePerUserMonthly = parseMoneyEnv(
-    import.meta.env.VITE_SUBSCRIPTION_PRICE_PER_USER,
-    13,
-  );
-  const zimraFiscalizationFee = parseMoneyEnv(
-    import.meta.env.VITE_ZIMRA_FISCALIZATION_FEE,
-    350,
-  );
-  const requestedUsers = Math.max(1, Number(demoInterestForm.num_users) || 1);
-  const billingMonths = demoInterestForm.subscription_period === "yearly" ? 12 : 1;
-  const subscriptionSubtotal =
-    requestedUsers * subscriptionPricePerUserMonthly * billingMonths;
-  const zimraSubtotal = demoInterestForm.wants_zimra_fdms
-    ? zimraFiscalizationFee
-    : 0;
-  const pricingTotal = subscriptionSubtotal + zimraSubtotal;
 
   const validateDemoInterestStep = (step: number) => {
     if (step === 0) {
@@ -1003,17 +982,16 @@ export default function AppLauncherPage() {
 
       {demoInterestOpen && demoAccount && (
         <div className="modal-overlay">
-          <div className="demo-interest-modal-layout">
-            <div className="modal demo-interest-modal">
-              <div className="modal-header demo-interest-header">
-                <div className="demo-interest-header-copy">
-                  <h3>Registration</h3>
-                  <span className="input-label">
-                    Your demo has ended, Confirm detail to sign up for the Main
-                    System
-                  </span>
-                </div>
+          <div className="modal modal--centered demo-interest-modal">
+            <div className="modal-header demo-interest-header">
+              <div className="demo-interest-header-copy">
+                <h3>Registration</h3>
+                <span className="input-label">
+                  Your demo has ended, Confirm detail to sign up for the Main
+                  System
+                </span>
               </div>
+            </div>
             <div className="modal-body demo-interest-body">
               <div className="demo-interest-stepper" role="tablist">
                 {demoInterestSteps.map((stepLabel, stepIndex) => {
@@ -1353,52 +1331,21 @@ export default function AppLauncherPage() {
               )}
             </div>
           </div>
-            <div className="modal demo-interest-modal demo-interest-summary-modal">
-              <div className="modal-header demo-interest-header">
-                <div className="demo-interest-header-copy">
-                  <h3>Pricing Summary</h3>
-                  <span className="input-label">
-                    Live calculation from your current selections.
-                  </span>
-                </div>
-              </div>
-            <div className="modal-body demo-interest-body">
-              <section className="demo-interest-section demo-interest-pricing">
-                <div className="demo-interest-pricing-row">
-                  <span>Users selected</span>
-                  <strong>{requestedUsers}</strong>
-                </div>
-                <div className="demo-interest-pricing-row">
-                  <span>Subscription period</span>
-                  <strong>
-                    {demoInterestForm.subscription_period === "yearly"
-                      ? "Yearly (12 months)"
-                      : "Monthly (1 month)"}
-                  </strong>
-                </div>
-                <div className="demo-interest-pricing-row">
-                  <span>Price per user / month</span>
-                  <strong>${subscriptionPricePerUserMonthly.toFixed(2)}</strong>
-                </div>
-                <div className="demo-interest-pricing-row">
-                  <span>
-                    Subscription ({requestedUsers} × {billingMonths} × $
-                    {subscriptionPricePerUserMonthly.toFixed(2)})
-                  </span>
-                  <strong>${subscriptionSubtotal.toFixed(2)}</strong>
-                </div>
-                <div className="demo-interest-pricing-row">
-                  <span>ZIMRA fiscalization</span>
-                  <strong>${zimraSubtotal.toFixed(2)}</strong>
-                </div>
-              </section>
-            </div>
-            <div className="modal-footer demo-interest-summary-footer">
-              <div className="demo-interest-pricing-total">
-                <span>Total</span>
-                <strong>${pricingTotal.toFixed(2)}</strong>
+          <div
+            className="modal modal--centered demo-interest-modal"
+            style={{ width: "20vw" }}
+          >
+            <div className="modal-header demo-interest-header">
+              <div className="demo-interest-header-copy">
+                <h3>Pricing Summary</h3>
               </div>
             </div>
+            <div className="modal-body demo-interest-body"></div>
+            <div className="modal-footer">
+              <div className="total-footer">
+                <h3>Total: </h3>
+                <h3>$13.00</h3>
+              </div>
             </div>
           </div>
         </div>
