@@ -822,23 +822,10 @@ export default function AppLauncherPage() {
 
   return (
     <div className="app-launcher-page">
-      <div className="app-launcher-watermark" aria-hidden="true">
-        <span></span>
-        <span></span>
-        <span></span>
-      </div>
-      <div
-        className="app-launcher-watermark app-launcher-watermark-top"
-        aria-hidden="true"
-      >
-        <span></span>
-        <span></span>
-        <span></span>
-      </div>
       {/* Header */}
       <header className="app-launcher-header">
         <div className="app-launcher-logo">
-          <img src="/three.png" alt="Three65" />
+          <img src="/three65.png" alt="Three65" />
         </div>
         <div className="app-launcher-user">
           {!isAdmin && demoCountdown !== null && isDemoWorkspace && (
