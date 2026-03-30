@@ -8482,7 +8482,7 @@ button.danger:hover {
   position: absolute;
   inset: 0;
   background-image: url(./assets/app-launcher-bg.png);
-  background-size: 48px 48px;
+  background-size: cover;
   background-repeat: repeat;
   background-position: center center;
   z-index: 0;
