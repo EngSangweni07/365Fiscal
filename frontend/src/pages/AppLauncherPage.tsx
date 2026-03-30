@@ -605,7 +605,9 @@ export default function AppLauncherPage() {
     if (!validateDemoInterestStep(demoInterestStep)) {
       return;
     }
-    setDemoInterestStep((current) => Math.min(current + 1, lastDemoInterestStep));
+    setDemoInterestStep((current) =>
+      Math.min(current + 1, lastDemoInterestStep),
+    );
   };
 
   const handleActivate = async () => {
@@ -983,18 +985,13 @@ export default function AppLauncherPage() {
           <div className="modal modal--centered demo-interest-modal">
             <div className="modal-header demo-interest-header">
               <div className="demo-interest-header-copy">
-                <span className="demo-interest-eyebrow">
-                  Main System Signup
-                </span>
-                <h3>Continue with the actual Three65</h3>
+                <h3>
+                  Your demo has ended, Confirm detail to sign up for the Main
+                  System
+                </h3>
               </div>
             </div>
             <div className="modal-body demo-interest-body">
-              <p className="demo-interest-copy">
-                Your demo has ended, Confirm detail to sign up for the Main
-                System
-              </p>
-
               <div className="demo-interest-stepper" role="tablist">
                 {demoInterestSteps.map((stepLabel, stepIndex) => {
                   const isActive = stepIndex === demoInterestStep;
@@ -1035,14 +1032,15 @@ export default function AppLauncherPage() {
                         }))
                       }
                     />
-                    <span>Please contact me about the actual Three65 system.</span>
+                    <span>
+                      Please contact me about the actual Three65 system.
+                    </span>
                   </label>
                   <section className="demo-interest-section">
                     <div className="demo-interest-section-head">
-                      <h4>Business profile</h4>
-                      <p>
-                        Capture the main company details we will use for setup.
-                      </p>
+                      <h4>
+                        Enter addtional company details for system onboarding.
+                      </h4>
                     </div>
                     <div className="demo-interest-grid">
                       <div className="input-group">
@@ -1095,7 +1093,9 @@ export default function AppLauncherPage() {
                       </div>
 
                       <div className="input-group">
-                        <label className="input-label">Subscription period</label>
+                        <label className="input-label">
+                          Subscription period
+                        </label>
                         <select
                           value={demoInterestForm.subscription_period}
                           onChange={(event) =>
@@ -1124,11 +1124,7 @@ export default function AppLauncherPage() {
               {demoInterestStep === 1 && (
                 <section className="demo-interest-section">
                   <div className="demo-interest-section-head">
-                    <h4>Apps and access</h4>
-                    <p>
-                      Dashboard and Settings are included automatically for the
-                      portal superuser.
-                    </p>
+                    <h4>Select which app you would like to have access to.</h4>
                   </div>
                   <div className="demo-interest-apps">
                     <div className="demo-interest-apps-head">
@@ -1139,9 +1135,10 @@ export default function AppLauncherPage() {
                     </div>
                     <div className="demo-interest-apps-grid">
                       {demoInterestAppOptions.map((appOption) => {
-                        const selected = demoInterestForm.requested_apps.includes(
-                          appOption.key,
-                        );
+                        const selected =
+                          demoInterestForm.requested_apps.includes(
+                            appOption.key,
+                          );
                         return (
                           <label
                             key={appOption.key}
@@ -1252,8 +1249,7 @@ export default function AppLauncherPage() {
               {demoInterestStep === 2 && (
                 <section className="demo-interest-section">
                   <div className="demo-interest-section-head">
-                    <h4>Payment Method</h4>
-                    <p>Select how you would like to pay.</p>
+                    <h4>Select your preferred payment method.</h4>
                   </div>
                   <div className="demo-interest-apps">
                     <div className="demo-interest-apps-head">
@@ -1304,7 +1300,7 @@ export default function AppLauncherPage() {
             </div>
             <div className="modal-footer">
               <button
-                className="btn secondary"
+                className="demo-interest-submit login-btn"
                 type="button"
                 onClick={() =>
                   setDemoInterestStep((current) => Math.max(current - 1, 0))
