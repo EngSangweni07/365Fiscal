@@ -985,10 +985,11 @@ export default function AppLauncherPage() {
           <div className="modal modal--centered demo-interest-modal">
             <div className="modal-header demo-interest-header">
               <div className="demo-interest-header-copy">
-                <h3>
+                <h3>Registration</h3>
+                <span className="input-label">
                   Your demo has ended, Confirm detail to sign up for the Main
                   System
-                </h3>
+                </span>
               </div>
             </div>
             <div className="modal-body demo-interest-body">

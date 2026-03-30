@@ -2628,7 +2628,7 @@ thead.table-light th {
 }
 
 .login-btn {
-  width: 100%;
+  /* width: 100%; */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -10312,7 +10312,8 @@ button.danger:hover {
 
 .modal-footer {
   display: flex;
-  justify-content: flex-end;
+  flex-direction: row;
+  justify-content: center;
   gap: 12px;
   padding: 16px 24px;
   border-top: 1px solid var(--stroke);
