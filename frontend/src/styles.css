@@ -10905,6 +10905,15 @@ button.danger:not(.icon-btn):not(.device-icon-btn):disabled {
   gap: 16px;
 }
 
+.total-footer{
+  display: flex;
+  justify-content: space-between;
+  padding-top: 12px;
+  border-top: 1px solid var(--stroke-light);
+  margin: 0 2rem;
+  font-weight: 600;
+}
+
 .portal-device-card {
   background: var(--card);
   border: 1px solid var(--stroke);

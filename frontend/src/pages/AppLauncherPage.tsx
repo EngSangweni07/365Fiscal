@@ -1334,15 +1334,16 @@ export default function AppLauncherPage() {
           <div className="modal modal--centered demo-interest-modal">
             <div className="modal-header demo-interest-header">
               <div className="demo-interest-header-copy">
-                <h3>Total</h3>
-                <span className="input-label">
-                  View your total based on the options you have selected before
-                  confirming your interest.
-                </span>
+                <h3>Pricing Summary</h3>
               </div>
             </div>
             <div className="modal-body demo-interest-body"></div>
-            <div className="modal-footer"></div>
+            <div className="modal-footer">
+              <div className="total-footer">
+                <h3>Total: </h3>
+                <h3>${totalPrice.toFixed(2)}</h3>
+              </div>
+            </div>
           </div>
         </div>
       )}
