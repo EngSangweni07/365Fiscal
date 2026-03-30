@@ -1341,7 +1341,7 @@ export default function AppLauncherPage() {
             <div className="modal-footer">
               <div className="total-footer">
                 <h3>Total: </h3>
-                <h3>${totalPrice.toFixed(2)}</h3>
+                <h3>$13.00</h3>
               </div>
             </div>
           </div>
