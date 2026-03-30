@@ -3425,6 +3425,64 @@ thead.table-light th {
   font-size: 14px;
 }
 
+.demo-interest-stepper {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.demo-interest-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: rgba(248, 250, 252, 0.95);
+  color: var(--slate-600);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+.demo-interest-step:disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+
+.demo-interest-step.active {
+  border-color: rgba(11, 69, 80, 0.34);
+  background: linear-gradient(180deg, rgba(11, 69, 80, 0.1), rgba(11, 69, 80, 0.04));
+  color: var(--brand-sherpa);
+}
+
+.demo-interest-step.complete {
+  border-color: rgba(34, 197, 94, 0.32);
+  background: linear-gradient(180deg, rgba(34, 197, 94, 0.12), rgba(34, 197, 94, 0.04));
+  color: var(--green-700);
+}
+
+.demo-interest-step-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  font-size: 12px;
+  font-weight: 800;
+  flex: 0 0 auto;
+}
+
+.demo-interest-step-label {
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .demo-interest-section {
   display: grid;
   gap: 14px;
@@ -3615,6 +3673,10 @@ button.demo-interest-app-option {
   }
 
   .demo-interest-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .demo-interest-stepper {
     grid-template-columns: 1fr;
   }
 

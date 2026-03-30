@@ -346,6 +346,12 @@ const paymentMethodOptions = [
   { key: "visa", label: "Visa Card" },
 ] as const;
 
+const demoInterestSteps = [
+  "Business profile",
+  "Apps and access",
+  "Payment method",
+] as const;
+
 export default function AppLauncherPage() {
   const { me, loading } = useMe();
   const isAdmin = Boolean(me?.is_admin);
@@ -385,6 +391,7 @@ export default function AppLauncherPage() {
   const [demoInterestError, setDemoInterestError] = useState("");
   const [demoInterestSubmitting, setDemoInterestSubmitting] = useState(false);
   const [demoInterestSubmitted, setDemoInterestSubmitted] = useState(false);
+  const [demoInterestStep, setDemoInterestStep] = useState(0);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
     "ecocash" | "visa" | ""
   >("");
@@ -535,9 +542,71 @@ export default function AppLauncherPage() {
     setDemoInterestOpen(true);
   }, [demoCountdown, demoInterestSubmitted, isAdmin]);
 
+  useEffect(() => {
+    if (!demoInterestOpen) {
+      return;
+    }
+    setDemoInterestStep(0);
+    setDemoInterestError("");
+  }, [demoInterestOpen]);
+
   const hasActiveSubscription = activationStatus?.some(
     (s) => s.activated && s.status === "active",
   );
+
+  const lastDemoInterestStep = demoInterestSteps.length - 1;
+
+  const validateDemoInterestStep = (step: number) => {
+    if (step === 0) {
+      if (!demoInterestForm.company_name.trim()) {
+        setDemoInterestError("Company name is required.");
+        return false;
+      }
+      if (!demoInterestForm.phone_number.trim()) {
+        setDemoInterestError("Phone number is required.");
+        return false;
+      }
+      if (demoInterestForm.num_users < 1 || demoInterestForm.num_users > 500) {
+        setDemoInterestError("Number of users must be between 1 and 500.");
+        return false;
+      }
+    }
+
+    if (step === 1 && demoInterestForm.wants_zimra_fdms) {
+      const zimraFieldsFilled =
+        demoInterestForm.tin.trim() &&
+        demoInterestForm.vat_number.trim() &&
+        demoInterestForm.trade_name.trim() &&
+        demoInterestForm.address.trim();
+      if (!zimraFieldsFilled) {
+        setDemoInterestError(
+          "TIN, VAT, trade name and address are required for ZIMRA fiscalization.",
+        );
+        return false;
+      }
+    }
+
+    if (step === 2) {
+      if (!selectedPaymentMethod) {
+        setDemoInterestError("Select a payment method.");
+        return false;
+      }
+      if (selectedPaymentMethod === "ecocash" && !ecocashPhoneNumber.trim()) {
+        setDemoInterestError("Enter an EcoCash phone number.");
+        return false;
+      }
+    }
+
+    setDemoInterestError("");
+    return true;
+  };
+
+  const handleDemoInterestNext = () => {
+    if (!validateDemoInterestStep(demoInterestStep)) {
+      return;
+    }
+    setDemoInterestStep((current) => Math.min(current + 1, lastDemoInterestStep));
+  };
 
   const handleActivate = async () => {
     if (!activationCode.trim()) return;
@@ -585,48 +654,22 @@ export default function AppLauncherPage() {
       setDemoInterestError("Demo account could not be found.");
       return;
     }
-    if (
-      !demoInterestForm.company_name.trim() ||
-      !demoInterestForm.phone_number.trim()
-    ) {
-      setDemoInterestError("Company name and phone number are required.");
-      return;
-    }
-    if (demoInterestForm.wants_zimra_fdms) {
-      const zimraFieldsFilled =
-        demoInterestForm.tin.trim() &&
-        demoInterestForm.vat_number.trim() &&
-        demoInterestForm.trade_name.trim() &&
-        demoInterestForm.address.trim();
-      if (!zimraFieldsFilled) {
-        setDemoInterestError(
-          "TIN, VAT, trade name and address are required for ZIMRA fiscalization.",
-        );
+
+    for (let step = 0; step <= lastDemoInterestStep; step += 1) {
+      if (!validateDemoInterestStep(step)) {
+        setDemoInterestStep(step);
         return;
       }
-    }
-    if (!selectedPaymentMethod) {
-      setDemoInterestError("Select a payment method.");
-      return;
-    }
-    if (selectedPaymentMethod === "ecocash" && !ecocashPhoneNumber.trim()) {
-      setDemoInterestError("Enter an EcoCash phone number.");
-      return;
     }
 
     let visaPaymentTab: Window | null = null;
     if (selectedPaymentMethod === "visa") {
-      visaPaymentTab = window.open("", "_blank");
+      visaPaymentTab = window.open("", "_blank", "noopener,noreferrer");
       if (!visaPaymentTab) {
         setDemoInterestError(
           "Popup blocked. Please allow popups for this site to continue with Visa payment.",
         );
         return;
-      }
-      try {
-        visaPaymentTab.opener = null;
-      } catch {
-        // Ignore cross-browser restrictions while still proceeding with payment flow.
       }
       visaPaymentTab.document.title = "Opening Paynow...";
       visaPaymentTab.document.body.innerHTML =
@@ -952,294 +995,345 @@ export default function AppLauncherPage() {
                 System
               </p>
 
-              <label className="demo-interest-check">
-                <input
-                  type="checkbox"
-                  checked={demoInterestForm.wants_actual_three65}
-                  onChange={(event) =>
-                    setDemoInterestForm((current) => ({
-                      ...current,
-                      wants_actual_three65: event.target.checked,
-                    }))
-                  }
-                />
-                <span>Please contact me about the actual Three65 system.</span>
-              </label>
-
-              <section className="demo-interest-section">
-                <div className="demo-interest-section-head">
-                  <h4>Business profile</h4>
-                  <p>Capture the main company details we will use for setup.</p>
-                </div>
-                <div className="demo-interest-grid">
-                  <div className="input-group">
-                    <label className="input-label">Company name</label>
-                    <input
-                      value={demoInterestForm.company_name}
-                      onChange={(event) =>
-                        setDemoInterestForm((current) => ({
-                          ...current,
-                          company_name: event.target.value,
-                        }))
-                      }
-                    />
-                  </div>
-
-                  <div className="input-group">
-                    <label className="input-label">Phone number</label>
-                    <input
-                      value={demoInterestForm.phone_number}
-                      onChange={(event) =>
-                        setDemoInterestForm((current) => ({
-                          ...current,
-                          phone_number: event.target.value,
-                        }))
-                      }
-                    />
-                  </div>
-
-                  <div className="input-group">
-                    <label className="input-label">Email</label>
-                    <input value={demoAccount.email} disabled />
-                  </div>
-
-                  <div className="input-group">
-                    <label className="input-label">
-                      Number of users required
-                    </label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={500}
-                      value={demoInterestForm.num_users}
-                      onChange={(event) =>
-                        setDemoInterestForm((current) => ({
-                          ...current,
-                          num_users: Number(event.target.value) || 1,
-                        }))
-                      }
-                    />
-                  </div>
-
-                  <div className="input-group">
-                    <label className="input-label">Subscription period</label>
-                    <select
-                      value={demoInterestForm.subscription_period}
-                      onChange={(event) =>
-                        setDemoInterestForm((current) => ({
-                          ...current,
-                          subscription_period: event.target.value as
-                            | "monthly"
-                            | "yearly",
-                        }))
-                      }
+              <div className="demo-interest-stepper" role="tablist">
+                {demoInterestSteps.map((stepLabel, stepIndex) => {
+                  const isActive = stepIndex === demoInterestStep;
+                  const isComplete = stepIndex < demoInterestStep;
+                  return (
+                    <button
+                      key={stepLabel}
+                      type="button"
+                      className={`demo-interest-step ${isActive ? "active" : ""} ${isComplete ? "complete" : ""}`}
+                      onClick={() => {
+                        if (stepIndex > demoInterestStep) return;
+                        setDemoInterestError("");
+                        setDemoInterestStep(stepIndex);
+                      }}
+                      disabled={stepIndex > demoInterestStep}
                     >
-                      <option value="monthly">1 month</option>
-                      <option value="yearly">1 year</option>
-                    </select>
-                  </div>
+                      <span className="demo-interest-step-index">
+                        {stepIndex + 1}
+                      </span>
+                      <span className="demo-interest-step-label">
+                        {stepLabel}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
 
-                  <div className="input-group">
-                    <label className="input-label">Payment link</label>
-                    <input value={demoInterestForm.payment_link} readOnly />
-                  </div>
-                </div>
-              </section>
-
-              <section className="demo-interest-section">
-                <div className="demo-interest-section-head">
-                  <h4>Apps and access</h4>
-                  <p>
-                    Dashboard and Settings are included automatically for the
-                    portal superuser.
-                  </p>
-                </div>
-                <div className="demo-interest-apps">
-                  <div className="demo-interest-apps-head">
-                    <span className="input-label">Apps required</span>
-                    <span className="demo-interest-apps-note">
-                      Select the modules the client wants in the main system.
-                    </span>
-                  </div>
-                  <div className="demo-interest-apps-grid">
-                    {demoInterestAppOptions.map((appOption) => {
-                      const selected = demoInterestForm.requested_apps.includes(
-                        appOption.key,
-                      );
-                      return (
-                        <label
-                          key={appOption.key}
-                          className={`demo-interest-app-option ${selected ? "selected" : ""}`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selected}
-                            onChange={(event) =>
-                              setDemoInterestForm((current) => ({
-                                ...current,
-                                requested_apps: event.target.checked
-                                  ? [...current.requested_apps, appOption.key]
-                                  : current.requested_apps.filter(
-                                      (item) => item !== appOption.key,
-                                    ),
-                              }))
-                            }
-                          />
-                          <span>{appOption.label}</span>
-                        </label>
-                      );
-                    })}
-                  </div>
+              {demoInterestStep === 0 && (
+                <>
                   <label className="demo-interest-check">
                     <input
                       type="checkbox"
-                      checked={demoInterestForm.wants_zimra_fdms}
+                      checked={demoInterestForm.wants_actual_three65}
                       onChange={(event) =>
                         setDemoInterestForm((current) => ({
                           ...current,
-                          wants_zimra_fdms: event.target.checked,
+                          wants_actual_three65: event.target.checked,
                         }))
                       }
                     />
-                    <span>I want ZIMRA fiscalization.</span>
+                    <span>Please contact me about the actual Three65 system.</span>
                   </label>
-
-                  {demoInterestForm.wants_zimra_fdms && (
-                    <section className="demo-interest-section">
-                      <div className="demo-interest-section-head">
-                        <h4>Fiscal details</h4>
-                        <p>
-                          These details will be included in the onboarding email
-                          for follow-up.
-                        </p>
+                  <section className="demo-interest-section">
+                    <div className="demo-interest-section-head">
+                      <h4>Business profile</h4>
+                      <p>
+                        Capture the main company details we will use for setup.
+                      </p>
+                    </div>
+                    <div className="demo-interest-grid">
+                      <div className="input-group">
+                        <label className="input-label">Company name</label>
+                        <input
+                          value={demoInterestForm.company_name}
+                          onChange={(event) =>
+                            setDemoInterestForm((current) => ({
+                              ...current,
+                              company_name: event.target.value,
+                            }))
+                          }
+                        />
                       </div>
-                      <div className="demo-interest-grid">
-                        <div className="input-group">
-                          <label className="input-label">TIN</label>
-                          <input
-                            value={demoInterestForm.tin}
-                            onChange={(event) =>
-                              setDemoInterestForm((current) => ({
-                                ...current,
-                                tin: event.target.value,
-                              }))
-                            }
-                          />
-                        </div>
 
-                        <div className="input-group">
-                          <label className="input-label">VAT</label>
-                          <input
-                            value={demoInterestForm.vat_number}
-                            onChange={(event) =>
-                              setDemoInterestForm((current) => ({
-                                ...current,
-                                vat_number: event.target.value,
-                              }))
-                            }
-                          />
-                        </div>
-
-                        <div className="input-group">
-                          <label className="input-label">Trade name</label>
-                          <input
-                            value={demoInterestForm.trade_name}
-                            onChange={(event) =>
-                              setDemoInterestForm((current) => ({
-                                ...current,
-                                trade_name: event.target.value,
-                              }))
-                            }
-                          />
-                        </div>
-
-                        <div className="input-group demo-interest-field-full">
-                          <label className="input-label">Address</label>
-                          <textarea
-                            value={demoInterestForm.address}
-                            onChange={(event) =>
-                              setDemoInterestForm((current) => ({
-                                ...current,
-                                address: event.target.value,
-                              }))
-                            }
-                            rows={3}
-                          />
-                        </div>
+                      <div className="input-group">
+                        <label className="input-label">Phone number</label>
+                        <input
+                          value={demoInterestForm.phone_number}
+                          onChange={(event) =>
+                            setDemoInterestForm((current) => ({
+                              ...current,
+                              phone_number: event.target.value,
+                            }))
+                          }
+                        />
                       </div>
-                    </section>
-                  )}
-                </div>
-              </section>
-              <section className="demo-interest-section">
-                <div className="demo-interest-section-head">
-                  <h4>Payment Method</h4>
-                  <p>Select how you would like to pay.</p>
-                </div>
-                <div className="demo-interest-apps">
-                  <div className="demo-interest-apps-head">
-                    <span className="input-label">Available options</span>
-                  </div>
-                  <div className="demo-interest-apps-grid">
-                    {paymentMethodOptions.map((method) => {
-                      const selected = selectedPaymentMethod === method.key;
-                      return (
-                        <button
-                          key={method.key}
-                          type="button"
-                          aria-pressed={selected}
-                          className={`demo-interest-app-option ${selected ? "selected" : ""}`}
-                          onClick={() =>
-                            setSelectedPaymentMethod((current) =>
-                              current === method.key ? "" : method.key,
-                            )
+
+                      <div className="input-group">
+                        <label className="input-label">Email</label>
+                        <input value={demoAccount.email} disabled />
+                      </div>
+
+                      <div className="input-group">
+                        <label className="input-label">
+                          Number of users required
+                        </label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={500}
+                          value={demoInterestForm.num_users}
+                          onChange={(event) =>
+                            setDemoInterestForm((current) => ({
+                              ...current,
+                              num_users: Number(event.target.value) || 1,
+                            }))
+                          }
+                        />
+                      </div>
+
+                      <div className="input-group">
+                        <label className="input-label">Subscription period</label>
+                        <select
+                          value={demoInterestForm.subscription_period}
+                          onChange={(event) =>
+                            setDemoInterestForm((current) => ({
+                              ...current,
+                              subscription_period: event.target.value as
+                                | "monthly"
+                                | "yearly",
+                            }))
                           }
                         >
-                          <span>{method.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {selectedPaymentMethod === "ecocash" && (
-                    <div className="input-group" style={{ marginTop: 12 }}>
-                      <label className="input-label">
-                        EcoCash phone number
-                      </label>
-                      <input
-                        type="tel"
-                        value={ecocashPhoneNumber}
-                        onChange={(event) =>
-                          setEcocashPhoneNumber(event.target.value)
-                        }
-                        placeholder="Enter phone number"
-                      />
+                          <option value="monthly">1 month</option>
+                          <option value="yearly">1 year</option>
+                        </select>
+                      </div>
+
+                      <div className="input-group">
+                        <label className="input-label">Payment link</label>
+                        <input value={demoInterestForm.payment_link} readOnly />
+                      </div>
                     </div>
-                  )}
-                </div>
-              </section>
+                  </section>
+                </>
+              )}
+
+              {demoInterestStep === 1 && (
+                <section className="demo-interest-section">
+                  <div className="demo-interest-section-head">
+                    <h4>Apps and access</h4>
+                    <p>
+                      Dashboard and Settings are included automatically for the
+                      portal superuser.
+                    </p>
+                  </div>
+                  <div className="demo-interest-apps">
+                    <div className="demo-interest-apps-head">
+                      <span className="input-label">Apps required</span>
+                      <span className="demo-interest-apps-note">
+                        Select the modules the client wants in the main system.
+                      </span>
+                    </div>
+                    <div className="demo-interest-apps-grid">
+                      {demoInterestAppOptions.map((appOption) => {
+                        const selected = demoInterestForm.requested_apps.includes(
+                          appOption.key,
+                        );
+                        return (
+                          <label
+                            key={appOption.key}
+                            className={`demo-interest-app-option ${selected ? "selected" : ""}`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selected}
+                              onChange={(event) =>
+                                setDemoInterestForm((current) => ({
+                                  ...current,
+                                  requested_apps: event.target.checked
+                                    ? [...current.requested_apps, appOption.key]
+                                    : current.requested_apps.filter(
+                                        (item) => item !== appOption.key,
+                                      ),
+                                }))
+                              }
+                            />
+                            <span>{appOption.label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <label className="demo-interest-check">
+                      <input
+                        type="checkbox"
+                        checked={demoInterestForm.wants_zimra_fdms}
+                        onChange={(event) =>
+                          setDemoInterestForm((current) => ({
+                            ...current,
+                            wants_zimra_fdms: event.target.checked,
+                          }))
+                        }
+                      />
+                      <span>I want ZIMRA fiscalization.</span>
+                    </label>
+
+                    {demoInterestForm.wants_zimra_fdms && (
+                      <section className="demo-interest-section">
+                        <div className="demo-interest-section-head">
+                          <h4>Fiscal details</h4>
+                          <p>
+                            These details will be included in the onboarding
+                            email for follow-up.
+                          </p>
+                        </div>
+                        <div className="demo-interest-grid">
+                          <div className="input-group">
+                            <label className="input-label">TIN</label>
+                            <input
+                              value={demoInterestForm.tin}
+                              onChange={(event) =>
+                                setDemoInterestForm((current) => ({
+                                  ...current,
+                                  tin: event.target.value,
+                                }))
+                              }
+                            />
+                          </div>
+
+                          <div className="input-group">
+                            <label className="input-label">VAT</label>
+                            <input
+                              value={demoInterestForm.vat_number}
+                              onChange={(event) =>
+                                setDemoInterestForm((current) => ({
+                                  ...current,
+                                  vat_number: event.target.value,
+                                }))
+                              }
+                            />
+                          </div>
+
+                          <div className="input-group">
+                            <label className="input-label">Trade name</label>
+                            <input
+                              value={demoInterestForm.trade_name}
+                              onChange={(event) =>
+                                setDemoInterestForm((current) => ({
+                                  ...current,
+                                  trade_name: event.target.value,
+                                }))
+                              }
+                            />
+                          </div>
+
+                          <div className="input-group demo-interest-field-full">
+                            <label className="input-label">Address</label>
+                            <textarea
+                              value={demoInterestForm.address}
+                              onChange={(event) =>
+                                setDemoInterestForm((current) => ({
+                                  ...current,
+                                  address: event.target.value,
+                                }))
+                              }
+                              rows={3}
+                            />
+                          </div>
+                        </div>
+                      </section>
+                    )}
+                  </div>
+                </section>
+              )}
+
+              {demoInterestStep === 2 && (
+                <section className="demo-interest-section">
+                  <div className="demo-interest-section-head">
+                    <h4>Payment Method</h4>
+                    <p>Select how you would like to pay.</p>
+                  </div>
+                  <div className="demo-interest-apps">
+                    <div className="demo-interest-apps-head">
+                      <span className="input-label">Available options</span>
+                    </div>
+                    <div className="demo-interest-apps-grid">
+                      {paymentMethodOptions.map((method) => {
+                        const selected = selectedPaymentMethod === method.key;
+                        return (
+                          <button
+                            key={method.key}
+                            type="button"
+                            aria-pressed={selected}
+                            className={`demo-interest-app-option ${selected ? "selected" : ""}`}
+                            onClick={() =>
+                              setSelectedPaymentMethod((current) =>
+                                current === method.key ? "" : method.key,
+                              )
+                            }
+                          >
+                            <span>{method.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {selectedPaymentMethod === "ecocash" && (
+                      <div className="input-group" style={{ marginTop: 12 }}>
+                        <label className="input-label">
+                          EcoCash phone number
+                        </label>
+                        <input
+                          type="tel"
+                          value={ecocashPhoneNumber}
+                          onChange={(event) =>
+                            setEcocashPhoneNumber(event.target.value)
+                          }
+                          placeholder="Enter phone number"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </section>
+              )}
 
               {demoInterestError && (
                 <div className="login-error">{demoInterestError}</div>
               )}
             </div>
             <div className="modal-footer">
-              {/* <button
+              <button
                 className="btn secondary"
                 type="button"
-                onClick={() => setDemoInterestOpen(false)}
+                onClick={() =>
+                  setDemoInterestStep((current) => Math.max(current - 1, 0))
+                }
+                disabled={demoInterestStep === 0 || demoInterestSubmitting}
               >
-                Later
-              </button> */}
-              <button
-                className="login-btn demo-interest-submit"
-                type="button"
-                onClick={handleDemoInterestSubmit}
-                disabled={demoInterestSubmitting}
-              >
-                {demoInterestSubmitting
-                  ? "Sending..."
-                  : "Create subscription and send email"}
+                Back
               </button>
+              {demoInterestStep < lastDemoInterestStep ? (
+                <button
+                  className="login-btn demo-interest-submit"
+                  type="button"
+                  onClick={handleDemoInterestNext}
+                  disabled={demoInterestSubmitting}
+                >
+                  Next
+                </button>
+              ) : (
+                <button
+                  className="login-btn demo-interest-submit"
+                  type="button"
+                  onClick={handleDemoInterestSubmit}
+                  disabled={demoInterestSubmitting}
+                >
+                  {demoInterestSubmitting
+                    ? "Sending..."
+                    : "Create subscription and send email"}
+                </button>
+              )}
             </div>
           </div>
         </div>
