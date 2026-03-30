@@ -982,9 +982,8 @@ export default function AppLauncherPage() {
 
       {demoInterestOpen && demoAccount && (
         <div className="modal-overlay">
-          <div className="demo-interest-modal-layout">
-            <div className="modal demo-interest-modal">
-              <div className="modal-header demo-interest-header">
+          <div className="modal modal--centered demo-interest-modal">
+            <div className="modal-header demo-interest-header">
               <div className="demo-interest-header-copy">
                 <h3>Registration</h3>
                 <span className="input-label">
@@ -1331,8 +1330,6 @@ export default function AppLauncherPage() {
                 </button>
               )}
             </div>
-          </div>
-            <div className="modal demo-interest-modal demo-interest-modal--blank" />
           </div>
         </div>
       )}
