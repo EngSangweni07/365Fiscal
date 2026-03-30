@@ -1325,9 +1325,7 @@ export default function AppLauncherPage() {
                   onClick={handleDemoInterestSubmit}
                   disabled={demoInterestSubmitting}
                 >
-                  {demoInterestSubmitting
-                    ? "Sending..."
-                    : "Create subscription and send email"}
+                  {demoInterestSubmitting ? "Sending..." : "Pay now!"}
                 </button>
               )}
             </div>
