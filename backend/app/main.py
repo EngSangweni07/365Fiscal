@@ -205,7 +205,7 @@ def ensure_new_columns():
                 if "paynow_paid_at" not in demo_cols:
                     _startup_logger.info(">>> Adding paynow_paid_at column to demo_accounts")
                     conn.execute(text(
-                        "ALTER TABLE demo_accounts ADD COLUMN paynow_paid_at DATETIME"
+                        "ALTER TABLE demo_accounts ADD COLUMN paynow_paid_at TIMESTAMP"
                     ))
 
                 if "tin" not in demo_cols:
