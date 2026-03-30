@@ -683,19 +683,6 @@ export default function AppLauncherPage() {
   if (!isAdmin && !hasActiveSubscription && me) {
     return (
       <div className="app-launcher-page">
-        <div className="app-launcher-watermark" aria-hidden="true">
-          <span></span>
-          <span></span>
-          <span></span>
-        </div>
-        <div
-          className="app-launcher-watermark app-launcher-watermark-top"
-          aria-hidden="true"
-        >
-          <span></span>
-          <span></span>
-          <span></span>
-        </div>
         <div className="app-launcher-container app-launcher-activation">
           <div className="login-card login-card-glass activation-card">
             <div className="login-card-body activation-card-body">
@@ -850,6 +837,9 @@ export default function AppLauncherPage() {
       </div>
       {/* Header */}
       <header className="app-launcher-header">
+        <div className="app-launcher-logo">
+          <img src="/three.png" alt="Three65" />
+        </div>
         <div className="app-launcher-user">
           {!isAdmin && demoCountdown !== null && isDemoWorkspace && (
             <div
