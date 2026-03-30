@@ -637,7 +637,10 @@ export default function AppLauncherPage() {
       setDemoInterestSubmitted(true);
       localStorage.setItem(`demo_interest_submitted_${demoAccountId}`, "true");
       setDemoInterestOpen(false);
-      if (data.payment_method === "visa" && /^https?:\/\//i.test(data.payment_link || "")) {
+      if (
+        data.payment_method === "visa" &&
+        /^https?:\/\//i.test(data.payment_link || "")
+      ) {
         window.location.assign(data.payment_link);
         return;
       }
@@ -660,19 +663,6 @@ export default function AppLauncherPage() {
   if (loading || activationLoading) {
     return (
       <div className="app-launcher-page">
-        <div className="app-launcher-watermark" aria-hidden="true">
-          <span></span>
-          <span></span>
-          <span></span>
-        </div>
-        <div
-          className="app-launcher-watermark app-launcher-watermark-top"
-          aria-hidden="true"
-        >
-          <span></span>
-          <span></span>
-          <span></span>
-        </div>
         <div
           className="app-launcher-container"
           style={{
