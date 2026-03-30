@@ -4587,7 +4587,9 @@ button.danger:hover {
 .modal--centered {
   width: min(90vw, 600px);
   margin: 0;
-  display: block;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
   visibility: visible;
   position: fixed;
   top: 50%;
