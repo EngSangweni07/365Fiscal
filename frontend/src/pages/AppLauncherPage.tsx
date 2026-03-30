@@ -641,7 +641,16 @@ export default function AppLauncherPage() {
         data.payment_method === "visa" &&
         /^https?:\/\//i.test(data.payment_link || "")
       ) {
-        window.location.assign(data.payment_link);
+        const paymentWindow = window.open(
+          data.payment_link,
+          "_blank",
+          "noopener,noreferrer",
+        );
+        if (!paymentWindow) {
+          window.location.assign(data.payment_link);
+          return;
+        }
+        window.location.assign("/subscriptions");
         return;
       }
       window.location.assign("/subscriptions");
