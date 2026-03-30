@@ -1331,7 +1331,10 @@ export default function AppLauncherPage() {
               )}
             </div>
           </div>
-          <div className="modal modal--centered demo-interest-modal">
+          <div
+            className="modal modal--centered demo-interest-modal"
+            style={{ width: "20vw" }}
+          >
             <div className="modal-header demo-interest-header">
               <div className="demo-interest-header-copy">
                 <h3>Pricing Summary</h3>
