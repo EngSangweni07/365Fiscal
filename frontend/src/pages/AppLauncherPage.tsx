@@ -616,12 +616,17 @@ export default function AppLauncherPage() {
 
     let visaPaymentTab: Window | null = null;
     if (selectedPaymentMethod === "visa") {
-      visaPaymentTab = window.open("", "_blank", "noopener,noreferrer");
+      visaPaymentTab = window.open("", "_blank");
       if (!visaPaymentTab) {
         setDemoInterestError(
           "Popup blocked. Please allow popups for this site to continue with Visa payment.",
         );
         return;
+      }
+      try {
+        visaPaymentTab.opener = null;
+      } catch {
+        // Ignore cross-browser restrictions while still proceeding with payment flow.
       }
       visaPaymentTab.document.title = "Opening Paynow...";
       visaPaymentTab.document.body.innerHTML =
