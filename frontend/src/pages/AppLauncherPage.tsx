@@ -614,6 +614,20 @@ export default function AppLauncherPage() {
       return;
     }
 
+    let visaPaymentTab: Window | null = null;
+    if (selectedPaymentMethod === "visa") {
+      visaPaymentTab = window.open("", "_blank", "noopener,noreferrer");
+      if (!visaPaymentTab) {
+        setDemoInterestError(
+          "Popup blocked. Please allow popups for this site to continue with Visa payment.",
+        );
+        return;
+      }
+      visaPaymentTab.document.title = "Opening Paynow...";
+      visaPaymentTab.document.body.innerHTML =
+        "<p style='font-family: sans-serif; padding: 24px;'>Opening Paynow payment page...</p>";
+    }
+
     setDemoInterestSubmitting(true);
     setDemoInterestError("");
     try {
@@ -641,21 +655,19 @@ export default function AppLauncherPage() {
         data.payment_method === "visa" &&
         /^https?:\/\//i.test(data.payment_link || "")
       ) {
-        const paymentWindow = window.open(
-          data.payment_link,
-          "_blank",
-          "noopener,noreferrer",
-        );
-        if (!paymentWindow) {
-          window.location.assign(data.payment_link);
-          return;
+        if (visaPaymentTab && !visaPaymentTab.closed) {
+          visaPaymentTab.location.href = data.payment_link;
+        } else {
+          window.open(data.payment_link, "_blank", "noopener,noreferrer");
         }
-        window.location.assign("/subscriptions");
         return;
       }
       window.location.assign("/subscriptions");
       return;
     } catch (err: any) {
+      if (visaPaymentTab && !visaPaymentTab.closed) {
+        visaPaymentTab.close();
+      }
       setDemoInterestError(err.message || "Failed to send your request.");
     } finally {
       setDemoInterestSubmitting(false);
