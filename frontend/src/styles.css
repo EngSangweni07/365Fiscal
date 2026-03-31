@@ -3467,6 +3467,31 @@ thead.table-light th {
   border: 1px solid rgba(148, 163, 184, 0.2);
 }
 
+.demo-interest-summary-footer {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.demo-interest-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--slate-900);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.demo-interest-summary-total {
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(148, 163, 184, 0.26);
+  font-size: 16px;
+}
+
 .demo-interest-copy {
   margin: 0;
   color: var(--slate-600);
@@ -4756,7 +4781,7 @@ button.danger:hover {
 
 .modal-body {
   padding: 24px;
-  max-height: 60vh;
+  /* max-height: 60vh; */
   overflow-y: auto;
 }
 

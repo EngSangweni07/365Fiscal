@@ -1480,21 +1480,21 @@ export default function AppLauncherPage() {
                   </div>
                 )}
               </div>
-              <div className="pos-cart-totals demo-interest-pricing-summary">
-                <div className="pos-totals-row">
+            </div>
+            <div className="modal-footer">
+              <div className="total-footer demo-interest-summary-footer">
+                <div className="demo-interest-summary-row">
                   <span>Subtotal</span>
                   <span>{formatMoney(pricingSubtotal)}</span>
                 </div>
-                <div className="pos-totals-row">
+                <div className="demo-interest-summary-row">
                   <span>Tax</span>
                   <span>{formatMoney(pricingTaxAmount)}</span>
                 </div>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <div className="total-footer">
-                <h3>Total:</h3>
-                <h3>{formatMoney(pricingTotal)}</h3>
+                <div className="demo-interest-summary-row demo-interest-summary-total">
+                  <span>Total</span>
+                  <span>{formatMoney(pricingTotal)}</span>
+                </div>
               </div>
             </div>
           </div>
