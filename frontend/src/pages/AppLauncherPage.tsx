@@ -1421,11 +1421,47 @@ export default function AppLauncherPage() {
                 <h3>Pricing Summary</h3>
               </div>
             </div>
-            <div className="modal-body demo-interest-body"></div>
+            <div className="modal-body demo-interest-body">
+              <div className="demo-interest-pricing">
+                <div className="demo-interest-pricing-item">
+                  <span>Base subscription</span>
+                  <span>$10.00</span>
+                </div>
+                {demoInterestForm.num_users > 1 && (
+                  <div className="demo-interest-pricing-item">
+                    <span>
+                      Additional users ({demoInterestForm.num_users - 1} @ $1.50
+                      each)
+                    </span>
+                    <span>
+                      $
+                      {(
+                        (demoInterestForm.num_users - 1) *
+                        1.5
+                      ).toFixed(2)}
+                    </span>
+                  </div>
+                )}
+                {demoInterestForm.wants_zimra_fdms && (
+                  <div className="demo-interest-pricing-item">
+                    <span>ZIMRA FDMS integration</span>
+                    <span>$350.00</span>
+                  </div>
+                )}
+
+                <span>Taxes</span>
+                <span>$2.50</span>
+
+            </div>
             <div className="modal-footer">
               <div className="total-footer">
-                <h3>Total: </h3>
-                <h3>$13.00</h3>
+                <div>
+                  <h3>Total: </h3>
+                </div>
+                <div>
+                  {" "}
+                  <h3>$13.00</h3>
+                </div>
               </div>
             </div>
           </div>
