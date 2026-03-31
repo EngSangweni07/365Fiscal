@@ -353,13 +353,13 @@ const paymentMethodOptions = [
 const demoInterestSupportOptions = [
   {
     key: "wants_training_enhanced",
-    label: "Training (enhanced)",
+    label: "System Training",
     description:
       "Hands-on training to ensure your team can confidently use the system from day one.",
   },
   {
     key: "wants_implementation_enhanced",
-    label: "Implementation (enhanced)",
+    label: "Implementation Support",
     description:
       "Expert assistance with data migration, setup, and system configuration tailored to your business.",
   },
@@ -545,8 +545,7 @@ export default function AppLauncherPage() {
           vat_number: data.vat_number || "",
           trade_name: data.trade_name || "",
           address: data.address || "",
-          wants_training_enhanced:
-            data.wants_training_enhanced === true,
+          wants_training_enhanced: data.wants_training_enhanced === true,
           wants_implementation_enhanced:
             data.wants_implementation_enhanced === true,
         });
@@ -612,7 +611,7 @@ export default function AppLauncherPage() {
       }
     }
 
-    if (step === 2) {
+    if (step === 3) {
       if (!selectedPaymentMethod) {
         setDemoInterestError("Select a payment method.");
         return false;
