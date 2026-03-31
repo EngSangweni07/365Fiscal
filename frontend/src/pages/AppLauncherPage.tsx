@@ -342,7 +342,7 @@ function parseApiDate(value: string) {
   return new Date(hasTimezone ? value : `${value}Z`);
 }
 
-const Gumbodavid2! = [
+const demoInterestAppOptions = [
   { key: "invoices", label: "Invoices" },
   { key: "purchases", label: "Purchases" },
   { key: "contacts", label: "Contacts" },
@@ -359,7 +359,7 @@ const paymentMethodOptions = [
   { key: "telecash", label: "TeleCash", badge: telecashBadge },
   { key: "visa", label: "Visa Card", badge: visaBadge },
   { key: "mastercard", label: "MasterCard", badge: mastercardBadge },
-  {key: "innbucks", label: "InnBucks", badge: innbucksBadge},
+  { key: "innbucks", label: "InnBucks", badge: innbucksBadge },
 ] as const;
 
 const demoInterestSupportOptions = [
