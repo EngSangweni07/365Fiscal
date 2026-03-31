@@ -427,6 +427,8 @@ export default function AppLauncherPage() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [demoCountdown, setDemoCountdown] = useState<number | null>(null);
   const [demoAccount, setDemoAccount] = useState<DemoAccount | null>(null);
+  const [demoRegistrationPromptOpen, setDemoRegistrationPromptOpen] =
+    useState(false);
   const [demoInterestOpen, setDemoInterestOpen] = useState(false);
   const [demoInterestError, setDemoInterestError] = useState("");
   const [demoInterestSubmitting, setDemoInterestSubmitting] = useState(false);
@@ -584,7 +586,7 @@ export default function AppLauncherPage() {
     ) {
       return;
     }
-    setDemoInterestOpen(true);
+    setDemoRegistrationPromptOpen(true);
   }, [demoCountdown, demoInterestSubmitted, isAdmin]);
 
   useEffect(() => {
@@ -690,6 +692,7 @@ export default function AppLauncherPage() {
       setActivationStatus(data);
       setDemoCountdown(null);
       setDemoAccount(null);
+      setDemoRegistrationPromptOpen(false);
       setDemoInterestOpen(false);
     } catch (err: any) {
       setActivateError(err.message || "Invalid or expired activation code.");
@@ -705,6 +708,17 @@ export default function AppLauncherPage() {
     localStorage.removeItem("demo_expires_at_ms");
     localStorage.removeItem("demo_email");
     window.location.href = "/login";
+  };
+
+  const handleTalkToUsFirst = () => {
+    setDemoRegistrationPromptOpen(false);
+    setDemoInterestOpen(false);
+    window.open("http://www.geenet.co.zw", "_blank", "noopener,noreferrer");
+  };
+
+  const handleContinueRegistration = () => {
+    setDemoRegistrationPromptOpen(false);
+    setDemoInterestOpen(true);
   };
 
   const handleDemoInterestSubmit = async () => {
@@ -757,6 +771,7 @@ export default function AppLauncherPage() {
       setDemoAccount(data);
       setDemoInterestSubmitted(true);
       localStorage.setItem(`demo_interest_submitted_${demoAccountId}`, "true");
+      setDemoRegistrationPromptOpen(false);
       setDemoInterestOpen(false);
       if (
         data.payment_method === "visa" &&
@@ -1054,6 +1069,50 @@ export default function AppLauncherPage() {
           ))}
         </div>
       </div>
+
+      {demoRegistrationPromptOpen && demoAccount && (
+        <div className="modal-overlay">
+          <div className="modal modal--centered demo-interest-modal demo-interest-choice-modal">
+            <div className="modal-header demo-interest-header">
+              <div className="demo-interest-header-copy">
+                <h3>Get Started with Your Subscription</h3>
+                <p className="demo-interest-header-note">
+                  Do you need help first, or are you ready to continue with
+                  registration?
+                </p>
+              </div>
+            </div>
+            <div className="modal-body demo-interest-body demo-interest-choice-body">
+              <div className="demo-interest-choice-grid">
+                <button
+                  type="button"
+                  className="demo-interest-choice-card"
+                  onClick={handleTalkToUsFirst}
+                >
+                  <strong>Talk to Us First</strong>
+                  <span>
+                    Have questions about setup, billing, or migration? Our team
+                    can help you plan.
+                  </span>
+                  <small>Contact Support</small>
+                </button>
+                <button
+                  type="button"
+                  className="demo-interest-choice-card demo-interest-choice-card--primary"
+                  onClick={handleContinueRegistration}
+                >
+                  <strong>Continue Registration</strong>
+                  <span>
+                    Already know what you need? Go straight to your subscription
+                    setup.
+                  </span>
+                  <small>Start Registration</small>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {demoInterestOpen && demoAccount && (
         <div className="modal-overlay">

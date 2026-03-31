@@ -3467,6 +3467,65 @@ thead.table-light th {
   border: 1px solid rgba(148, 163, 184, 0.2);
 }
 
+.demo-interest-choice-modal {
+  max-width: 760px;
+}
+
+.demo-interest-choice-body {
+  gap: 20px;
+}
+
+.demo-interest-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.demo-interest-choice-card {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(11, 69, 80, 0.22);
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--slate-900);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  box-shadow: 0 12px 22px rgba(15, 23, 42, 0.08);
+  transition: all 0.2s ease;
+}
+
+.demo-interest-choice-card strong {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.demo-interest-choice-card span {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--slate-700);
+}
+
+.demo-interest-choice-card small {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--brand-sherpa);
+}
+
+.demo-interest-choice-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 26px rgba(15, 23, 42, 0.12);
+}
+
+.demo-interest-choice-card--primary {
+  border-color: rgba(11, 69, 80, 0.45);
+  background: linear-gradient(160deg, rgba(11, 69, 80, 0.14), rgba(255, 255, 255, 0.98));
+  box-shadow: 0 18px 30px rgba(11, 69, 80, 0.2);
+}
+
 .demo-interest-summary-footer {
   display: grid;
   gap: 8px;
@@ -3844,6 +3903,10 @@ button.demo-interest-app-option {
 
   .demo-interest-payment-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .demo-interest-choice-grid {
+    grid-template-columns: 1fr;
   }
 }
 
