@@ -3634,6 +3634,20 @@ button.demo-interest-app-option {
   font: inherit;
 }
 
+.demo-interest-payment-option {
+  justify-content: center;
+  min-height: 78px;
+  padding: 10px 14px;
+}
+
+.demo-interest-payment-badge {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: 42px;
+  object-fit: contain;
+}
+
 .demo-interest-app-option input {
   width: 16px;
   height: 16px;
@@ -10374,7 +10388,7 @@ button.danger:hover {
 .modal-body {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
   padding: 24px;
 }
 

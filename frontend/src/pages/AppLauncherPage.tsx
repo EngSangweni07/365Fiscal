@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import type { CSSProperties } from "react";
 import { NavLink } from "react-router-dom";
 import type { LucideIcon } from "lucide-react";
+
 import {
   Boxes,
   BriefcaseBusiness,
@@ -21,6 +22,13 @@ import {
 import { useMe } from "../hooks/useMe";
 import { getInitials } from "../hooks/getInitials";
 import { apiFetch } from "../api";
+
+import ecocashBadge from "../assets/ecocash.svg";
+import visaBadge from "../assets/visa.svg";
+import mastercardBadge from "../assets/mastercard.svg";
+import onemoneyBadge from "../assets/onemoney.svg";
+import telecashBadge from "../assets/telecash.svg";
+import innbucksBadge from "../assets/innbucks.svg";
 
 type ActivationStatus = {
   activated: boolean;
@@ -334,7 +342,7 @@ function parseApiDate(value: string) {
   return new Date(hasTimezone ? value : `${value}Z`);
 }
 
-const demoInterestAppOptions = [
+const Gumbodavid2! = [
   { key: "invoices", label: "Invoices" },
   { key: "purchases", label: "Purchases" },
   { key: "contacts", label: "Contacts" },
@@ -346,8 +354,12 @@ const demoInterestAppOptions = [
 ];
 
 const paymentMethodOptions = [
-  { key: "ecocash", label: "EcoCash" },
-  { key: "visa", label: "Visa Card" },
+  { key: "ecocash", label: "EcoCash", badge: ecocashBadge },
+  { key: "onemoney", label: "OneMoney", badge: onemoneyBadge },
+  { key: "telecash", label: "TeleCash", badge: telecashBadge },
+  { key: "visa", label: "Visa Card", badge: visaBadge },
+  { key: "mastercard", label: "MasterCard", badge: mastercardBadge },
+  {key: "innbucks", label: "InnBucks", badge: innbucksBadge},
 ] as const;
 
 const demoInterestSupportOptions = [
@@ -1320,14 +1332,19 @@ export default function AppLauncherPage() {
                             key={method.key}
                             type="button"
                             aria-pressed={selected}
-                            className={`demo-interest-app-option ${selected ? "selected" : ""}`}
+                            aria-label={method.label}
+                            className={`demo-interest-app-option demo-interest-payment-option ${selected ? "selected" : ""}`}
                             onClick={() =>
                               setSelectedPaymentMethod((current) =>
                                 current === method.key ? "" : method.key,
                               )
                             }
                           >
-                            <span>{method.label}</span>
+                            <img
+                              src={method.badge}
+                              alt={method.label}
+                              className="demo-interest-payment-badge"
+                            />
                           </button>
                         );
                       })}
