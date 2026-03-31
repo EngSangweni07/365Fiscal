@@ -775,6 +775,16 @@ export default function AppLauncherPage() {
     return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   };
 
+  const formatMoney = (amount: number) => `$${amount.toFixed(2)}`;
+  const baseSubscriptionAmount = 10;
+  const additionalUserCount = Math.max(0, demoInterestForm.num_users - 1);
+  const additionalUsersAmount = additionalUserCount * 1.5;
+  const zimraIntegrationAmount = demoInterestForm.wants_zimra_fdms ? 350 : 0;
+  const pricingSubtotal =
+    baseSubscriptionAmount + additionalUsersAmount + zimraIntegrationAmount;
+  const pricingTaxAmount = 2.5;
+  const pricingTotal = pricingSubtotal + pricingTaxAmount;
+
   // Show loading state
   if (loading || activationLoading) {
     return (
@@ -821,7 +831,7 @@ export default function AppLauncherPage() {
               <h2 className="login-card-title activation-title">
                 Enter your subscription code
               </h2>
-              s
+
               {activateError && (
                 <div className="login-error activation-message">
                   <svg
@@ -1422,46 +1432,36 @@ export default function AppLauncherPage() {
               </div>
             </div>
             <div className="modal-body demo-interest-body">
-              <div className="demo-interest-pricing">
+              <div className="demo-interest-pricing-lines">
                 <div className="demo-interest-pricing-item">
                   <span>Base subscription</span>
-                  <span>$10.00</span>
+                  <span>{formatMoney(baseSubscriptionAmount)}</span>
                 </div>
-                {demoInterestForm.num_users > 1 && (
+                {additionalUserCount > 0 && (
                   <div className="demo-interest-pricing-item">
-                    <span>
-                      Additional users ({demoInterestForm.num_users - 1} @ $1.50
-                      each)
-                    </span>
-                    <span>
-                      $
-                      {(
-                        (demoInterestForm.num_users - 1) *
-                        1.5
-                      ).toFixed(2)}
-                    </span>
+                    <span>{`Additional users (${additionalUserCount} @ $1.50 each)`}</span>
+                    <span>{formatMoney(additionalUsersAmount)}</span>
                   </div>
                 )}
                 {demoInterestForm.wants_zimra_fdms && (
                   <div className="demo-interest-pricing-item">
                     <span>ZIMRA FDMS integration</span>
-                    <span>$350.00</span>
+                    <span>{formatMoney(zimraIntegrationAmount)}</span>
                   </div>
                 )}
-                <div className="demo-interest-pricing-item">
-                  <span>Taxes</span>
-                  <span>$2.50</span>
-                </div>
               </div>
-            </div>
-            <div className="modal-footer">
-              <div className="total-footer">
-                <div>
-                  <h3>Total: </h3>
+              <div className="pos-cart-totals demo-interest-pricing-summary">
+                <div className="pos-totals-row">
+                  <span>Subtotal</span>
+                  <span>{formatMoney(pricingSubtotal)}</span>
                 </div>
-                <div>
-                  {" "}
-                  <h3>$13.00</h3>
+                <div className="pos-totals-row">
+                  <span>Tax</span>
+                  <span>{formatMoney(pricingTaxAmount)}</span>
+                </div>
+                <div className="pos-totals-row pos-total-row">
+                  <span>Total</span>
+                  <span>{formatMoney(pricingTotal)}</span>
                 </div>
               </div>
             </div>

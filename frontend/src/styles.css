@@ -3439,6 +3439,34 @@ thead.table-light th {
   padding: 22px 28px 18px;
 }
 
+.demo-interest-pricing-lines {
+  display: grid;
+  gap: 10px;
+}
+
+.demo-interest-pricing-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  font-size: 13px;
+  color: var(--slate-700);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.demo-interest-pricing-item span:last-child {
+  font-weight: 700;
+  color: var(--slate-900);
+}
+
+.demo-interest-pricing-summary {
+  margin-top: 0;
+  border-top-width: 1px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
 .demo-interest-copy {
   margin: 0;
   color: var(--slate-600);
