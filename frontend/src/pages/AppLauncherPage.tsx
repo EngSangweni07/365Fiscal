@@ -80,6 +80,14 @@ type DemoInterestForm = {
   wants_implementation_enhanced: boolean;
 };
 
+type PaymentMethodKey =
+  | "ecocash"
+  | "onemoney"
+  | "telecash"
+  | "visa"
+  | "mastercard"
+  | "innbucks";
+
 // App icons powered by Lucide
 const DashboardIcon = LayoutDashboard;
 const InvoiceIcon = FileText;
@@ -425,7 +433,7 @@ export default function AppLauncherPage() {
   const [demoInterestSubmitted, setDemoInterestSubmitted] = useState(false);
   const [demoInterestStep, setDemoInterestStep] = useState(0);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
-    "ecocash" | "visa" | ""
+    PaymentMethodKey | ""
   >("");
   const [ecocashPhoneNumber, setEcocashPhoneNumber] = useState("");
   const [demoInterestForm, setDemoInterestForm] = useState<DemoInterestForm>({
