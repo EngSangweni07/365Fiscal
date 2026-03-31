@@ -595,6 +595,18 @@ export default function AppLauncherPage() {
     setDemoInterestError("");
   }, [demoInterestOpen]);
 
+  useEffect(() => {
+    if (
+      demoInterestForm.wants_zimra_fdms &&
+      demoInterestForm.subscription_period !== "yearly"
+    ) {
+      setDemoInterestForm((current) => ({
+        ...current,
+        subscription_period: "yearly",
+      }));
+    }
+  }, [demoInterestForm.subscription_period, demoInterestForm.wants_zimra_fdms]);
+
   const hasActiveSubscription = activationStatus?.some(
     (s) => s.activated && s.status === "active",
   );
@@ -776,12 +788,20 @@ export default function AppLauncherPage() {
   };
 
   const formatMoney = (amount: number) => `$${amount.toFixed(2)}`;
-  const baseSubscriptionAmount = 10;
-  const additionalUserCount = Math.max(0, demoInterestForm.num_users - 1);
-  const additionalUsersAmount = additionalUserCount * 1.5;
+  const billingPeriodLabel =
+    demoInterestForm.subscription_period === "yearly" ? "Annual" : "Monthly";
+  const baseSystemAmount = 10;
+  const perUserAmount = 1.5;
+  const userCount = Math.max(1, demoInterestForm.num_users);
+  const userSeatsAmount = userCount * perUserAmount;
+  const periodMultiplier =
+    demoInterestForm.subscription_period === "yearly" ? 12 : 1;
+  const baseSystemAmountForPeriod = baseSystemAmount * periodMultiplier;
+  const userSeatsAmountForPeriod = userSeatsAmount * periodMultiplier;
+  const subscriptionAmountPerPeriod = baseSystemAmount + userSeatsAmount;
+  const subscriptionAmount = subscriptionAmountPerPeriod * periodMultiplier;
   const zimraIntegrationAmount = demoInterestForm.wants_zimra_fdms ? 350 : 0;
-  const pricingSubtotal =
-    baseSubscriptionAmount + additionalUsersAmount + zimraIntegrationAmount;
+  const pricingSubtotal = subscriptionAmount + zimraIntegrationAmount;
   const pricingTaxAmount = 2.5;
   const pricingTotal = pricingSubtotal + pricingTaxAmount;
 
@@ -1171,7 +1191,12 @@ export default function AppLauncherPage() {
                             }))
                           }
                         >
-                          <option value="monthly">Monthly</option>
+                          <option
+                            value="monthly"
+                            disabled={demoInterestForm.wants_zimra_fdms}
+                          >
+                            Monthly
+                          </option>
                           <option value="yearly">Annual</option>
                         </select>
                       </div>
@@ -1224,6 +1249,9 @@ export default function AppLauncherPage() {
                           setDemoInterestForm((current) => ({
                             ...current,
                             wants_zimra_fdms: event.target.checked,
+                            subscription_period: event.target.checked
+                              ? "yearly"
+                              : current.subscription_period,
                           }))
                         }
                       />
@@ -1378,7 +1406,7 @@ export default function AppLauncherPage() {
                           onChange={(event) =>
                             setEcocashPhoneNumber(event.target.value)
                           }
-                          placeholder="Enter phone number"
+                          placeholder="077 123 4567"
                         />
                       </div>
                     )}
@@ -1434,18 +1462,20 @@ export default function AppLauncherPage() {
             <div className="modal-body demo-interest-body">
               <div className="demo-interest-pricing-lines">
                 <div className="demo-interest-pricing-item">
-                  <span>Base subscription</span>
-                  <span>{formatMoney(baseSubscriptionAmount)}</span>
+                  <span>Billing period</span>
+                  <span>{billingPeriodLabel}</span>
                 </div>
-                {additionalUserCount > 0 && (
-                  <div className="demo-interest-pricing-item">
-                    <span>{`Additional users (${additionalUserCount} @ $1.50 each)`}</span>
-                    <span>{formatMoney(additionalUsersAmount)}</span>
-                  </div>
-                )}
+                <div className="demo-interest-pricing-item">
+                  <span>{`System base (${billingPeriodLabel})`}</span>
+                  <span>{formatMoney(baseSystemAmountForPeriod)}</span>
+                </div>
+                <div className="demo-interest-pricing-item">
+                  <span>{`User access (${userCount} @ $1.50)`}</span>
+                  <span>{formatMoney(userSeatsAmountForPeriod)}</span>
+                </div>
                 {demoInterestForm.wants_zimra_fdms && (
                   <div className="demo-interest-pricing-item">
-                    <span>ZIMRA FDMS integration</span>
+                    <span>ZIMRA fiscalization setup</span>
                     <span>{formatMoney(zimraIntegrationAmount)}</span>
                   </div>
                 )}
@@ -1459,10 +1489,12 @@ export default function AppLauncherPage() {
                   <span>Tax</span>
                   <span>{formatMoney(pricingTaxAmount)}</span>
                 </div>
-                <div className="pos-totals-row pos-total-row">
-                  <span>Total</span>
-                  <span>{formatMoney(pricingTotal)}</span>
-                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <div className="total-footer">
+                <h3>Total:</h3>
+                <h3>{formatMoney(pricingTotal)}</h3>
               </div>
             </div>
           </div>
