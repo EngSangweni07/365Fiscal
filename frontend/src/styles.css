@@ -3359,7 +3359,7 @@ thead.table-light th {
 }
 
 .demo-interest-modal {
-  max-width: 760px;
+  max-width : 760px ;
   border-radius: 28px;
   border: 1px solid rgba(11, 69, 80, 0.14);
   background:
@@ -3469,6 +3469,7 @@ thead.table-light th {
 
 .demo-interest-choice-modal {
   max-width: 760px;
+  max-height: 40vh !important;
 }
 
 .demo-interest-choice-body {

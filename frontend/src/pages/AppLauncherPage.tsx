@@ -1076,10 +1076,10 @@ export default function AppLauncherPage() {
             <div className="modal-header demo-interest-header">
               <div className="demo-interest-header-copy">
                 <h3>Get Started with Your Subscription</h3>
-                <p className="demo-interest-header-note">
+                {/* <p className="demo-interest-header-note">
                   Do you need help first, or are you ready to continue with
                   registration?
-                </p>
+                </p> */}
               </div>
             </div>
             <div className="modal-body demo-interest-body demo-interest-choice-body">
@@ -1094,7 +1094,7 @@ export default function AppLauncherPage() {
                     Have questions about setup, billing, or migration? Our team
                     can help you plan.
                   </span>
-                  <small>Contact Support</small>
+                  <small>Contact Support </small>
                 </button>
                 <button
                   type="button"
