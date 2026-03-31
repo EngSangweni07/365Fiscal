@@ -3641,6 +3641,33 @@ button.demo-interest-app-option {
   flex: 0 0 auto;
 }
 
+.demo-interest-support-grid {
+  grid-template-columns: 1fr;
+}
+
+.demo-interest-support-option {
+  align-items: flex-start;
+}
+
+.demo-interest-support-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.demo-interest-support-copy strong {
+  color: var(--slate-900);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.demo-interest-support-copy small {
+  color: var(--slate-600);
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 500;
+}
+
 .demo-interest-field-full {
   grid-column: 1 / -1;
 }
@@ -10344,6 +10371,10 @@ button.danger:hover {
 }
 
 .modal-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 3rem;
   padding: 24px;
 }
 

@@ -48,6 +48,8 @@ type DemoAccount = {
   vat_number: string;
   trade_name: string;
   address: string;
+  wants_training_enhanced?: boolean;
+  wants_implementation_enhanced?: boolean;
   status: string;
 };
 
@@ -66,6 +68,8 @@ type DemoInterestForm = {
   vat_number: string;
   trade_name: string;
   address: string;
+  wants_training_enhanced: boolean;
+  wants_implementation_enhanced: boolean;
 };
 
 // App icons powered by Lucide
@@ -346,10 +350,26 @@ const paymentMethodOptions = [
   { key: "visa", label: "Visa Card" },
 ] as const;
 
+const demoInterestSupportOptions = [
+  {
+    key: "wants_training_enhanced",
+    label: "Training (enhanced)",
+    description:
+      "Hands-on training to ensure your team can confidently use the system from day one.",
+  },
+  {
+    key: "wants_implementation_enhanced",
+    label: "Implementation (enhanced)",
+    description:
+      "Expert assistance with data migration, setup, and system configuration tailored to your business.",
+  },
+] as const;
+
 const demoInterestSteps = [
-  "Business profile",
-  "Apps and access",
-  "Payment method",
+  "Business Profile",
+  "Apps and Access",
+  "Onboarding Support",
+  "Payment Method",
 ] as const;
 
 export default function AppLauncherPage() {
@@ -409,6 +429,8 @@ export default function AppLauncherPage() {
     vat_number: "",
     trade_name: "",
     address: "",
+    wants_training_enhanced: false,
+    wants_implementation_enhanced: false,
   });
   const companyName = !isAdmin
     ? (me?.companies?.[0]?.name ??
@@ -523,6 +545,10 @@ export default function AppLauncherPage() {
           vat_number: data.vat_number || "",
           trade_name: data.trade_name || "",
           address: data.address || "",
+          wants_training_enhanced:
+            data.wants_training_enhanced === true,
+          wants_implementation_enhanced:
+            data.wants_implementation_enhanced === true,
         });
       })
       .catch(() => setDemoAccount(null));
@@ -986,10 +1012,6 @@ export default function AppLauncherPage() {
             <div className="modal-header demo-interest-header">
               <div className="demo-interest-header-copy">
                 <h3>Registration</h3>
-                <span className="input-label">
-                  Your demo has ended, Confirm detail to sign up for the Main
-                  System
-                </span>
               </div>
             </div>
             <div className="modal-body demo-interest-body">
@@ -1022,7 +1044,7 @@ export default function AppLauncherPage() {
 
               {demoInterestStep === 0 && (
                 <>
-                  <label className="demo-interest-check">
+                  {/* <label className="demo-interest-check">
                     <input
                       type="checkbox"
                       checked={demoInterestForm.wants_actual_three65}
@@ -1036,7 +1058,7 @@ export default function AppLauncherPage() {
                     <span>
                       Please contact me about the actual Three65 system.
                     </span>
-                  </label>
+                  </label> */}
                   <section className="demo-interest-section">
                     <div className="demo-interest-section-head">
                       <h4>
@@ -1072,7 +1094,19 @@ export default function AppLauncherPage() {
 
                       <div className="input-group">
                         <label className="input-label">Email</label>
-                        <input value={demoAccount.email} disabled />
+                        <input
+                          value={demoAccount.email}
+                          onChange={(event) =>
+                            setDemoAccount((current) =>
+                              current
+                                ? {
+                                    ...current,
+                                    email: event.target.value,
+                                  }
+                                : current,
+                            )
+                          }
+                        />
                       </div>
 
                       <div className="input-group">
@@ -1108,14 +1142,9 @@ export default function AppLauncherPage() {
                             }))
                           }
                         >
-                          <option value="monthly">1 month</option>
-                          <option value="yearly">1 year</option>
+                          <option value="monthly">Monthly</option>
+                          <option value="yearly">Annual</option>
                         </select>
-                      </div>
-
-                      <div className="input-group">
-                        <label className="input-label">Payment link</label>
-                        <input value={demoInterestForm.payment_link} readOnly />
                       </div>
                     </div>
                   </section>
@@ -1128,12 +1157,6 @@ export default function AppLauncherPage() {
                     <h4>Select which app you would like to have access to.</h4>
                   </div>
                   <div className="demo-interest-apps">
-                    <div className="demo-interest-apps-head">
-                      <span className="input-label">Apps required</span>
-                      <span className="demo-interest-apps-note">
-                        Select the modules the client wants in the main system.
-                      </span>
-                    </div>
                     <div className="demo-interest-apps-grid">
                       {demoInterestAppOptions.map((appOption) => {
                         const selected =
@@ -1250,12 +1273,46 @@ export default function AppLauncherPage() {
               {demoInterestStep === 2 && (
                 <section className="demo-interest-section">
                   <div className="demo-interest-section-head">
+                    <h4>Choose any additional assistance you may need</h4>
+                  </div>
+                  <div className="demo-interest-apps">
+                    <div className="demo-interest-apps-grid demo-interest-support-grid">
+                      {demoInterestSupportOptions.map((supportOption) => {
+                        const selected =
+                          demoInterestForm[supportOption.key] === true;
+                        return (
+                          <label
+                            key={supportOption.key}
+                            className={`demo-interest-app-option demo-interest-support-option ${selected ? "selected" : ""}`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selected}
+                              onChange={(event) =>
+                                setDemoInterestForm((current) => ({
+                                  ...current,
+                                  [supportOption.key]: event.target.checked,
+                                }))
+                              }
+                            />
+                            <span className="demo-interest-support-copy">
+                              <strong>{supportOption.label}</strong>
+                              <small>{supportOption.description}</small>
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {demoInterestStep === 3 && (
+                <section className="demo-interest-section">
+                  <div className="demo-interest-section-head">
                     <h4>Select your preferred payment method.</h4>
                   </div>
                   <div className="demo-interest-apps">
-                    <div className="demo-interest-apps-head">
-                      <span className="input-label">Available options</span>
-                    </div>
                     <div className="demo-interest-apps-grid">
                       {paymentMethodOptions.map((method) => {
                         const selected = selectedPaymentMethod === method.key;
