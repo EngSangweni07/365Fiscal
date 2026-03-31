@@ -26,6 +26,8 @@
   --color-brand-primary-active: #08353d;
   --color-brand-neutral: #898a8e;
 
+  --color-brand-accent: #d1e826; 
+
 
   --color-state-success: #16a34a;
   --color-state-success-soft: #dcfce7;
@@ -3446,6 +3448,10 @@ thead.table-light th {
   transition: all 0.2s ease;
 }
 
+#dark{
+  color: var(--color-text-primary)
+}
+
 .demo-interest-choice-card strong {
   font-size: 15px;
   font-weight: 800;
@@ -3454,14 +3460,13 @@ thead.table-light th {
 .demo-interest-choice-card span {
   font-size: 13px;
   line-height: 1.55;
-  color: var(--color-text-secondary);
+  color: var(--color-bg-subtle);
 }
 
 .demo-interest-choice-card small {
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.02em;
-  color: var(--color-brand-primary);
 }
 
 .demo-interest-choice-card:hover {
@@ -3470,9 +3475,10 @@ thead.table-light th {
 }
 
 .demo-interest-choice-card--primary {
-  border-color: rgba(11, 69, 80, 0.45);
-  background: linear-gradient(160deg, rgba(11, 69, 80, 0.14), rgba(255, 255, 255, 0.98));
-  box-shadow: 0 18px 30px rgba(11, 69, 80, 0.2);
+  border-color: #0b455073;
+  box-shadow: 0 18px 30px #0b455033;
+  background: var(--color-brand-primary);
+  color: #d1e826;
 }
 
 .demo-interest-summary-footer {

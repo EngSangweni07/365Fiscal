@@ -1090,7 +1090,7 @@ export default function AppLauncherPage() {
                   onClick={handleTalkToUsFirst}
                 >
                   <strong>Talk to Us First</strong>
-                  <span>
+                  <span id="dark">
                     Have questions about setup, billing, or migration? Our team
                     can help you plan.
                   </span>
