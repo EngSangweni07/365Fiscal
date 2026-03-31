@@ -1,12 +1,175 @@
 @import "tailwindcss";
 
 :root {
-  /* Brand Colors */
   --sherpa-blue: #0b4550;
   --pear: #d1e826;
   --grey: #898a8e;
-  --dark-grey: #1d1d1b;
+  --dark-grey: ##1d1d1b;
   --light-grey: #f8fafc;
+  
+    /* Tailwind Palette */
+
+  --amber-100: #fef3c7;
+  --amber-200: #fde68a;
+  --amber-300: #fcd34d;
+  --amber-400: #fbbf24;
+  --amber-50: #fffbeb;
+  --amber-500: #f59e0b;
+  --amber-600: #d97706;
+  --amber-700: #b45309;
+  --amber-800: #92400e;
+  --black-500: #000000;
+  --blue-100: #dbeafe;
+  --blue-200: #bfdbfe;
+  --blue-300: #93c5fd;
+  --blue-400: #60a5fa;
+  --blue-50: #eff6ff;
+  --blue-500: #3b82f6;
+  --blue-600: #2563eb;
+  --blue-700: #1d4ed8;
+  --blue-800: #1e40af;
+  --blue-900: #1e3a8a;
+  --cyan-100: #cffafe;
+  --cyan-200: #a5f3fc;
+  --cyan-300: #67e8f9;
+  --cyan-400: #22d3ee;
+  --cyan-50: #ecfeff;
+  --cyan-500: #06b6d4;
+  --cyan-600: #0891b2;
+  --cyan-700: #0e7490;
+  --cyan-900: #164e63;
+  --emerald-100: #d1fae5;
+  --emerald-200: #a7f3d0;
+  --emerald-300: #6ee7b7;
+  --emerald-400: #34d399;
+  --emerald-50: #ecfdf5;
+  --emerald-500: #10b981;
+  --emerald-600: #059669;
+  --emerald-800: #065f46;
+  --fuchsia-500: #d946ef;
+  --fuchsia-600: #c026d3;
+  --fuchsia-700: #a21caf;
+  --fuchsia-900: #701a75;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-50: #f9fafb;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --gray-900: #111827;
+  --green-100: #dcfce7;
+  --green-200: #bbf7d0;
+  --green-400: #4ade80;
+  --green-50: #f0fdf4;
+  --green-500: #22c55e;
+  --green-600: #16a34a;
+  --green-700: #15803d;
+  --green-800: #166534;
+  --green-900: #14532d;
+  --indigo-200: #c7d2fe;
+  --indigo-300: #a5b4fc;
+  --indigo-50: #eef2ff;
+  --indigo-500: #6366f1;
+  --indigo-600: #4f46e5;
+  --indigo-700: #4338ca;
+  --indigo-800: #3730a3;
+  --lime-400: #a3e635;
+  --lime-50: #f7fee7;
+  --lime-500: #84cc16;
+  --lime-600: #65a30d;
+  --lime-800: #3f6212;
+  --neutral-200: #e5e5e5;
+  --neutral-300: #d4d4d4;
+  --neutral-400: #a3a3a3;
+  --neutral-500: #737373;
+  --neutral-600: #525252;
+  --neutral-700: #404040;
+  --neutral-800: #262626;
+  --neutral-900: #171717;
+  --orange-200: #fed7aa;
+  --orange-400: #fb923c;
+  --orange-50: #fff7ed;
+  --orange-500: #f97316;
+  --orange-600: #ea580c;
+  --orange-700: #c2410c;
+  --pink-400: #f472b6;
+  --pink-500: #ec4899;
+  --pink-600: #db2777;
+  --pink-700: #be185d;
+  --purple-400: #c084fc;
+  --purple-50: #faf5ff;
+  --purple-500: #a855f7;
+  --purple-600: #9333ea;
+  --red-100: #fee2e2;
+  --red-200: #fecaca;
+  --red-300: #fca5a5;
+  --red-400: #f87171;
+  --red-50: #fef2f2;
+  --red-500: #ef4444;
+  --red-600: #dc2626;
+  --red-700: #b91c1c;
+  --red-800: #991b1b;
+  --red-900: #7f1d1d;
+  --rose-200: #fecdd3;
+  --rose-300: #fda4af;
+  --rose-400: #fb7185;
+  --rose-500: #f43f5e;
+  --rose-600: #e11d48;
+  --rose-700: #be123c;
+  --rose-800: #9f1239;
+  --sky-100: #e0f2fe;
+  --sky-200: #bae6fd;
+  --sky-400: #38bdf8;
+  --sky-500: #0ea5e9;
+  --sky-600: #0284c7;
+  --sky-800: #075985;
+  --sky-900: #0c4a6e;
+  --slate-100: #f1f5f9;
+  --slate-200: #e2e8f0;
+  --slate-300: #cbd5e1;
+  --slate-400: #94a3b8;
+  --slate-50: #f8fafc;
+  --slate-500: #64748b;
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-800: #1e293b;
+  --slate-900: #0f172a;
+  --stone-300: #d6d3d1;
+  --stone-400: #a8a29e;
+  --stone-50: #fafaf9;
+  --stone-900: #1c1917;
+  --teal-200: #99f6e4;
+  --teal-400: #2dd4bf;
+  --teal-500: #14b8a6;
+  --teal-600: #0d9488;
+  --teal-700: #0f766e;
+  --violet-100: #ede9fe;
+  --violet-300: #c4b5fd;
+  --violet-400: #a78bfa;
+  --violet-500: #8b5cf6;
+  --violet-600: #7c3aed;
+  --violet-700: #6d28d9;
+  --violet-800: #5b21b6;
+  --white-500: #ffffff;
+  --yellow-400: #facc15;
+  --yellow-500: #eab308;
+  --yellow-600: #ca8a04;
+  --yellow-700: #a16207;
+  --yellow-800: #854d0e;
+  --yellow-900: #713f12;
+  --zinc-100: #f4f4f5;
+  --zinc-200: #e4e4e7;
+  --zinc-300: #d4d4d8;
+  --zinc-400: #a1a1aa;
+  --zinc-50: #fafafa;
+  --zinc-600: #52525b;
+  --zinc-700: #3f3f46;
+  --zinc-800: #27272a;
+  --zinc-900: #18181b;
+  /* End Tailwind Palette */
 
   font-family: "Inter", "Manrope", system-ui, -apple-system, sans-serif;
   color: var(--slate-800);
@@ -14,6 +177,9 @@
   --ink: var(--slate-800);
   --ink-light: var(--slate-700);
   --muted: var(--slate-500);
+  --brand-pear: #d1e826;
+  --brand-sherpa: #0b4550;
+  --brand-grey: #898a8e;
   --white: var(--white-500);
   --black: var(--black-500);
   --card: var(--white-500);
@@ -25,234 +191,6 @@
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 12px;
-}
-
-/* Brand-wide palette remap (keeps white/black untouched) */
-:root {
-  --brand-sherpa-900: #062a31;
-  --brand-sherpa-800: #08353d;
-  --brand-sherpa-700: #0a4049;
-  --brand-sherpa-600: #0b4550;
-  --brand-sherpa-500: #105565;
-  --brand-sherpa-400: #2d6f79;
-  --brand-sherpa-300: #5b9498;
-  --brand-sherpa-200: #93c0bf;
-  --brand-sherpa-100: #c5ddda;
-  --brand-sherpa-50: #e8f2f1;
-
-  --brand-pear-900: #4f5f08;
-  --brand-pear-800: #647a0c;
-  --brand-pear-700: #7f9911;
-  --brand-pear-600: #9bbd16;
-  --brand-pear-500: #b8d91e;
-  --brand-pear-400: #d1e826;
-  --brand-pear-300: #dceb57;
-  --brand-pear-200: #e7f08a;
-  --brand-pear-100: #f2f6bf;
-  --brand-pear-50: #fbfce8;
-
-  --brand-gray-900: #2f3135;
-  --brand-gray-800: #43464b;
-  --brand-gray-700: #5a5d62;
-  --brand-gray-600: #74777b;
-  --brand-gray-500: #898a8e;
-  --brand-gray-400: #a9aab0;
-  --brand-gray-300: #c3c4c9;
-  --brand-gray-200: #dddee1;
-  --brand-gray-100: #eff0f2;
-  --brand-gray-50: #f7f8f9;
-
-  /* Semantic system colors */
-  --ink: var(--brand-sherpa-900);
-  --ink-light: var(--brand-sherpa-700);
-  --muted: var(--brand-gray-600);
-  --stroke: var(--brand-gray-300);
-  --stroke-light: var(--brand-gray-100);
-  --card: var(--white-500);
-
-  /* Cool families -> Sherpa */
-  --blue-900: var(--brand-sherpa-900);
-  --blue-800: var(--brand-sherpa-800);
-  --blue-700: var(--brand-sherpa-700);
-  --blue-600: var(--brand-sherpa-600);
-  --blue-500: var(--brand-sherpa-500);
-  --blue-400: var(--brand-sherpa-400);
-  --blue-300: var(--brand-sherpa-300);
-  --blue-200: var(--brand-sherpa-200);
-  --blue-100: var(--brand-sherpa-100);
-  --blue-50: var(--brand-sherpa-50);
-
-  --cyan-900: var(--brand-sherpa-900);
-  --cyan-700: var(--brand-sherpa-700);
-  --cyan-600: var(--brand-sherpa-600);
-  --cyan-500: var(--brand-sherpa-500);
-  --cyan-400: var(--brand-sherpa-400);
-  --cyan-300: var(--brand-sherpa-300);
-  --cyan-200: var(--brand-sherpa-200);
-  --cyan-100: var(--brand-sherpa-100);
-  --cyan-50: var(--brand-sherpa-50);
-
-  --sky-900: var(--brand-sherpa-900);
-  --sky-800: var(--brand-sherpa-800);
-  --sky-600: var(--brand-sherpa-600);
-  --sky-500: var(--brand-sherpa-500);
-  --sky-400: var(--brand-sherpa-400);
-  --sky-200: var(--brand-sherpa-200);
-  --sky-100: var(--brand-sherpa-100);
-
-  --teal-700: var(--brand-sherpa-700);
-  --teal-600: var(--brand-sherpa-600);
-  --teal-500: var(--brand-sherpa-500);
-  --teal-400: var(--brand-sherpa-400);
-  --teal-200: var(--brand-sherpa-200);
-
-  --indigo-800: var(--brand-sherpa-800);
-  --indigo-700: var(--brand-sherpa-700);
-  --indigo-600: var(--brand-sherpa-600);
-  --indigo-500: var(--brand-sherpa-500);
-  --indigo-300: var(--brand-sherpa-300);
-  --indigo-200: var(--brand-sherpa-200);
-  --indigo-50: var(--brand-sherpa-50);
-
-  --violet-800: var(--brand-sherpa-800);
-  --violet-700: var(--brand-sherpa-700);
-  --violet-600: var(--brand-sherpa-600);
-  --violet-500: var(--brand-sherpa-500);
-  --violet-400: var(--brand-sherpa-400);
-  --violet-300: var(--brand-sherpa-300);
-  --violet-100: var(--brand-sherpa-100);
-
-  --purple-600: var(--brand-sherpa-600);
-  --purple-500: var(--brand-sherpa-500);
-  --purple-400: var(--brand-sherpa-400);
-  --purple-50: var(--brand-sherpa-50);
-
-  --fuchsia-900: var(--brand-sherpa-900);
-  --fuchsia-700: var(--brand-sherpa-700);
-  --fuchsia-600: var(--brand-sherpa-600);
-  --fuchsia-500: var(--brand-sherpa-500);
-
-  /* Warm/attention families -> Pear */
-  --amber-900: var(--brand-pear-900);
-  --amber-800: var(--brand-pear-800);
-  --amber-700: var(--brand-pear-700);
-  --amber-600: var(--brand-pear-600);
-  --amber-500: var(--brand-pear-500);
-  --amber-400: var(--brand-pear-400);
-  --amber-300: var(--brand-pear-300);
-  --amber-200: var(--brand-pear-200);
-  --amber-100: var(--brand-pear-100);
-  --amber-50: var(--brand-pear-50);
-
-  --yellow-900: var(--brand-pear-900);
-  --yellow-800: var(--brand-pear-800);
-  --yellow-700: var(--brand-pear-700);
-  --yellow-600: var(--brand-pear-600);
-  --yellow-500: var(--brand-pear-500);
-  --yellow-400: var(--brand-pear-400);
-
-  --orange-700: var(--brand-pear-700);
-  --orange-600: var(--brand-pear-600);
-  --orange-500: var(--brand-pear-500);
-  --orange-400: var(--brand-pear-400);
-  --orange-200: var(--brand-pear-200);
-  --orange-50: var(--brand-pear-50);
-
-  --lime-800: var(--brand-pear-800);
-  --lime-600: var(--brand-pear-600);
-  --lime-500: var(--brand-pear-500);
-  --lime-400: var(--brand-pear-400);
-  --lime-50: var(--brand-pear-50);
-
-  --green-900: var(--brand-pear-900);
-  --green-800: var(--brand-pear-800);
-  --green-700: var(--brand-pear-700);
-  --green-600: var(--brand-pear-600);
-  --green-500: var(--brand-pear-500);
-  --green-400: var(--brand-pear-400);
-  --green-200: var(--brand-pear-200);
-  --green-100: var(--brand-pear-100);
-  --green-50: var(--brand-pear-50);
-
-  --emerald-800: var(--brand-pear-800);
-  --emerald-600: var(--brand-pear-600);
-  --emerald-500: var(--brand-pear-500);
-  --emerald-400: var(--brand-pear-400);
-  --emerald-300: var(--brand-pear-300);
-  --emerald-200: var(--brand-pear-200);
-  --emerald-100: var(--brand-pear-100);
-  --emerald-50: var(--brand-pear-50);
-
-  --red-900: var(--brand-pear-900);
-  --red-800: var(--brand-pear-800);
-  --red-700: var(--brand-pear-700);
-  --red-600: var(--brand-pear-600);
-  --red-500: var(--brand-pear-500);
-  --red-400: var(--brand-pear-400);
-  --red-300: var(--brand-pear-300);
-  --red-200: var(--brand-pear-200);
-  --red-100: var(--brand-pear-100);
-  --red-50: var(--brand-pear-50);
-
-  --rose-800: var(--brand-pear-800);
-  --rose-700: var(--brand-pear-700);
-  --rose-600: var(--brand-pear-600);
-  --rose-500: var(--brand-pear-500);
-  --rose-400: var(--brand-pear-400);
-  --rose-300: var(--brand-pear-300);
-  --rose-200: var(--brand-pear-200);
-
-  --pink-700: var(--brand-pear-700);
-  --pink-600: var(--brand-pear-600);
-  --pink-500: var(--brand-pear-500);
-  --pink-400: var(--brand-pear-400);
-
-  /* Neutral families -> Brand gray */
-  --gray-900: var(--brand-gray-900);
-  --gray-800: var(--brand-gray-800);
-  --gray-700: var(--brand-gray-700);
-  --gray-600: var(--brand-gray-600);
-  --gray-500: var(--brand-gray-500);
-  --gray-400: var(--brand-gray-400);
-  --gray-300: var(--brand-gray-300);
-  --gray-200: var(--brand-gray-200);
-  --gray-100: var(--brand-gray-100);
-  --gray-50: var(--brand-gray-50);
-
-  --slate-900: var(--brand-gray-900);
-  --slate-800: var(--brand-gray-800);
-  --slate-700: var(--brand-gray-700);
-  --slate-600: var(--brand-gray-600);
-  --slate-500: var(--brand-gray-500);
-  --slate-400: var(--brand-gray-400);
-  --slate-300: var(--brand-gray-300);
-  --slate-200: var(--brand-gray-200);
-  --slate-100: var(--brand-gray-100);
-  --slate-50: var(--brand-gray-50);
-
-  --zinc-900: var(--brand-gray-900);
-  --zinc-800: var(--brand-gray-800);
-  --zinc-700: var(--brand-gray-700);
-  --zinc-600: var(--brand-gray-600);
-  --zinc-400: var(--brand-gray-400);
-  --zinc-300: var(--brand-gray-300);
-  --zinc-200: var(--brand-gray-200);
-  --zinc-100: var(--brand-gray-100);
-  --zinc-50: var(--brand-gray-50);
-
-  --neutral-900: var(--brand-gray-900);
-  --neutral-800: var(--brand-gray-800);
-  --neutral-700: var(--brand-gray-700);
-  --neutral-600: var(--brand-gray-600);
-  --neutral-500: var(--brand-gray-500);
-  --neutral-400: var(--brand-gray-400);
-  --neutral-300: var(--brand-gray-300);
-  --neutral-200: var(--brand-gray-200);
-
-  --stone-900: var(--brand-gray-900);
-  --stone-400: var(--brand-gray-400);
-  --stone-300: var(--brand-gray-300);
-  --stone-50: var(--brand-gray-50);
 }
 
 * {
