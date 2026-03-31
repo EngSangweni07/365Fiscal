@@ -1448,10 +1448,11 @@ export default function AppLauncherPage() {
                     <span>$350.00</span>
                   </div>
                 )}
-
-                <span>Taxes</span>
-                <span>$2.50</span>
-
+                <div className="demo-interest-pricing-item">
+                  <span>Taxes</span>
+                  <span>$2.50</span>
+                </div>
+              </div>
             </div>
             <div className="modal-footer">
               <div className="total-footer">
