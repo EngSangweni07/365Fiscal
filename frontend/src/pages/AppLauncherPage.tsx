@@ -1483,15 +1483,18 @@ export default function AppLauncherPage() {
             </div>
             <div className="modal-footer">
               <div className="total-footer demo-interest-summary-footer">
-                <div className="demo-interest-summary-row">
+                <div className="demo-interest-summary-row text-muted">
                   <span>Subtotal</span>
                   <span>{formatMoney(pricingSubtotal)}</span>
                 </div>
-                <div className="demo-interest-summary-row">
+                <div className="demo-interest-summary-row text-muted">
                   <span>Tax</span>
                   <span>{formatMoney(pricingTaxAmount)}</span>
                 </div>
-                <div className="demo-interest-summary-row demo-interest-summary-total">
+                <div
+                  className="demo-interest-summary-row demo-interest-summary-total"
+                  style={{ color: "#0b4550" }}
+                >
                   <span>Total</span>
                   <span>{formatMoney(pricingTotal)}</span>
                 </div>

@@ -10004,6 +10004,7 @@ button.danger:hover {
   font-weight: 500;
 }
 
+
 .cert-badge.valid {
   background: var(--green-50);
   color: var(--green-600);
