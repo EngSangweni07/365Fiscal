@@ -1332,7 +1332,7 @@ export default function AppLauncherPage() {
                     <h4>Select your preferred payment method.</h4>
                   </div>
                   <div className="demo-interest-apps">
-                    <div className="demo-interest-apps-grid">
+                    <div className="demo-interest-apps-grid demo-interest-payment-grid">
                       {paymentMethodOptions.map((method) => {
                         const selected = selectedPaymentMethod === method.key;
                         return (
