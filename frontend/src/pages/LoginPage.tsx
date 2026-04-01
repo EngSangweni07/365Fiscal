@@ -103,7 +103,7 @@ export default function LoginPage() {
           <img src="/three.png" alt="Three65" className="logo-365" />
         </div> */}
         <div className="login-card-body">
-          <img src="/three.png" alt="Three65" className="logo-365" />
+          <img src="/three65.png" alt="Three65" className="logo-365" />
           <form className="login-form" onSubmit={signIn}>
             <div className="input-group">
               <input

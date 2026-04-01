@@ -18,10 +18,13 @@ export default function SplashScreen({ label = "Loading" }: SplashProps) {
     <div className="splash">
       <div className="splash-card">
         <div className="splash-logo">
-          <img src="/three.png" alt="Three65" />
+          <img src="/three65.png" alt="Three65" />
         </div>
         <div className="splash-title">Three65</div>
-        <div className="splash-sub">{label}{dots}</div>
+        <div className="splash-sub">
+          {label}
+          {dots}
+        </div>
         <div className="splash-bar">
           <span className="splash-line" />
         </div>
@@ -29,4 +32,3 @@ export default function SplashScreen({ label = "Loading" }: SplashProps) {
     </div>
   );
 }
-

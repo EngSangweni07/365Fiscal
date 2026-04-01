@@ -162,7 +162,11 @@ export default function DemoSignupPage() {
       <div className="demo-shell demo-shell-single">
         <div className="login-card login-card-glass demo-card">
           <div className="login-card-body demo-card-body">
-            <img src="/three.png" alt="Three65" className="logo-365 demo-card-logo" />
+            <img
+              src="/three65.png"
+              alt="Three65"
+              className="logo-365 demo-card-logo"
+            />
 
             {!isDemoView ? (
               <>
@@ -170,7 +174,10 @@ export default function DemoSignupPage() {
                   <h2 className="login-card-title">Create demo account</h2>
                 </div>
 
-                <form className="login-form demo-form-compact" onSubmit={handleSubmit}>
+                <form
+                  className="login-form demo-form-compact"
+                  onSubmit={handleSubmit}
+                >
                   <div className="input-group demo-field">
                     <label className="input-label" htmlFor="demo-company">
                       <Building2 size={14} />
@@ -261,7 +268,9 @@ export default function DemoSignupPage() {
                         }))
                       }
                     />
-                    <span>Do you want ZIMRA fiscalization of your main system?</span>
+                    <span>
+                      Do you want ZIMRA fiscalization of your main system?
+                    </span>
                   </label>
 
                   {error && <div className="login-error">{error}</div>}
@@ -289,24 +298,34 @@ export default function DemoSignupPage() {
             ) : (
               <div className="demo-session">
                 <div className="demo-form-head">
-                  <h2 className="login-card-title">{demo?.company_name || "Demo session"}</h2>
+                  <h2 className="login-card-title">
+                    {demo?.company_name || "Demo session"}
+                  </h2>
                   <p className="login-card-sub">
-                    Your live session is active for 30 seconds from the time it was created.
+                    Your live session is active for 30 seconds from the time it
+                    was created.
                   </p>
                 </div>
 
                 <div className={`demo-timer-card ${expired ? "expired" : ""}`}>
                   <div className="demo-timer-label">Time remaining</div>
-                  <div className="demo-timer-value">{formatRemaining(timeRemaining)}</div>
+                  <div className="demo-timer-value">
+                    {formatRemaining(timeRemaining)}
+                  </div>
                   <div className="demo-timer-meta">
-                    {expired ? "This demo has expired." : `Expires at ${expiresAtLabel}`}
+                    {expired
+                      ? "This demo has expired."
+                      : `Expires at ${expiresAtLabel}`}
                   </div>
                 </div>
 
                 {error && <div className="login-error">{error}</div>}
 
                 <div className="demo-link-row">
-                  <Link to="/demo" className="login-btn demo-submit-btn demo-secondary-btn">
+                  <Link
+                    to="/demo"
+                    className="login-btn demo-submit-btn demo-secondary-btn"
+                  >
                     Create another demo later
                   </Link>
                   <Link to="/login" className="demo-text-link">
@@ -321,7 +340,10 @@ export default function DemoSignupPage() {
             <span>
               <strong>
                 <a
-                  style={{ textDecoration: "underline", color: "var(--blue-50)" }}
+                  style={{
+                    textDecoration: "underline",
+                    color: "var(--blue-50)",
+                  }}
                   target="_blank"
                   rel="noreferrer"
                   href="http://www.geenet.co.zw"
