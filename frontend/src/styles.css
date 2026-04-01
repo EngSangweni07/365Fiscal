@@ -3499,6 +3499,11 @@ thead.table-light th {
   font-weight: 700;
 }
 
+.demo-interest-price-tbd {
+  color: #dc2626;
+  font-weight: 700;
+}
+
 .demo-interest-summary-total {
   margin-top: 6px;
   padding-top: 10px;
@@ -3769,6 +3774,10 @@ button.demo-interest-app-option {
   font-size: 12px;
   line-height: 1.45;
   font-weight: 500;
+}
+
+.demo-interest-support-alert {
+  margin-top: 14px;
 }
 
 .demo-interest-field-full {

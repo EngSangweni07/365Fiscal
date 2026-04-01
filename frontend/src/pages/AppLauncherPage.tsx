@@ -4,6 +4,7 @@ import { NavLink } from "react-router-dom";
 import type { LucideIcon } from "lucide-react";
 
 import {
+  BoomBox,
   Boxes,
   BriefcaseBusiness,
   Building2,
@@ -381,7 +382,7 @@ const demoInterestSupportOptions = [
     key: "wants_implementation_enhanced",
     label: "Implementation Support",
     description:
-      "Expert assistance with data migration, setup, and system configuration tailored to your business.",
+      "Expert assistance with data migration, setup, and system configuration.",
   },
 ] as const;
 
@@ -815,10 +816,13 @@ export default function AppLauncherPage() {
   const userSeatsAmountForPeriod = userSeatsAmount * periodMultiplier;
   const subscriptionAmountPerPeriod = baseSystemAmount + userSeatsAmount;
   const subscriptionAmount = subscriptionAmountPerPeriod * periodMultiplier;
-  const zimraIntegrationAmount = demoInterestForm.wants_zimra_fdms ? 350 : 0;
+  const zimraIntegrationAmount = 0;
   const pricingSubtotal = subscriptionAmount + zimraIntegrationAmount;
   const pricingTaxAmount = 2.5;
   const pricingTotal = pricingSubtotal + pricingTaxAmount;
+  const hasAdditionalAssistanceSelected =
+    demoInterestForm.wants_training_enhanced ||
+    demoInterestForm.wants_implementation_enhanced;
 
   // Show loading state
   if (loading || activationLoading) {
@@ -1316,6 +1320,13 @@ export default function AppLauncherPage() {
                       />
                       <span>I want ZIMRA fiscalization.</span>
                     </label>
+                    {demoInterestForm.wants_zimra_fdms && (
+                      <div className="alert alert-warning demo-interest-support-alert">
+                        ZIMRA fiscalization integration is available at an
+                        additional cost. We&apos;ll contact you to discuss your
+                        setup and provide a quote.
+                      </div>
+                    )}
 
                     {demoInterestForm.wants_zimra_fdms && (
                       <section className="demo-interest-section">
@@ -1387,9 +1398,9 @@ export default function AppLauncherPage() {
               )}
 
               {demoInterestStep === 2 && (
-                <section className="demo-interest-section">
+                <section className="demo-interestVB-section">
                   <div className="demo-interest-section-head">
-                    <h4>Choose any additional assistance you may need</h4>
+                    <h4>Select any additional services you may require</h4>
                   </div>
                   <div className="demo-interest-apps">
                     <div className="demo-interest-apps-grid demo-interest-support-grid">
@@ -1419,6 +1430,13 @@ export default function AppLauncherPage() {
                         );
                       })}
                     </div>
+                    {hasAdditionalAssistanceSelected && (
+                      <div className="alert alert-warning demo-interest-support-alert">
+                        Training and implementation support are available at an
+                        additional cost. We&apos;ll contact you to discuss your
+                        needs and provide a quote.
+                      </div>
+                    )}
                   </div>
                 </section>
               )}
@@ -1525,17 +1543,25 @@ export default function AppLauncherPage() {
                   <span>{billingPeriodLabel}</span>
                 </div>
                 <div className="demo-interest-pricing-item">
-                  <span>{`System base (${billingPeriodLabel})`}</span>
-                  <span>{formatMoney(baseSystemAmountForPeriod)}</span>
-                </div>
-                <div className="demo-interest-pricing-item">
-                  <span>{`User access (${userCount} @ $1.50)`}</span>
+                  <span>{`User License Fee (${userCount} X $10.00)`}</span>
                   <span>{formatMoney(userSeatsAmountForPeriod)}</span>
                 </div>
+                {demoInterestForm.wants_training_enhanced && (
+                  <div className="demo-interest-pricing-item">
+                    <span>System training</span>
+                    <span className="demo-interest-price-tbd">TBD</span>
+                  </div>
+                )}
+                {demoInterestForm.wants_implementation_enhanced && (
+                  <div className="demo-interest-pricing-item">
+                    <span>Implementation support</span>
+                    <span className="demo-interest-price-tbd">TBD</span>
+                  </div>
+                )}
                 {demoInterestForm.wants_zimra_fdms && (
                   <div className="demo-interest-pricing-item">
                     <span>ZIMRA fiscalization setup</span>
-                    <span>{formatMoney(zimraIntegrationAmount)}</span>
+                    <span className="demo-interest-price-tbd">TBD</span>
                   </div>
                 )}
               </div>
