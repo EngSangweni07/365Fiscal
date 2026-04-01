@@ -806,16 +806,13 @@ export default function AppLauncherPage() {
   const formatMoney = (amount: number) => `$${amount.toFixed(2)}`;
   const billingPeriodLabel =
     demoInterestForm.subscription_period === "yearly" ? "Annual" : "Monthly";
-  const baseSystemAmount = 10;
-  const perUserAmount = 1.5;
+  const perUserAmount = 10;
   const userCount = Math.max(1, demoInterestForm.num_users);
   const userSeatsAmount = userCount * perUserAmount;
   const periodMultiplier =
     demoInterestForm.subscription_period === "yearly" ? 12 : 1;
-  const baseSystemAmountForPeriod = baseSystemAmount * periodMultiplier;
   const userSeatsAmountForPeriod = userSeatsAmount * periodMultiplier;
-  const subscriptionAmountPerPeriod = baseSystemAmount + userSeatsAmount;
-  const subscriptionAmount = subscriptionAmountPerPeriod * periodMultiplier;
+  const subscriptionAmount = userSeatsAmountForPeriod;
   const zimraIntegrationAmount = 0;
   const pricingSubtotal = subscriptionAmount + zimraIntegrationAmount;
   const pricingTaxAmount = 2.5;
@@ -1398,7 +1395,7 @@ export default function AppLauncherPage() {
               )}
 
               {demoInterestStep === 2 && (
-                <section className="demo-interestVB-section">
+                <section className="demo-interest-section">
                   <div className="demo-interest-section-head">
                     <h4>Select any additional services you may require</h4>
                   </div>
@@ -1560,7 +1557,7 @@ export default function AppLauncherPage() {
                 )}
                 {demoInterestForm.wants_zimra_fdms && (
                   <div className="demo-interest-pricing-item">
-                    <span>ZIMRA fiscalization setup</span>
+                    <span>ZIMRA fiscalization Integration</span>
                     <span className="demo-interest-price-tbd">TBD</span>
                   </div>
                 )}
