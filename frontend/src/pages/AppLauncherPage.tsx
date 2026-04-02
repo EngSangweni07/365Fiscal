@@ -363,12 +363,17 @@ const demoInterestAppOptions = [
 ];
 
 const paymentMethodOptions = [
-  { key: "ecocash", label: "EcoCash", badge: ecocashBadge },
-  { key: "onemoney", label: "OneMoney", badge: onemoneyBadge },
-  { key: "telecash", label: "TeleCash", badge: telecashBadge },
-  { key: "visa", label: "Visa Card", badge: visaBadge },
-  { key: "mastercard", label: "MasterCard", badge: mastercardBadge },
-  { key: "innbucks", label: "InnBucks", badge: innbucksBadge },
+  { key: "ecocash", label: "EcoCash", badge: ecocashBadge, type: "mobile" },
+  { key: "onemoney", label: "OneMoney", badge: onemoneyBadge, type: "mobile" },
+  { key: "telecash", label: "TeleCash", badge: telecashBadge, type: "mobile" },
+  { key: "visa", label: "Visa Card", badge: visaBadge, type: "card" },
+  {
+    key: "mastercard",
+    label: "MasterCard",
+    badge: mastercardBadge,
+    type: "card",
+  },
+  { key: "innbucks", label: "InnBucks", badge: innbucksBadge, type: "mobile" },
 ] as const;
 
 const demoInterestSupportOptions = [
@@ -1309,9 +1314,6 @@ export default function AppLauncherPage() {
                           setDemoInterestForm((current) => ({
                             ...current,
                             wants_zimra_fdms: event.target.checked,
-                            subscription_period: event.target.checked
-                              ? "yearly"
-                              : current.subscription_period,
                           }))
                         }
                       />
@@ -1319,9 +1321,9 @@ export default function AppLauncherPage() {
                     </label>
                     {demoInterestForm.wants_zimra_fdms && (
                       <div className="alert alert-warning demo-interest-support-alert">
-                        ZIMRA fiscalization integration is available at an
-                        additional cost. We&apos;ll contact you to discuss your
-                        setup and provide a quote.
+                        ZIMRA fiscalization is available at an additional cost.
+                        We&apos;ll contact you to discuss your setup and provide
+                        a quote.
                       </div>
                     )}
 
