@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
 from decimal import Decimal, ROUND_HALF_UP
 
@@ -89,13 +90,34 @@ def verify_paynow_transaction(
     poll_url: str,
     return_url: str,
     result_url: str,
+    interval_seconds: int = 5,
+    max_attempts: int = 24,
 ) -> str:
     if not paynow_is_configured():
         raise PaynowError("Paynow is not configured.")
 
     paynow = _client(return_url, result_url)
-    try:
-        status_result = paynow.check_transaction_status(poll_url)
-    except Exception as exc:
-        raise PaynowError(f"Failed to check Paynow transaction: {exc}") from exc
-    return str(getattr(status_result, "status", "") or "")
+    pending_statuses = {"created", "sent", "awaiting delivery"}
+    attempts = max(1, int(max_attempts))
+    last_status = ""
+
+    for attempt in range(attempts):
+        try:
+            status_result = paynow.check_transaction_status(poll_url)
+        except Exception as exc:
+            raise PaynowError(f"Failed to check Paynow transaction: {exc}") from exc
+
+        last_status = str(getattr(status_result, "status", "") or "").strip()
+        normalized_status = last_status.lower()
+
+        if normalized_status == "paid":
+            return last_status
+
+        if normalized_status in pending_statuses and attempt < attempts - 1:
+            if interval_seconds > 0:
+                time.sleep(interval_seconds)
+            continue
+
+        return last_status
+
+    raise PaynowError("Payment validation timed out.")
