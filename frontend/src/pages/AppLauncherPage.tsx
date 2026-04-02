@@ -121,9 +121,20 @@ const POSLauncherIcon = Calculator;
 const LeadsIcon = BriefcaseBusiness;
 const SupportIcon = Headset;
 const SUPPORT_EMAIL = "courageg@geenet.co.zw";
+const SUPPORT_SUBJECT = "Three65 Support Request";
+const SUPPORT_BODY = `Hello Courage,
+
+I need help with Three65.
+
+Please assist me with:
+- Issue:
+- Company name:
+- Contact number:
+
+Thank you.`;
 const SUPPORT_URL =
-  `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("Three65 Support Request")}` +
-  `&body=${encodeURIComponent("Hello,%0D%0A%0D%0AI need help with Three65.%0D%0A%0D%0AThank you.")}`;
+  `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(SUPPORT_SUBJECT)}` +
+  `&body=${encodeURIComponent(SUPPORT_BODY)}`;
 
 interface AppItem {
   to: string;
