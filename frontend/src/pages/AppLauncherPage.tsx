@@ -694,10 +694,13 @@ export default function AppLauncherPage() {
     let cancelled = false;
     const checkStatus = async () => {
       try {
-        const data = await apiFetch<DemoAccount>(`/demo/${paynowPollingDemoId}`, {
-          auth: false,
-          suppress401Redirect: true,
-        });
+        const data = await apiFetch<DemoAccount>(
+          `/demo/${paynowPollingDemoId}`,
+          {
+            auth: false,
+            suppress401Redirect: true,
+          },
+        );
         if (cancelled) return;
 
         const status = (data.paynow_status || "").trim();
@@ -719,9 +722,7 @@ export default function AppLauncherPage() {
         }
 
         setPaynowProcessingVariant("warning");
-        setPaynowProcessingMessage(
-          `Payment is being processed${status ? ` (${status})` : ""}...`,
-        );
+        setPaynowProcessingMessage(`Payment is being processed`);
       } catch {
         if (!cancelled) {
           setPaynowProcessingMessage(
@@ -745,6 +746,7 @@ export default function AppLauncherPage() {
   const hasActiveSubscription = activationStatus?.some(
     (s) => s.activated && s.status === "active",
   );
+  const isCheckingPayment = paynowProcessing && Boolean(paynowPollingDemoId);
 
   const lastDemoInterestStep = demoInterestSteps.length - 1;
 
@@ -871,6 +873,12 @@ export default function AppLauncherPage() {
       }
     }
 
+    // Reset any previous payment-status UI (e.g. cancelled/failed) before retrying.
+    setPaynowProcessing(false);
+    setPaynowPollingDemoId(null);
+    setPaynowProcessingMessage("");
+    setPaynowProcessingVariant("warning");
+
     let visaPaymentTab: Window | null = null;
     if (
       selectedPaymentMethod &&
@@ -912,9 +920,7 @@ export default function AppLauncherPage() {
       setDemoInterestSubmitted(true);
       localStorage.setItem(`demo_interest_submitted_${demoAccountId}`, "true");
       setDemoRegistrationPromptOpen(false);
-      if (
-        data.payment_method
-      ) {
+      if (data.payment_method) {
         setPaynowProcessing(true);
         setPaynowProcessingVariant("warning");
         setPaynowProcessingMessage(
@@ -1626,18 +1632,20 @@ export default function AppLauncherPage() {
                     </div>
                     {selectedPaymentMethod &&
                       mobilePaymentMethodKeys.has(selectedPaymentMethod) && (
-                      <div className="input-group" style={{ marginTop: 12 }}>
-                        <label className="input-label">Mobile phone number</label>
-                        <input
-                          type="tel"
-                          value={mobilePhoneNumber}
-                          onChange={(event) =>
-                            setMobilePhoneNumber(event.target.value)
-                          }
-                          placeholder="077 123 4567"
-                        />
-                      </div>
-                    )}
+                        <div className="input-group" style={{ marginTop: 12 }}>
+                          <label className="input-label">
+                            Mobile phone number
+                          </label>
+                          <input
+                            type="tel"
+                            value={mobilePhoneNumber}
+                            onChange={(event) =>
+                              setMobilePhoneNumber(event.target.value)
+                            }
+                            placeholder="077 123 4567"
+                          />
+                        </div>
+                      )}
                     {paynowProcessing && (
                       <div
                         className={`alert ${paynowProcessingVariant === "danger" ? "alert-danger" : "alert-warning"}`}
@@ -1665,7 +1673,7 @@ export default function AppLauncherPage() {
                 disabled={
                   demoInterestStep === 0 ||
                   demoInterestSubmitting ||
-                  paynowProcessing
+                  isCheckingPayment
                 }
               >
                 Back
@@ -1675,7 +1683,7 @@ export default function AppLauncherPage() {
                   className="login-btn demo-interest-submit"
                   type="button"
                   onClick={handleDemoInterestNext}
-                  disabled={demoInterestSubmitting || paynowProcessing}
+                  disabled={demoInterestSubmitting || isCheckingPayment}
                 >
                   Next
                 </button>
@@ -1684,11 +1692,11 @@ export default function AppLauncherPage() {
                   className="login-btn demo-interest-submit"
                   type="button"
                   onClick={handleDemoInterestSubmit}
-                  disabled={demoInterestSubmitting || paynowProcessing}
+                  disabled={demoInterestSubmitting || isCheckingPayment}
                 >
                   {demoInterestSubmitting
                     ? "Sending..."
-                    : paynowProcessing
+                    : isCheckingPayment
                       ? "Checking payment..."
                       : "Pay Now!"}
                 </button>
@@ -1756,7 +1764,6 @@ export default function AppLauncherPage() {
           </div>
         </div>
       )}
-
     </div>
   );
 }
