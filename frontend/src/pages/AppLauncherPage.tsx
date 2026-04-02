@@ -466,6 +466,11 @@ export default function AppLauncherPage() {
   const [demoInterestSubmitting, setDemoInterestSubmitting] = useState(false);
   const [demoInterestSubmitted, setDemoInterestSubmitted] = useState(false);
   const [demoInterestStep, setDemoInterestStep] = useState(0);
+  const [paynowProcessing, setPaynowProcessing] = useState(false);
+  const [paynowProcessingMessage, setPaynowProcessingMessage] = useState("");
+  const [paynowPollingDemoId, setPaynowPollingDemoId] = useState<string | null>(
+    null,
+  );
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
     PaymentMethodKey | ""
   >("");
@@ -640,6 +645,67 @@ export default function AppLauncherPage() {
       }));
     }
   }, [demoInterestForm.subscription_period, demoInterestForm.wants_zimra_fdms]);
+
+  useEffect(() => {
+    if (!paynowProcessing || !paynowPollingDemoId) {
+      return;
+    }
+
+    let cancelled = false;
+    const pendingStatuses = new Set(["created", "sent", "awaiting delivery"]);
+    const checkStatus = async () => {
+      try {
+        const data = await apiFetch<DemoAccount>(`/demo/${paynowPollingDemoId}`, {
+          auth: false,
+          suppress401Redirect: true,
+        });
+        if (cancelled) return;
+
+        const status = (data.paynow_status || "").trim();
+        const normalizedStatus = status.toLowerCase();
+
+        if (normalizedStatus === "paid") {
+          setPaynowProcessingMessage("Payment confirmed. Redirecting...");
+          setPaynowProcessing(false);
+          setPaynowPollingDemoId(null);
+          window.location.assign("/subscriptions");
+          return;
+        }
+
+        if (
+          normalizedStatus &&
+          !pendingStatuses.has(normalizedStatus) &&
+          normalizedStatus !== "ok"
+        ) {
+          setPaynowPollingDemoId(null);
+          setPaynowProcessingMessage(
+            `Payment status: ${status}. Retry payment or contact support.`,
+          );
+          return;
+        }
+
+        setPaynowProcessingMessage(
+          `Payment is being processed${status ? ` (${status})` : ""}...`,
+        );
+      } catch {
+        if (!cancelled) {
+          setPaynowProcessingMessage(
+            "Still checking payment status. Please keep this page open.",
+          );
+        }
+      }
+    };
+
+    void checkStatus();
+    const intervalId = window.setInterval(() => {
+      void checkStatus();
+    }, 5000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [paynowPollingDemoId, paynowProcessing]);
 
   const hasActiveSubscription = activationStatus?.some(
     (s) => s.activated && s.status === "active",
@@ -817,6 +883,11 @@ export default function AppLauncherPage() {
         cardPaymentMethodKeys.has(data.payment_method) &&
         /^https?:\/\//i.test(data.payment_link || "")
       ) {
+        setPaynowProcessing(true);
+        setPaynowProcessingMessage(
+          "Payment is being processed. Complete payment in the opened Paynow tab.",
+        );
+        setPaynowPollingDemoId(demoAccountId);
         if (visaPaymentTab && !visaPaymentTab.closed) {
           visaPaymentTab.location.href = data.payment_link;
         } else {
@@ -1616,6 +1687,35 @@ export default function AppLauncherPage() {
                   <span>{formatMoney(pricingTotal)}</span>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {paynowProcessing && (
+        <div className="modal-overlay">
+          <div className="modal modal--centered demo-interest-modal demo-interest-choice-modal">
+            <div className="modal-header demo-interest-header">
+              <div className="demo-interest-header-copy">
+                <h3>Processing Payment</h3>
+              </div>
+            </div>
+            <div className="modal-body demo-interest-body demo-interest-choice-body">
+              <div className="alert alert-warning" style={{ margin: 0 }}>
+                {paynowProcessingMessage || "Payment is being processed..."}
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="login-btn demo-interest-submit"
+                onClick={() => {
+                  setPaynowProcessing(false);
+                  setPaynowPollingDemoId(null);
+                }}
+              >
+                Hide
+              </button>
             </div>
           </div>
         </div>
