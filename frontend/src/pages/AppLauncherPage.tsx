@@ -912,7 +912,6 @@ export default function AppLauncherPage() {
       setDemoInterestSubmitted(true);
       localStorage.setItem(`demo_interest_submitted_${demoAccountId}`, "true");
       setDemoRegistrationPromptOpen(false);
-      setDemoInterestOpen(false);
       if (
         data.payment_method
       ) {
@@ -943,6 +942,7 @@ export default function AppLauncherPage() {
         }
         return;
       }
+      setDemoInterestOpen(false);
       window.location.assign("/subscriptions");
       return;
     } catch (err: any) {
@@ -1638,6 +1638,15 @@ export default function AppLauncherPage() {
                         />
                       </div>
                     )}
+                    {paynowProcessing && (
+                      <div
+                        className={`alert ${paynowProcessingVariant === "danger" ? "alert-danger" : "alert-warning"}`}
+                        style={{ marginTop: 12 }}
+                      >
+                        {paynowProcessingMessage ||
+                          "Payment is being processed..."}
+                      </div>
+                    )}
                   </div>
                 </section>
               )}
@@ -1653,7 +1662,11 @@ export default function AppLauncherPage() {
                 onClick={() =>
                   setDemoInterestStep((current) => Math.max(current - 1, 0))
                 }
-                disabled={demoInterestStep === 0 || demoInterestSubmitting}
+                disabled={
+                  demoInterestStep === 0 ||
+                  demoInterestSubmitting ||
+                  paynowProcessing
+                }
               >
                 Back
               </button>
@@ -1662,7 +1675,7 @@ export default function AppLauncherPage() {
                   className="login-btn demo-interest-submit"
                   type="button"
                   onClick={handleDemoInterestNext}
-                  disabled={demoInterestSubmitting}
+                  disabled={demoInterestSubmitting || paynowProcessing}
                 >
                   Next
                 </button>
@@ -1671,9 +1684,13 @@ export default function AppLauncherPage() {
                   className="login-btn demo-interest-submit"
                   type="button"
                   onClick={handleDemoInterestSubmit}
-                  disabled={demoInterestSubmitting}
+                  disabled={demoInterestSubmitting || paynowProcessing}
                 >
-                  {demoInterestSubmitting ? "Sending..." : "Pay Now!"}
+                  {demoInterestSubmitting
+                    ? "Sending..."
+                    : paynowProcessing
+                      ? "Checking payment..."
+                      : "Pay Now!"}
                 </button>
               )}
             </div>
@@ -1735,38 +1752,6 @@ export default function AppLauncherPage() {
                   <span>{formatMoney(pricingTotal)}</span>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {paynowProcessing && (
-        <div className="modal-overlay">
-          <div className="modal modal--centered demo-interest-modal demo-interest-choice-modal">
-            <div className="modal-header demo-interest-header">
-              <div className="demo-interest-header-copy">
-                <h3>Payment Status</h3>
-              </div>
-            </div>
-            <div className="modal-body demo-interest-body demo-interest-choice-body">
-              <div
-                className={`alert ${paynowProcessingVariant === "danger" ? "alert-danger" : "alert-warning"}`}
-                style={{ margin: 0 }}
-              >
-                {paynowProcessingMessage || "Payment is being processed..."}
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button
-                type="button"
-                className="login-btn demo-interest-submit"
-                onClick={() => {
-                  setPaynowProcessing(false);
-                  setPaynowPollingDemoId(null);
-                }}
-              >
-                Hide
-              </button>
             </div>
           </div>
         </div>
