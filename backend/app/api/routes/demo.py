@@ -107,7 +107,27 @@ def normalize_payment_method(value: str | None) -> str:
 
 def is_paid_paynow_status(value: str | None) -> bool:
     normalized = (value or "").strip().lower()
-    return normalized in {"paid", "awaiting delivery", "delivered"}
+    return normalized == "paid"
+
+
+def activate_demo_subscription_if_paid(
+    db: Session,
+    demo: DemoAccount,
+) -> None:
+    if not demo.company_id:
+        return
+    subscription = (
+        db.query(Subscription)
+        .filter(Subscription.company_id == demo.company_id)
+        .first()
+    )
+    if subscription is None:
+        return
+    subscription.status = "active"
+    if demo.status != "converted":
+        demo.status = "converted"
+    if demo.paynow_paid_at is None:
+        demo.paynow_paid_at = datetime.utcnow()
 
 
 def note_contains_flag(notes: str | None, marker: str) -> bool:
@@ -422,6 +442,7 @@ def confirm_demo_interest(
         company_link.is_company_admin = True
         company_link.portal_apps = portal_apps_csv
 
+    subscription_status = "suspended" if bool(demo.payment_method) else "active"
     subscription = (
         db.query(Subscription)
         .filter(Subscription.company_id == company_id)
@@ -432,7 +453,7 @@ def confirm_demo_interest(
         subscription = Subscription(
             company_id=company_id,
             plan="starter",
-            status="active",
+            status=subscription_status,
             starts_at=now,
             expires_at=subscription_expires_at,
             max_users=max(payload.num_users, 1),
@@ -443,7 +464,7 @@ def confirm_demo_interest(
         db.add(subscription)
     else:
         subscription.plan = "starter"
-        subscription.status = "active"
+        subscription.status = subscription_status
         subscription.starts_at = now
         subscription.expires_at = subscription_expires_at
         subscription.max_users = max(payload.num_users, 1)
@@ -519,7 +540,6 @@ def confirm_demo_interest(
             login_link = build_login_link(demo.payment_link)
 
     note_parts = [
-        f"Actual Three65 requested: {'Yes' if payload.wants_actual_three65 else 'No'}",
         f"Subscription period: {payload.subscription_period}",
         f"Users required: {payload.num_users}",
         f"Subscription code: {activation_code_value}",
@@ -551,7 +571,7 @@ def confirm_demo_interest(
         wants_actual_three65=demo.wants_actual_three65,
         requested_apps=portal_apps,
         subscription_period=demo.subscription_period,
-        activation_code=activation_code_value,
+        activation_code="" if demo.payment_method else activation_code_value,
         payment_link=demo.payment_link,
         login_link=login_link,
         portal_username=demo.email,
@@ -647,9 +667,7 @@ async def paynow_result_callback(
 
     demo.paynow_status = verified_status
     if is_paid_paynow_status(verified_status):
-        demo.paynow_paid_at = datetime.utcnow()
-        if demo.status != "converted":
-            demo.status = "converted"
+        activate_demo_subscription_if_paid(db, demo)
     db.commit()
 
     return {"status": "ok", "payment_status": verified_status}
@@ -675,6 +693,30 @@ def get_demo_account(
     if demo.is_expired() and demo.status == "active":
         demo.status = "expired"
         db.commit()
+
+    if (
+        demo.payment_method
+        and demo.paynow_poll_url
+        and not is_paid_paynow_status(demo.paynow_status)
+        and paynow_is_configured()
+    ):
+        return_url = (settings.paynow_return_url or demo.payment_link or "").strip()
+        result_url = (settings.paynow_result_url or "").strip()
+        if return_url and result_url:
+            try:
+                verified_status = verify_paynow_transaction(
+                    poll_url=demo.paynow_poll_url,
+                    return_url=return_url,
+                    result_url=result_url,
+                    interval_seconds=0,
+                    max_attempts=1,
+                )
+                demo.paynow_status = verified_status
+                if is_paid_paynow_status(verified_status):
+                    activate_demo_subscription_if_paid(db, demo)
+                db.commit()
+            except PaynowError:
+                pass
     
     return serialize_demo(demo)
 

@@ -400,6 +400,49 @@ const mobilePaymentMethodKeys = new Set<PaymentMethodKey>(
     .map((method) => method.key),
 );
 
+const cardPaymentMethodKeys = new Set<PaymentMethodKey>(
+  paymentMethodOptions
+    .filter((method) => method.type === "card")
+    .map((method) => method.key),
+);
+
+const pendingPaynowStatuses = new Set([
+  "created",
+  "sent",
+  "awaiting delivery",
+  "ok",
+  "pending",
+]);
+
+const formatPaynowFailureMessage = (statusValue: string) => {
+  const normalized = statusValue.trim().toLowerCase();
+  if (!normalized) {
+    return "Payment did not go through. Please retry payment.";
+  }
+  if (normalized.startsWith("verify_error:")) {
+    const detail = statusValue.slice("verify_error:".length).trim();
+    if (/timed?\s*out|timeout|time\s*out|expired/.test(detail.toLowerCase())) {
+      return "Payment timed out. Please retry payment.";
+    }
+    return detail
+      ? `Payment verification failed: ${detail}`
+      : "Payment verification failed. Please retry payment.";
+  }
+  if (/insufficient|not enough|low balance/.test(normalized)) {
+    return "Payment failed: insufficient funds.";
+  }
+  if (/cancel/.test(normalized)) {
+    return "Payment was cancelled.";
+  }
+  if (/timed?\s*out|timeout|time\s*out|expired/.test(normalized)) {
+    return "Payment timed out. Please retry payment.";
+  }
+  if (/failed|fail|declin/.test(normalized)) {
+    return `Payment failed: ${statusValue}.`;
+  }
+  return `Payment did not go through (${statusValue}). Please retry payment.`;
+};
+
 const demoInterestSupportOptions = [
   {
     key: "wants_training_enhanced",
@@ -464,11 +507,18 @@ export default function AppLauncherPage() {
   const [demoInterestSubmitting, setDemoInterestSubmitting] = useState(false);
   const [demoInterestSubmitted, setDemoInterestSubmitted] = useState(false);
   const [demoInterestStep, setDemoInterestStep] = useState(0);
+  const [paynowProcessing, setPaynowProcessing] = useState(false);
+  const [paynowProcessingMessage, setPaynowProcessingMessage] = useState("");
+  const [paynowProcessingVariant, setPaynowProcessingVariant] = useState<
+    "warning" | "danger"
+  >("warning");
+  const [paynowPollingDemoId, setPaynowPollingDemoId] = useState<string | null>(
+    null,
+  );
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
     PaymentMethodKey | ""
   >("");
   const [mobilePhoneNumber, setMobilePhoneNumber] = useState("");
-  const [paynowModalUrl, setPaynowModalUrl] = useState("");
   const [demoInterestForm, setDemoInterestForm] = useState<DemoInterestForm>({
     wants_actual_three65: true,
     company_name: "",
@@ -640,9 +690,67 @@ export default function AppLauncherPage() {
     }
   }, [demoInterestForm.subscription_period, demoInterestForm.wants_zimra_fdms]);
 
+  useEffect(() => {
+    if (!paynowProcessing || !paynowPollingDemoId) {
+      return;
+    }
+
+    let cancelled = false;
+    const checkStatus = async () => {
+      try {
+        const data = await apiFetch<DemoAccount>(
+          `/demo/${paynowPollingDemoId}`,
+          {
+            auth: false,
+            suppress401Redirect: true,
+          },
+        );
+        if (cancelled) return;
+
+        const status = (data.paynow_status || "").trim();
+        const normalizedStatus = status.toLowerCase();
+
+        if (normalizedStatus === "paid") {
+          setPaynowProcessingMessage("Payment confirmed. Redirecting...");
+          setPaynowProcessing(false);
+          setPaynowPollingDemoId(null);
+          window.location.assign("/subscriptions");
+          return;
+        }
+
+        if (normalizedStatus && !pendingPaynowStatuses.has(normalizedStatus)) {
+          setPaynowPollingDemoId(null);
+          setPaynowProcessingVariant("danger");
+          setPaynowProcessingMessage(formatPaynowFailureMessage(status));
+          return;
+        }
+
+        setPaynowProcessingVariant("warning");
+        setPaynowProcessingMessage(`Payment is being processed`);
+      } catch {
+        if (!cancelled) {
+          setPaynowProcessingMessage(
+            "Still checking payment status. Please keep this page open.",
+          );
+        }
+      }
+    };
+
+    void checkStatus();
+    const intervalId = window.setInterval(() => {
+      void checkStatus();
+    }, 5000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [paynowPollingDemoId, paynowProcessing]);
+
   const hasActiveSubscription = activationStatus?.some(
     (s) => s.activated && s.status === "active",
   );
+  const isCheckingPayment = paynowProcessing && Boolean(paynowPollingDemoId);
 
   const lastDemoInterestStep = demoInterestSteps.length - 1;
 
@@ -769,6 +877,28 @@ export default function AppLauncherPage() {
       }
     }
 
+    // Reset any previous payment-status UI (e.g. cancelled/failed) before retrying.
+    setPaynowProcessing(false);
+    setPaynowPollingDemoId(null);
+    setPaynowProcessingMessage("");
+    setPaynowProcessingVariant("warning");
+
+    let visaPaymentTab: Window | null = null;
+    let paymentTabBlocked = false;
+    if (
+      selectedPaymentMethod &&
+      cardPaymentMethodKeys.has(selectedPaymentMethod)
+    ) {
+      visaPaymentTab = window.open("about:blank", "_blank");
+      if (!visaPaymentTab) {
+        paymentTabBlocked = true;
+      } else {
+        visaPaymentTab.document.title = "Opening Paynow...";
+        visaPaymentTab.document.body.innerHTML =
+          "<p style='font-family: sans-serif; padding: 24px;'>Opening Paynow payment page...</p>";
+      }
+    }
+
     setDemoInterestSubmitting(true);
     setDemoInterestError("");
     try {
@@ -793,14 +923,46 @@ export default function AppLauncherPage() {
       setDemoInterestSubmitted(true);
       localStorage.setItem(`demo_interest_submitted_${demoAccountId}`, "true");
       setDemoRegistrationPromptOpen(false);
-      setDemoInterestOpen(false);
-      if (/^https?:\/\//i.test(data.payment_link || "")) {
-        setPaynowModalUrl(data.payment_link);
+      if (data.payment_method) {
+        setPaynowProcessing(true);
+        setPaynowProcessingVariant("warning");
+        setPaynowProcessingMessage(
+          "Payment is being processed. We will update this page when payment is confirmed.",
+        );
+        setPaynowPollingDemoId(demoAccountId);
+        if (
+          /^https?:\/\//i.test(data.payment_link || "")
+        ) {
+          if (visaPaymentTab && !visaPaymentTab.closed) {
+            visaPaymentTab.location.href = data.payment_link;
+          } else {
+            if (paymentTabBlocked) {
+              setPaynowProcessingMessage(
+                "Popup was blocked by your browser. Opening payment in this tab.",
+              );
+            }
+            // Fallback for popup blockers: redirect current tab to Paynow.
+            window.location.assign(data.payment_link);
+          }
+        } else if (cardPaymentMethodKeys.has(data.payment_method)) {
+          setPaynowPollingDemoId(null);
+          setPaynowProcessingVariant("danger");
+          setPaynowProcessingMessage(
+            "Unable to open payment page. Please retry payment.",
+          );
+          if (visaPaymentTab && !visaPaymentTab.closed) {
+            visaPaymentTab.close();
+          }
+        }
         return;
       }
+      setDemoInterestOpen(false);
       window.location.assign("/subscriptions");
       return;
     } catch (err: any) {
+      if (visaPaymentTab && !visaPaymentTab.closed) {
+        visaPaymentTab.close();
+      }
       setDemoInterestError(err.message || "Failed to send your request.");
     } finally {
       setDemoInterestSubmitting(false);
@@ -825,7 +987,7 @@ export default function AppLauncherPage() {
   const subscriptionAmount = userSeatsAmountForPeriod;
   const zimraIntegrationAmount = 0;
   const pricingSubtotal = subscriptionAmount + zimraIntegrationAmount;
-  const pricingTaxAmount = 2.5;
+  const pricingTaxAmount = Number((pricingSubtotal * 0.155).toFixed(2));
   const pricingTotal = pricingSubtotal + pricingTaxAmount;
   const hasAdditionalAssistanceSelected =
     demoInterestForm.wants_training_enhanced ||
@@ -1489,16 +1651,27 @@ export default function AppLauncherPage() {
                     </div>
                     {selectedPaymentMethod &&
                       mobilePaymentMethodKeys.has(selectedPaymentMethod) && (
-                      <div className="input-group" style={{ marginTop: 12 }}>
-                        <label className="input-label">Mobile phone number</label>
-                        <input
-                          type="tel"
-                          value={mobilePhoneNumber}
-                          onChange={(event) =>
-                            setMobilePhoneNumber(event.target.value)
-                          }
-                          placeholder="077 123 4567"
-                        />
+                        <div className="input-group" style={{ marginTop: 12 }}>
+                          <label className="input-label">
+                            Mobile phone number
+                          </label>
+                          <input
+                            type="tel"
+                            value={mobilePhoneNumber}
+                            onChange={(event) =>
+                              setMobilePhoneNumber(event.target.value)
+                            }
+                            placeholder="077 123 4567"
+                          />
+                        </div>
+                      )}
+                    {paynowProcessing && (
+                      <div
+                        className={`alert ${paynowProcessingVariant === "danger" ? "alert-danger" : "alert-warning"}`}
+                        style={{ marginTop: 12 }}
+                      >
+                        {paynowProcessingMessage ||
+                          "Payment is being processed..."}
                       </div>
                     )}
                   </div>
@@ -1516,7 +1689,11 @@ export default function AppLauncherPage() {
                 onClick={() =>
                   setDemoInterestStep((current) => Math.max(current - 1, 0))
                 }
-                disabled={demoInterestStep === 0 || demoInterestSubmitting}
+                disabled={
+                  demoInterestStep === 0 ||
+                  demoInterestSubmitting ||
+                  isCheckingPayment
+                }
               >
                 Back
               </button>
@@ -1525,7 +1702,7 @@ export default function AppLauncherPage() {
                   className="login-btn demo-interest-submit"
                   type="button"
                   onClick={handleDemoInterestNext}
-                  disabled={demoInterestSubmitting}
+                  disabled={demoInterestSubmitting || isCheckingPayment}
                 >
                   Next
                 </button>
@@ -1534,9 +1711,13 @@ export default function AppLauncherPage() {
                   className="login-btn demo-interest-submit"
                   type="button"
                   onClick={handleDemoInterestSubmit}
-                  disabled={demoInterestSubmitting}
+                  disabled={demoInterestSubmitting || isCheckingPayment}
                 >
-                  {demoInterestSubmitting ? "Sending..." : "Pay Now!"}
+                  {demoInterestSubmitting
+                    ? "Sending..."
+                    : isCheckingPayment
+                      ? "Checking payment..."
+                      : "Pay Now!"}
                 </button>
               )}
             </div>
@@ -1598,54 +1779,6 @@ export default function AppLauncherPage() {
                   <span>{formatMoney(pricingTotal)}</span>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {paynowModalUrl && (
-        <div className="modal-overlay">
-          <div className="modal modal--centered paynow-iframe-modal">
-            <div className="modal-header paynow-iframe-header">
-              <h3>Complete Your Paynow Payment</h3>
-              <button
-                type="button"
-                className="paynow-iframe-close"
-                onClick={() => setPaynowModalUrl("")}
-                aria-label="Close payment modal"
-              >
-                x
-              </button>
-            </div>
-            <div className="modal-body paynow-iframe-body">
-              <iframe
-                src={paynowModalUrl}
-                title="Paynow Checkout"
-                className="paynow-iframe"
-                sandbox="allow-forms allow-scripts allow-same-origin"
-              />
-              <p className="paynow-iframe-note">
-                Complete payment in this embedded window.
-              </p>
-            </div>
-            <div className="modal-footer paynow-iframe-footer">
-              <button
-                type="button"
-                className="login-btn demo-interest-submit"
-                onClick={() => setPaynowModalUrl("")}
-              >
-                Close
-              </button>
-              <button
-                type="button"
-                className="login-btn demo-interest-submit"
-                onClick={() => {
-                  setPaynowModalUrl("");
-                  window.location.assign("/subscriptions");
-                }}
-              >
-                I&apos;ve completed payment
-              </button>
             </div>
           </div>
         </div>
