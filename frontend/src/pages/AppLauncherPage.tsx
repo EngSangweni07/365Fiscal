@@ -396,6 +396,12 @@ const mobilePaymentMethodKeys = new Set<PaymentMethodKey>(
     .map((method) => method.key),
 );
 
+const cardPaymentMethodKeys = new Set<PaymentMethodKey>(
+  paymentMethodOptions
+    .filter((method) => method.type === "card")
+    .map((method) => method.key),
+);
+
 const demoInterestSupportOptions = [
   {
     key: "wants_training_enhanced",
@@ -464,7 +470,6 @@ export default function AppLauncherPage() {
     PaymentMethodKey | ""
   >("");
   const [mobilePhoneNumber, setMobilePhoneNumber] = useState("");
-  const [paynowModalUrl, setPaynowModalUrl] = useState("");
   const [demoInterestForm, setDemoInterestForm] = useState<DemoInterestForm>({
     wants_actual_three65: true,
     company_name: "",
@@ -765,6 +770,23 @@ export default function AppLauncherPage() {
       }
     }
 
+    let visaPaymentTab: Window | null = null;
+    if (
+      selectedPaymentMethod &&
+      cardPaymentMethodKeys.has(selectedPaymentMethod)
+    ) {
+      visaPaymentTab = window.open("", "_blank", "noopener,noreferrer");
+      if (!visaPaymentTab) {
+        setDemoInterestError(
+          "Popup blocked. Please allow popups for this site to continue with card payment.",
+        );
+        return;
+      }
+      visaPaymentTab.document.title = "Opening Paynow...";
+      visaPaymentTab.document.body.innerHTML =
+        "<p style='font-family: sans-serif; padding: 24px;'>Opening Paynow payment page...</p>";
+    }
+
     setDemoInterestSubmitting(true);
     setDemoInterestError("");
     try {
@@ -790,13 +812,24 @@ export default function AppLauncherPage() {
       localStorage.setItem(`demo_interest_submitted_${demoAccountId}`, "true");
       setDemoRegistrationPromptOpen(false);
       setDemoInterestOpen(false);
-      if (/^https?:\/\//i.test(data.payment_link || "")) {
-        setPaynowModalUrl(data.payment_link);
+      if (
+        data.payment_method &&
+        cardPaymentMethodKeys.has(data.payment_method) &&
+        /^https?:\/\//i.test(data.payment_link || "")
+      ) {
+        if (visaPaymentTab && !visaPaymentTab.closed) {
+          visaPaymentTab.location.href = data.payment_link;
+        } else {
+          window.open(data.payment_link, "_blank", "noopener,noreferrer");
+        }
         return;
       }
       window.location.assign("/subscriptions");
       return;
     } catch (err: any) {
+      if (visaPaymentTab && !visaPaymentTab.closed) {
+        visaPaymentTab.close();
+      }
       setDemoInterestError(err.message || "Failed to send your request.");
     } finally {
       setDemoInterestSubmitting(false);
@@ -1588,53 +1621,6 @@ export default function AppLauncherPage() {
         </div>
       )}
 
-      {paynowModalUrl && (
-        <div className="modal-overlay">
-          <div className="modal modal--centered paynow-iframe-modal">
-            <div className="modal-header paynow-iframe-header">
-              <h3>Complete Your Paynow Payment</h3>
-              <button
-                type="button"
-                className="paynow-iframe-close"
-                onClick={() => setPaynowModalUrl("")}
-                aria-label="Close payment modal"
-              >
-                x
-              </button>
-            </div>
-            <div className="modal-body paynow-iframe-body">
-              <iframe
-                src={paynowModalUrl}
-                title="Paynow Checkout"
-                className="paynow-iframe"
-                sandbox="allow-forms allow-scripts allow-same-origin"
-              />
-              <p className="paynow-iframe-note">
-                Complete payment in this embedded window.
-              </p>
-            </div>
-            <div className="modal-footer paynow-iframe-footer">
-              <button
-                type="button"
-                className="login-btn demo-interest-submit"
-                onClick={() => setPaynowModalUrl("")}
-              >
-                Close
-              </button>
-              <button
-                type="button"
-                className="login-btn demo-interest-submit"
-                onClick={() => {
-                  setPaynowModalUrl("");
-                  window.location.assign("/subscriptions");
-                }}
-              >
-                I&apos;ve completed payment
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
