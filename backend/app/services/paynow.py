@@ -12,6 +12,9 @@ class PaynowError(ValueError):
     pass
 
 
+MOBILE_PAYMENT_METHODS = {"ecocash", "onemoney", "telecash", "innbucks"}
+
+
 @dataclass
 class PaynowTransactionResult:
     status: str
@@ -46,7 +49,7 @@ def create_paynow_transaction(
     return_url: str,
     result_url: str,
     payment_method: str,
-    ecocash_phone_number: str = "",
+    mobile_phone_number: str = "",
 ) -> PaynowTransactionResult:
     if not paynow_is_configured():
         raise PaynowError("Paynow is not configured.")
@@ -56,8 +59,12 @@ def create_paynow_transaction(
     payment.add(additional_info, _amount(amount_usd))
 
     try:
-        if payment_method == "ecocash":
-            response = paynow.send_mobile(payment, ecocash_phone_number.strip(), "ecocash")
+        if payment_method in MOBILE_PAYMENT_METHODS:
+            response = paynow.send_mobile(
+                payment,
+                mobile_phone_number.strip(),
+                payment_method,
+            )
         else:
             response = paynow.send(payment)
     except Exception as exc:
@@ -92,4 +99,3 @@ def verify_paynow_transaction(
     except Exception as exc:
         raise PaynowError(f"Failed to check Paynow transaction: {exc}") from exc
     return str(getattr(status_result, "status", "") or "")
-

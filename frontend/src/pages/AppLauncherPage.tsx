@@ -50,7 +50,14 @@ type DemoAccount = {
   requested_apps: string[];
   subscription_period: "monthly" | "yearly";
   payment_link: string;
-  payment_method?: "ecocash" | "visa" | "";
+  payment_method?:
+    | "ecocash"
+    | "onemoney"
+    | "telecash"
+    | "innbucks"
+    | "visa"
+    | "mastercard"
+    | "";
   ecocash_phone_number?: string;
   paynow_status?: string;
   tin: string;
@@ -70,7 +77,14 @@ type DemoInterestForm = {
   requested_apps: string[];
   subscription_period: "monthly" | "yearly";
   payment_link: string;
-  payment_method?: "ecocash" | "visa" | "";
+  payment_method?:
+    | "ecocash"
+    | "onemoney"
+    | "telecash"
+    | "innbucks"
+    | "visa"
+    | "mastercard"
+    | "";
   ecocash_phone_number?: string;
   wants_zimra_fdms: boolean;
   tin: string;
@@ -376,6 +390,18 @@ const paymentMethodOptions = [
   { key: "innbucks", label: "InnBucks", badge: innbucksBadge, type: "mobile" },
 ] as const;
 
+const mobilePaymentMethodKeys = new Set<PaymentMethodKey>(
+  paymentMethodOptions
+    .filter((method) => method.type === "mobile")
+    .map((method) => method.key),
+);
+
+const cardPaymentMethodKeys = new Set<PaymentMethodKey>(
+  paymentMethodOptions
+    .filter((method) => method.type === "card")
+    .map((method) => method.key),
+);
+
 const demoInterestSupportOptions = [
   {
     key: "wants_training_enhanced",
@@ -443,7 +469,7 @@ export default function AppLauncherPage() {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
     PaymentMethodKey | ""
   >("");
-  const [ecocashPhoneNumber, setEcocashPhoneNumber] = useState("");
+  const [mobilePhoneNumber, setMobilePhoneNumber] = useState("");
   const [demoInterestForm, setDemoInterestForm] = useState<DemoInterestForm>({
     wants_actual_three65: true,
     company_name: "",
@@ -554,7 +580,7 @@ export default function AppLauncherPage() {
       .then((data) => {
         setDemoAccount(data);
         setSelectedPaymentMethod(data.payment_method || "");
-        setEcocashPhoneNumber(data.ecocash_phone_number || "");
+        setMobilePhoneNumber(data.ecocash_phone_number || "");
         setDemoInterestForm({
           wants_actual_three65:
             typeof data.wants_actual_three65 === "boolean"
@@ -656,8 +682,11 @@ export default function AppLauncherPage() {
         setDemoInterestError("Select a payment method.");
         return false;
       }
-      if (selectedPaymentMethod === "ecocash" && !ecocashPhoneNumber.trim()) {
-        setDemoInterestError("Enter an EcoCash phone number.");
+      if (
+        mobilePaymentMethodKeys.has(selectedPaymentMethod) &&
+        !mobilePhoneNumber.trim()
+      ) {
+        setDemoInterestError("Enter a mobile payment phone number.");
         return false;
       }
     }
@@ -742,7 +771,10 @@ export default function AppLauncherPage() {
     }
 
     let visaPaymentTab: Window | null = null;
-    if (selectedPaymentMethod === "visa") {
+    if (
+      selectedPaymentMethod &&
+      cardPaymentMethodKeys.has(selectedPaymentMethod)
+    ) {
       visaPaymentTab = window.open("", "_blank", "noopener,noreferrer");
       if (!visaPaymentTab) {
         setDemoInterestError(
@@ -768,8 +800,9 @@ export default function AppLauncherPage() {
             ...demoInterestForm,
             payment_method: selectedPaymentMethod,
             ecocash_phone_number:
-              selectedPaymentMethod === "ecocash"
-                ? ecocashPhoneNumber.trim()
+              selectedPaymentMethod &&
+              mobilePaymentMethodKeys.has(selectedPaymentMethod)
+                ? mobilePhoneNumber.trim()
                 : undefined,
           }),
         },
@@ -780,7 +813,8 @@ export default function AppLauncherPage() {
       setDemoRegistrationPromptOpen(false);
       setDemoInterestOpen(false);
       if (
-        data.payment_method === "visa" &&
+        data.payment_method &&
+        cardPaymentMethodKeys.has(data.payment_method) &&
         /^https?:\/\//i.test(data.payment_link || "")
       ) {
         if (visaPaymentTab && !visaPaymentTab.closed) {
@@ -1471,16 +1505,15 @@ export default function AppLauncherPage() {
                         );
                       })}
                     </div>
-                    {selectedPaymentMethod === "ecocash" && (
+                    {selectedPaymentMethod &&
+                      mobilePaymentMethodKeys.has(selectedPaymentMethod) && (
                       <div className="input-group" style={{ marginTop: 12 }}>
-                        <label className="input-label">
-                          EcoCash phone number
-                        </label>
+                        <label className="input-label">Mobile phone number</label>
                         <input
                           type="tel"
-                          value={ecocashPhoneNumber}
+                          value={mobilePhoneNumber}
                           onChange={(event) =>
-                            setEcocashPhoneNumber(event.target.value)
+                            setMobilePhoneNumber(event.target.value)
                           }
                           placeholder="077 123 4567"
                         />

@@ -42,7 +42,10 @@ class DemoInterestRequest(BaseModel):
     requested_apps: list[str] = Field(default_factory=list)
     subscription_period: str = Field(default="monthly", pattern="^(monthly|yearly)$")
     payment_link: str | None = Field(default=None, max_length=1000)
-    payment_method: str | None = Field(default=None, pattern="^(ecocash|visa)?$")
+    payment_method: str | None = Field(
+        default=None,
+        pattern="^(ecocash|onemoney|telecash|innbucks|visa|mastercard)?$",
+    )
     ecocash_phone_number: str | None = Field(default=None, max_length=20)
     wants_zimra_fdms: bool = False
     tin: str | None = Field(default=None, max_length=100)

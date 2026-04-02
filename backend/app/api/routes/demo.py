@@ -23,6 +23,7 @@ from app.schemas.demo_account import (
 from app.security.security import create_access_token, hash_password
 from app.services.email import send_demo_interest_email
 from app.services.paynow import (
+    MOBILE_PAYMENT_METHODS,
     PaynowError,
     create_paynow_transaction,
     paynow_is_configured,
@@ -36,6 +37,7 @@ DEMO_DURATION_SECONDS = 30
 DEMO_INTEREST_EMAIL = "courageg@geenet.co.zw"
 DEMO_INTERNAL_CC = ["support@geenet.co.zw", "info@geenet.co.zw", DEMO_INTEREST_EMAIL]
 DEMO_WORKSPACE_NAME = "Three65 Demo Workspace"
+ALLOWED_PAYMENT_METHODS = MOBILE_PAYMENT_METHODS | {"visa", "mastercard"}
 DEMO_PORTAL_APPS = ",".join([
     "dashboard",
     "invoices",
@@ -325,15 +327,15 @@ def confirm_demo_interest(
     subscription_expires_at = now + timedelta(days=subscription_days)
     login_link = build_login_link(demo.payment_link)
 
-    if demo.payment_method and demo.payment_method not in {"ecocash", "visa"}:
+    if demo.payment_method and demo.payment_method not in ALLOWED_PAYMENT_METHODS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Unsupported payment method. Allowed values: ecocash, visa.",
+            detail="Unsupported payment method.",
         )
-    if demo.payment_method == "ecocash" and not demo.ecocash_phone_number:
+    if demo.payment_method in MOBILE_PAYMENT_METHODS and not demo.ecocash_phone_number:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="EcoCash phone number is required for EcoCash payments.",
+            detail="Phone number is required for mobile payments.",
         )
 
     if using_demo_workspace or company_id is None:
@@ -494,7 +496,7 @@ def confirm_demo_interest(
                 return_url=return_url,
                 result_url=result_url,
                 payment_method=demo.payment_method,
-                ecocash_phone_number=demo.ecocash_phone_number,
+                mobile_phone_number=demo.ecocash_phone_number,
             )
         except PaynowError as exc:
             raise HTTPException(
