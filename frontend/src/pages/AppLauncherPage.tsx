@@ -880,20 +880,19 @@ export default function AppLauncherPage() {
     setPaynowProcessingVariant("warning");
 
     let visaPaymentTab: Window | null = null;
+    let paymentTabBlocked = false;
     if (
       selectedPaymentMethod &&
       cardPaymentMethodKeys.has(selectedPaymentMethod)
     ) {
-      visaPaymentTab = window.open("", "_blank", "noopener,noreferrer");
+      visaPaymentTab = window.open("about:blank", "_blank");
       if (!visaPaymentTab) {
-        setDemoInterestError(
-          "Popup blocked. Please allow popups for this site to continue with card payment.",
-        );
-        return;
+        paymentTabBlocked = true;
+      } else {
+        visaPaymentTab.document.title = "Opening Paynow...";
+        visaPaymentTab.document.body.innerHTML =
+          "<p style='font-family: sans-serif; padding: 24px;'>Opening Paynow payment page...</p>";
       }
-      visaPaymentTab.document.title = "Opening Paynow...";
-      visaPaymentTab.document.body.innerHTML =
-        "<p style='font-family: sans-serif; padding: 24px;'>Opening Paynow payment page...</p>";
     }
 
     setDemoInterestSubmitting(true);
@@ -928,13 +927,18 @@ export default function AppLauncherPage() {
         );
         setPaynowPollingDemoId(demoAccountId);
         if (
-          cardPaymentMethodKeys.has(data.payment_method) &&
           /^https?:\/\//i.test(data.payment_link || "")
         ) {
           if (visaPaymentTab && !visaPaymentTab.closed) {
             visaPaymentTab.location.href = data.payment_link;
           } else {
-            window.open(data.payment_link, "_blank", "noopener,noreferrer");
+            if (paymentTabBlocked) {
+              setPaynowProcessingMessage(
+                "Popup was blocked by your browser. Opening payment in this tab.",
+              );
+            }
+            // Fallback for popup blockers: redirect current tab to Paynow.
+            window.location.assign(data.payment_link);
           }
         } else if (cardPaymentMethodKeys.has(data.payment_method)) {
           setPaynowPollingDemoId(null);
@@ -979,7 +983,7 @@ export default function AppLauncherPage() {
   const subscriptionAmount = userSeatsAmountForPeriod;
   const zimraIntegrationAmount = 0;
   const pricingSubtotal = subscriptionAmount + zimraIntegrationAmount;
-  const pricingTaxAmount = 2.5;
+  const pricingTaxAmount = Number((pricingSubtotal * 0.155).toFixed(2));
   const pricingTotal = pricingSubtotal + pricingTaxAmount;
   const hasAdditionalAssistanceSelected =
     demoInterestForm.wants_training_enhanced ||
