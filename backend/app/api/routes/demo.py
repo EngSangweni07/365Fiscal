@@ -566,6 +566,7 @@ def confirm_demo_interest(
 
     if settings.odoo_url:
         try:
+            print(f"[demo.confirm-interest] Syncing to Odoo for {demo.company_name} at {settings.odoo_url}")
             sync_result = sync_demo_interest_to_odoo(
                 OdooQuotationPayload(
                     company_name=demo.company_name,
@@ -582,8 +583,10 @@ def confirm_demo_interest(
                     address=demo.address,
                 )
             )
+            print(f"[demo.confirm-interest] Odoo quotation created: {sync_result['sale_order_name']}")
             demo.notes = f"{demo.notes} | Odoo quotation: {sync_result['sale_order_name']}"
         except OdooSyncError as exc:
+            print(f"[demo.confirm-interest] Odoo sync failed: {exc}")
             demo.notes = f"{demo.notes} | Odoo sync failed: {exc}"
         db.commit()
         db.refresh(demo)

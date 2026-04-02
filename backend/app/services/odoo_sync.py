@@ -38,7 +38,7 @@ class OdooQuotationPayload:
 
 
 def sync_demo_interest_to_odoo(payload: OdooQuotationPayload) -> dict[str, Any]:
-    base_url = _normalize_odoo_base_url(settings.odoo_url)
+    base_url = (settings.odoo_url or "").strip().rstrip("/")
     if not base_url:
         raise OdooSyncError("ODOO_URL is not configured.")
 
@@ -58,13 +58,6 @@ def sync_demo_interest_to_odoo(payload: OdooQuotationPayload) -> dict[str, Any]:
         "Odoo credentials are incomplete. Configure either ODOO_BEARER_TOKEN or "
         "ODOO_DATABASE + ODOO_LOGIN + ODOO_API_KEY."
     )
-
-
-def _normalize_odoo_base_url(raw_url: str | None) -> str:
-    url = (raw_url or "").strip().rstrip("/")
-    if url.endswith("/odoo"):
-        url = url[:-5]
-    return url
 
 
 def _build_partner_vals(payload: OdooQuotationPayload) -> dict[str, Any]:
@@ -164,10 +157,21 @@ def _sync_with_json2(base_url: str, bearer_token: str, payload: OdooQuotationPay
         }
     )
 
-    partner_id = _json2_find_or_create_partner(session, base_url, payload)
-    order_id = _json2_create_sale_order(session, base_url, partner_id, payload)
-    order_name = _json2_read_sale_order_name(session, base_url, order_id)
-    return {"partner_id": partner_id, "sale_order_id": order_id, "sale_order_name": order_name}
+    candidates = [base_url]
+    if not base_url.endswith("/odoo"):
+        candidates.append(f"{base_url}/odoo")
+
+    errors: list[str] = []
+    for candidate in candidates:
+        try:
+            partner_id = _json2_find_or_create_partner(session, candidate, payload)
+            order_id = _json2_create_sale_order(session, candidate, partner_id, payload)
+            order_name = _json2_read_sale_order_name(session, candidate, order_id)
+            return {"partner_id": partner_id, "sale_order_id": order_id, "sale_order_name": order_name}
+        except OdooSyncError as exc:
+            errors.append(f"{candidate}: {exc}")
+
+    raise OdooSyncError(" ; ".join(errors))
 
 
 def _json2_call(
