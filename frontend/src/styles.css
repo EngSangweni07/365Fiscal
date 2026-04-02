@@ -3817,6 +3817,61 @@ button.demo-interest-app-option {
   background: rgba(203, 213, 225, 0.95);
 }
 
+.paynow-iframe-modal {
+  width: min(96vw, 1100px);
+  max-height: 92vh;
+  border-radius: 24px;
+  border: 1px solid rgba(11, 69, 80, 0.14);
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+}
+
+.paynow-iframe-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.paynow-iframe-close {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: #ffffff;
+  color: var(--color-text-secondary);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.paynow-iframe-close:hover {
+  background: #f1f5f9;
+}
+
+.paynow-iframe-body {
+  padding: 0 24px 16px;
+}
+
+.paynow-iframe {
+  width: 100%;
+  height: min(68vh, 760px);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.paynow-iframe-note {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.paynow-iframe-footer {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
 @media (max-width: 1200px) {
   .demo-interest-modal-layout {
     width: min(96vw, 760px);
@@ -3871,6 +3926,19 @@ button.demo-interest-app-option {
 
   .demo-interest-choice-grid {
     grid-template-columns: 1fr;
+  }
+
+  .paynow-iframe-body {
+    padding: 0 16px 14px;
+  }
+
+  .paynow-iframe {
+    height: min(62vh, 620px);
+  }
+
+  .paynow-iframe-footer {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
 
