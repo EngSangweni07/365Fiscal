@@ -402,6 +402,43 @@ const cardPaymentMethodKeys = new Set<PaymentMethodKey>(
     .map((method) => method.key),
 );
 
+const pendingPaynowStatuses = new Set([
+  "created",
+  "sent",
+  "awaiting delivery",
+  "ok",
+  "pending",
+]);
+
+const formatPaynowFailureMessage = (statusValue: string) => {
+  const normalized = statusValue.trim().toLowerCase();
+  if (!normalized) {
+    return "Payment did not go through. Please retry payment.";
+  }
+  if (normalized.startsWith("verify_error:")) {
+    const detail = statusValue.slice("verify_error:".length).trim();
+    if (/timed?\s*out|timeout|time\s*out|expired/.test(detail.toLowerCase())) {
+      return "Payment timed out. Please retry payment.";
+    }
+    return detail
+      ? `Payment verification failed: ${detail}`
+      : "Payment verification failed. Please retry payment.";
+  }
+  if (/insufficient|not enough|low balance/.test(normalized)) {
+    return "Payment failed: insufficient funds.";
+  }
+  if (/cancel/.test(normalized)) {
+    return "Payment was cancelled.";
+  }
+  if (/timed?\s*out|timeout|time\s*out|expired/.test(normalized)) {
+    return "Payment timed out. Please retry payment.";
+  }
+  if (/failed|fail|declin/.test(normalized)) {
+    return `Payment failed: ${statusValue}.`;
+  }
+  return `Payment did not go through (${statusValue}). Please retry payment.`;
+};
+
 const demoInterestSupportOptions = [
   {
     key: "wants_training_enhanced",
@@ -655,7 +692,6 @@ export default function AppLauncherPage() {
     }
 
     let cancelled = false;
-    const pendingStatuses = new Set(["created", "sent", "awaiting delivery"]);
     const checkStatus = async () => {
       try {
         const data = await apiFetch<DemoAccount>(`/demo/${paynowPollingDemoId}`, {
@@ -675,16 +711,10 @@ export default function AppLauncherPage() {
           return;
         }
 
-        if (
-          normalizedStatus &&
-          !pendingStatuses.has(normalizedStatus) &&
-          normalizedStatus !== "ok"
-        ) {
+        if (normalizedStatus && !pendingPaynowStatuses.has(normalizedStatus)) {
           setPaynowPollingDemoId(null);
           setPaynowProcessingVariant("danger");
-          setPaynowProcessingMessage(
-            `Payment did not go through (${status}). Please retry payment.`,
-          );
+          setPaynowProcessingMessage(formatPaynowFailureMessage(status));
           return;
         }
 
@@ -900,6 +930,15 @@ export default function AppLauncherPage() {
             visaPaymentTab.location.href = data.payment_link;
           } else {
             window.open(data.payment_link, "_blank", "noopener,noreferrer");
+          }
+        } else if (cardPaymentMethodKeys.has(data.payment_method)) {
+          setPaynowPollingDemoId(null);
+          setPaynowProcessingVariant("danger");
+          setPaynowProcessingMessage(
+            "Unable to open payment page. Please retry payment.",
+          );
+          if (visaPaymentTab && !visaPaymentTab.closed) {
+            visaPaymentTab.close();
           }
         }
         return;
