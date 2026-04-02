@@ -8630,7 +8630,7 @@ button.danger:hover {
   content: "";
   position: absolute;
   inset: 0;
-  background-image: url(./assets/app-launcher-bg.png);
+  background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(./assets/app-launcher-bg.png);
   background-size: 300px 300px;
   background: rgba(0, 0, 0, 0.5);
   background-repeat: repeat;
