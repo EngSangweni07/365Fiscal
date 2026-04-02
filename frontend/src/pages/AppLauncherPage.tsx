@@ -120,8 +120,10 @@ const SubscriptionIcon = CreditCard;
 const POSLauncherIcon = Calculator;
 const LeadsIcon = BriefcaseBusiness;
 const SupportIcon = Headset;
-const SUPPORT_EMAIL = "support@three65.com";
-const SUPPORT_URL = `mailto:${SUPPORT_EMAIL}`;
+const SUPPORT_EMAIL = "courageg@geenet.co.zw";
+const SUPPORT_URL =
+  `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("Three65 Support Request")}` +
+  `&body=${encodeURIComponent("Hello,%0D%0A%0D%0AI need help with Three65.%0D%0A%0D%0AThank you.")}`;
 
 interface AppItem {
   to: string;
