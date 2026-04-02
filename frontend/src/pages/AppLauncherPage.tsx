@@ -1607,21 +1607,19 @@ export default function AppLauncherPage() {
                 src={paynowModalUrl}
                 title="Paynow Checkout"
                 className="paynow-iframe"
+                sandbox="allow-forms allow-scripts allow-same-origin"
               />
               <p className="paynow-iframe-note">
-                If the payment page does not load in this window, use Open in
-                new tab.
+                Complete payment in this embedded window.
               </p>
             </div>
             <div className="modal-footer paynow-iframe-footer">
               <button
                 type="button"
                 className="login-btn demo-interest-submit"
-                onClick={() =>
-                  window.open(paynowModalUrl, "_blank", "noopener,noreferrer")
-                }
+                onClick={() => setPaynowModalUrl("")}
               >
-                Open in new tab
+                Close
               </button>
               <button
                 type="button"
