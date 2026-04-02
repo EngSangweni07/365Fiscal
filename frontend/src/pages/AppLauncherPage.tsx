@@ -14,6 +14,7 @@ import {
   FilePenLine,
   FileText,
   LayoutDashboard,
+  LifeBuoy,
   Monitor,
   ReceiptText,
   Settings,
@@ -118,6 +119,9 @@ const CompanyIcon = Building2;
 const SubscriptionIcon = CreditCard;
 const POSLauncherIcon = Calculator;
 const LeadsIcon = BriefcaseBusiness;
+const SupportIcon = LifeBuoy;
+const SUPPORT_URL =
+  "https://wa.me/263777589119?text=Hello%20GeeNet,%20I%20need%20help%20with%20Three65.";
 
 interface AppItem {
   to: string;
@@ -1053,7 +1057,7 @@ export default function AppLauncherPage() {
         <div className="app-grid">
           {apps.map((app, index) => (
             <NavLink
-              key={app.to}
+              key={app.key}
               to={app.to}
               className="app-tile"
               style={{ animationDelay: `${60 + index * 40}ms` }}
@@ -1076,6 +1080,17 @@ export default function AppLauncherPage() {
           ))}
         </div>
       </div>
+
+      <a
+        href={SUPPORT_URL}
+        target="_blank"
+        rel="noreferrer"
+        className="app-launcher-support-float"
+        aria-label="Open support"
+        title="Support"
+      >
+        <SupportIcon size={28} strokeWidth={2.2} />
+      </a>
 
       {demoRegistrationPromptOpen && demoAccount && (
         <div className="modal-overlay">
