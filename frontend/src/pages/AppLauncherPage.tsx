@@ -13,8 +13,8 @@ import {
   CreditCard,
   FilePenLine,
   FileText,
+  Headset,
   LayoutDashboard,
-  LifeBuoy,
   Monitor,
   ReceiptText,
   Settings,
@@ -119,9 +119,9 @@ const CompanyIcon = Building2;
 const SubscriptionIcon = CreditCard;
 const POSLauncherIcon = Calculator;
 const LeadsIcon = BriefcaseBusiness;
-const SupportIcon = LifeBuoy;
-const SUPPORT_URL =
-  "https://wa.me/263777589119?text=Hello%20GeeNet,%20I%20need%20help%20with%20Three65.";
+const SupportIcon = Headset;
+const SUPPORT_EMAIL = "support@three65.com";
+const SUPPORT_URL = `mailto:${SUPPORT_EMAIL}`;
 
 interface AppItem {
   to: string;
@@ -1251,7 +1251,16 @@ export default function AppLauncherPage() {
         aria-label="Open support"
         title="Support"
       >
-        <SupportIcon size={28} strokeWidth={2.2} />
+        <span className="app-launcher-support-icon">
+          <SupportIcon size={24} strokeWidth={2.2} />
+        </span>
+        <span className="app-launcher-support-copy">
+          <strong>Need Help?</strong>
+          <small>{SUPPORT_EMAIL}</small>
+        </span>
+        <span className="app-launcher-support-arrow" aria-hidden="true">
+          ›
+        </span>
       </a>
 
       {demoRegistrationPromptOpen && demoAccount && (

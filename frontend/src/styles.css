@@ -9103,17 +9103,19 @@ button.danger:hover {
   position: fixed;
   right: 28px;
   bottom: 24px;
-  width: 64px;
-  height: 64px;
-  border-radius: 999px;
-  display: inline-flex;
+  min-width: 214px;
+  min-height: 60px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  display: flex;
   align-items: center;
-  justify-content: center;
-  color: #fff;
-  background: linear-gradient(145deg, #24b4c7 0%, #0f8ea3 100%);
+  gap: 12px;
+  color: #f8fffd;
+  background: linear-gradient(145deg, rgba(4, 66, 77, 0.96) 0%, rgba(5, 88, 101, 0.96) 100%);
   box-shadow:
-    0 16px 32px rgba(15, 142, 163, 0.26),
-    0 8px 14px rgba(15, 23, 42, 0.14);
+    0 18px 34px rgba(4, 38, 46, 0.22),
+    0 8px 18px rgba(15, 23, 42, 0.12);
+  border: 1px solid rgba(77, 190, 203, 0.12);
   text-decoration: none;
   z-index: 4;
   opacity: 0;
@@ -9125,9 +9127,9 @@ button.danger:hover {
 .app-launcher-support-float:hover {
   transform: translateY(-4px) scale(1.04);
   box-shadow:
-    0 20px 36px rgba(15, 142, 163, 0.3),
-    0 10px 18px rgba(15, 23, 42, 0.16);
-  filter: saturate(1.06);
+    0 22px 38px rgba(4, 38, 46, 0.24),
+    0 12px 20px rgba(15, 23, 42, 0.14);
+  filter: saturate(1.08);
 }
 
 .app-launcher-support-float:active {
@@ -9138,8 +9140,45 @@ button.danger:hover {
   outline: none;
   box-shadow:
     0 0 0 4px rgba(255, 255, 255, 0.92),
-    0 0 0 7px rgba(15, 142, 163, 0.3),
-    0 16px 32px rgba(15, 142, 163, 0.26);
+    0 0 0 7px rgba(15, 142, 163, 0.22),
+    0 18px 34px rgba(4, 38, 46, 0.22);
+}
+
+.app-launcher-support-icon {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #d7f000;
+  flex: 0 0 auto;
+}
+
+.app-launcher-support-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.app-launcher-support-copy strong {
+  font-size: 18px;
+  font-weight: 700;
+  color: #f6fbfb;
+}
+
+.app-launcher-support-copy small {
+  font-size: 13px;
+  color: rgba(228, 241, 242, 0.74);
+}
+
+.app-launcher-support-arrow {
+  margin-left: auto;
+  font-size: 24px;
+  line-height: 1;
+  color: rgba(228, 241, 242, 0.82);
+  flex: 0 0 auto;
 }
 
 /* Entrance animations */
@@ -9277,8 +9316,18 @@ button.danger:hover {
   .app-launcher-support-float {
     right: 18px;
     bottom: 18px;
-    width: 58px;
-    height: 58px;
+    min-width: 196px;
+    min-height: 56px;
+    padding: 11px 14px;
+    gap: 10px;
+  }
+
+  .app-launcher-support-copy strong {
+    font-size: 16px;
+  }
+
+  .app-launcher-support-copy small {
+    font-size: 12px;
   }
 
   .login-card {
@@ -9422,8 +9471,22 @@ button.danger:hover {
   .app-launcher-support-float {
     right: 14px;
     bottom: 14px;
-    width: 54px;
-    height: 54px;
+    min-width: 184px;
+    min-height: 54px;
+    padding: 10px 12px;
+  }
+
+  .app-launcher-support-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .app-launcher-support-copy strong {
+    font-size: 15px;
+  }
+
+  .app-launcher-support-copy small {
+    font-size: 11px;
   }
 }
 
