@@ -468,6 +468,9 @@ export default function AppLauncherPage() {
   const [demoInterestStep, setDemoInterestStep] = useState(0);
   const [paynowProcessing, setPaynowProcessing] = useState(false);
   const [paynowProcessingMessage, setPaynowProcessingMessage] = useState("");
+  const [paynowProcessingVariant, setPaynowProcessingVariant] = useState<
+    "warning" | "danger"
+  >("warning");
   const [paynowPollingDemoId, setPaynowPollingDemoId] = useState<string | null>(
     null,
   );
@@ -678,12 +681,14 @@ export default function AppLauncherPage() {
           normalizedStatus !== "ok"
         ) {
           setPaynowPollingDemoId(null);
+          setPaynowProcessingVariant("danger");
           setPaynowProcessingMessage(
-            `Payment status: ${status}. Retry payment or contact support.`,
+            `Payment did not go through (${status}). Please retry payment.`,
           );
           return;
         }
 
+        setPaynowProcessingVariant("warning");
         setPaynowProcessingMessage(
           `Payment is being processed${status ? ` (${status})` : ""}...`,
         );
@@ -879,19 +884,23 @@ export default function AppLauncherPage() {
       setDemoRegistrationPromptOpen(false);
       setDemoInterestOpen(false);
       if (
-        data.payment_method &&
-        cardPaymentMethodKeys.has(data.payment_method) &&
-        /^https?:\/\//i.test(data.payment_link || "")
+        data.payment_method
       ) {
         setPaynowProcessing(true);
+        setPaynowProcessingVariant("warning");
         setPaynowProcessingMessage(
-          "Payment is being processed. Complete payment in the opened Paynow tab.",
+          "Payment is being processed. We will update this page when payment is confirmed.",
         );
         setPaynowPollingDemoId(demoAccountId);
-        if (visaPaymentTab && !visaPaymentTab.closed) {
-          visaPaymentTab.location.href = data.payment_link;
-        } else {
-          window.open(data.payment_link, "_blank", "noopener,noreferrer");
+        if (
+          cardPaymentMethodKeys.has(data.payment_method) &&
+          /^https?:\/\//i.test(data.payment_link || "")
+        ) {
+          if (visaPaymentTab && !visaPaymentTab.closed) {
+            visaPaymentTab.location.href = data.payment_link;
+          } else {
+            window.open(data.payment_link, "_blank", "noopener,noreferrer");
+          }
         }
         return;
       }
@@ -1697,11 +1706,14 @@ export default function AppLauncherPage() {
           <div className="modal modal--centered demo-interest-modal demo-interest-choice-modal">
             <div className="modal-header demo-interest-header">
               <div className="demo-interest-header-copy">
-                <h3>Processing Payment</h3>
+                <h3>Payment Status</h3>
               </div>
             </div>
             <div className="modal-body demo-interest-body demo-interest-choice-body">
-              <div className="alert alert-warning" style={{ margin: 0 }}>
+              <div
+                className={`alert ${paynowProcessingVariant === "danger" ? "alert-danger" : "alert-warning"}`}
+                style={{ margin: 0 }}
+              >
                 {paynowProcessingMessage || "Payment is being processed..."}
               </div>
             </div>
