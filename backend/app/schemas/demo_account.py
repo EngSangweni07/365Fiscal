@@ -32,6 +32,8 @@ class DemoAccountUpdate(BaseModel):
     paynow_status: str | None = None
     status: str | None = None
     notes: str | None = None
+    wants_training_enhanced: bool | None = None
+    wants_implementation_enhanced: bool | None = None
 
 
 class DemoInterestRequest(BaseModel):
@@ -52,6 +54,8 @@ class DemoInterestRequest(BaseModel):
     vat_number: str | None = Field(default=None, max_length=100)
     trade_name: str | None = Field(default=None, max_length=255)
     address: str | None = Field(default=None, max_length=1000)
+    wants_training_enhanced: bool = False
+    wants_implementation_enhanced: bool = False
 
 
 class DemoAccountRead(ORMBase):
@@ -79,6 +83,8 @@ class DemoAccountRead(ORMBase):
     created_at: datetime
     expires_at: datetime
     notes: str
+    wants_training_enhanced: bool = False
+    wants_implementation_enhanced: bool = False
     user_id: int | None = None
     company_id: int | None = None
     time_remaining_seconds: int

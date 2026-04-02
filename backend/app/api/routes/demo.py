@@ -22,6 +22,7 @@ from app.schemas.demo_account import (
 )
 from app.security.security import create_access_token, hash_password
 from app.services.email import send_demo_interest_email
+from app.services.odoo_sync import OdooQuotationPayload, OdooSyncError, sync_demo_interest_to_odoo
 from app.services.paynow import (
     MOBILE_PAYMENT_METHODS,
     PaynowError,
@@ -37,6 +38,8 @@ DEMO_DURATION_SECONDS = 30
 DEMO_INTEREST_EMAIL = "courageg@geenet.co.zw"
 DEMO_INTERNAL_CC = ["support@geenet.co.zw", "info@geenet.co.zw", DEMO_INTEREST_EMAIL]
 DEMO_WORKSPACE_NAME = "Three65 Demo Workspace"
+DEMO_NOTE_SYSTEM_TRAINING = "System training requested"
+DEMO_NOTE_IMPLEMENTATION_SUPPORT = "Implementation support requested"
 ALLOWED_PAYMENT_METHODS = MOBILE_PAYMENT_METHODS | {"visa", "mastercard"}
 DEMO_PORTAL_APPS = ",".join([
     "dashboard",
@@ -105,6 +108,10 @@ def normalize_payment_method(value: str | None) -> str:
 def is_paid_paynow_status(value: str | None) -> bool:
     normalized = (value or "").strip().lower()
     return normalized in {"paid", "awaiting delivery", "delivered"}
+
+
+def note_contains_flag(notes: str | None, marker: str) -> bool:
+    return marker.lower() in (notes or "").lower()
 
 
 def get_or_create_demo_workspace(db: Session) -> Company:
@@ -524,6 +531,10 @@ def confirm_demo_interest(
         note_parts.append(f"Paynow reference: {demo.paynow_reference}")
     if requested_apps:
         note_parts.append(f"Apps: {', '.join(requested_apps)}")
+    if payload.wants_training_enhanced:
+        note_parts.append(DEMO_NOTE_SYSTEM_TRAINING)
+    if payload.wants_implementation_enhanced:
+        note_parts.append(DEMO_NOTE_IMPLEMENTATION_SUPPORT)
     if payload.wants_zimra_fdms:
         note_parts.append("ZIMRA fiscalization requested")
     demo.notes = " | ".join(note_parts)
@@ -552,6 +563,30 @@ def confirm_demo_interest(
         address=demo.address,
         cc_emails=DEMO_INTERNAL_CC,
     )
+
+    if settings.odoo_url:
+        try:
+            sync_result = sync_demo_interest_to_odoo(
+                OdooQuotationPayload(
+                    company_name=demo.company_name,
+                    email=demo.email,
+                    phone_number=demo.phone_number,
+                    num_users=demo.num_users,
+                    wants_zimra_fdms=demo.wants_zimra_fdms,
+                    wants_training_enhanced=payload.wants_training_enhanced,
+                    wants_implementation_enhanced=payload.wants_implementation_enhanced,
+                    subscription_period=demo.subscription_period,
+                    trade_name=demo.trade_name,
+                    vat_number=demo.vat_number,
+                    tin=demo.tin,
+                    address=demo.address,
+                )
+            )
+            demo.notes = f"{demo.notes} | Odoo quotation: {sync_result['sale_order_name']}"
+        except OdooSyncError as exc:
+            demo.notes = f"{demo.notes} | Odoo sync failed: {exc}"
+        db.commit()
+        db.refresh(demo)
 
     return serialize_demo(demo)
 
@@ -811,6 +846,8 @@ def serialize_demo(demo: DemoAccount) -> dict:
         "created_at": demo.created_at,
         "expires_at": demo.expires_at,
         "notes": demo.notes,
+        "wants_training_enhanced": note_contains_flag(demo.notes, DEMO_NOTE_SYSTEM_TRAINING),
+        "wants_implementation_enhanced": note_contains_flag(demo.notes, DEMO_NOTE_IMPLEMENTATION_SUPPORT),
         "user_id": demo.user_id,
         "company_id": demo.company_id,
         "time_remaining_seconds": demo.time_remaining_seconds(),

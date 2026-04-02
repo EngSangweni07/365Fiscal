@@ -32,6 +32,12 @@ class Settings(BaseSettings):
     paynow_result_url: str | None = None
     paynow_monthly_amount_usd: float = 13.0
     paynow_yearly_amount_usd: float = 130.0
+    odoo_url: str | None = None
+    odoo_database: str | None = None
+    odoo_login: str | None = None
+    odoo_api_key: str | None = None
+    odoo_bearer_token: str | None = None
+    odoo_timeout_seconds: int = 30
 
     class Config:
         env_file = ".env"
