@@ -135,6 +135,7 @@ Thank you.`;
 const SUPPORT_URL =
   `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(SUPPORT_SUBJECT)}` +
   `&body=${encodeURIComponent(SUPPORT_BODY)}`;
+const DEMO_PAYMENT_SUCCESS_PATH = "/demo/payment-success";
 
 interface AppItem {
   to: string;
@@ -727,7 +728,7 @@ export default function AppLauncherPage() {
           setPaynowProcessingMessage("Payment confirmed. Redirecting...");
           setPaynowProcessing(false);
           setPaynowPollingDemoId(null);
-          window.location.assign("/subscriptions");
+          window.location.assign(DEMO_PAYMENT_SUCCESS_PATH);
           return;
         }
 
@@ -923,6 +924,7 @@ export default function AppLauncherPage() {
           suppress401Redirect: true,
           body: JSON.stringify({
             ...demoInterestForm,
+            payment_link: `${window.location.origin}${DEMO_PAYMENT_SUCCESS_PATH}`,
             payment_method: selectedPaymentMethod,
             ecocash_phone_number:
               selectedPaymentMethod &&

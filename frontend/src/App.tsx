@@ -54,6 +54,7 @@ import SubscriptionsPage from "./pages/SubscriptionsPage";
 import POSPage from "./pages/POSPage";
 import CustomerDisplayPage from "./pages/CustomerDisplayPage";
 import DemoSignupPage from "./pages/DemoSignupPage";
+import DemoPaymentSuccessPage from "./pages/DemoPaymentSuccessPage";
 import LeadsPage from "./pages/LeadsPage";
 import { apiFetch } from "./api";
 import { useMe } from "./hooks/useMe";
@@ -778,6 +779,7 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/portal-login" element={<PortalLoginPage />} />
         <Route path="/demo" element={<DemoSignupPage />} />
+        <Route path="/demo/payment-success" element={<DemoPaymentSuccessPage />} />
         <Route path="/demo/:demoId" element={<DemoSignupPage />} />
         <Route path="/pos/customer-display" element={<CustomerDisplayPage />} />
         <Route

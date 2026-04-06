@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from datetime import datetime, timedelta
 import secrets
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urlunsplit
 
 from app.api.deps import get_db, require_admin
 from app.models.company import Company
@@ -40,6 +40,7 @@ DEMO_INTERNAL_CC = ["support@geenet.co.zw", "info@geenet.co.zw", DEMO_INTEREST_E
 DEMO_WORKSPACE_NAME = "Three65 Demo Workspace"
 DEMO_NOTE_SYSTEM_TRAINING = "System training requested"
 DEMO_NOTE_IMPLEMENTATION_SUPPORT = "Implementation support requested"
+DEMO_PAYMENT_SUCCESS_PATH = "/demo/payment-success"
 ALLOWED_PAYMENT_METHODS = MOBILE_PAYMENT_METHODS | {"visa", "mastercard"}
 DEMO_PORTAL_APPS = ",".join([
     "dashboard",
@@ -99,6 +100,30 @@ def build_login_link(payment_link: str | None) -> str:
     if parts.scheme and parts.netloc:
         return f"{parts.scheme}://{parts.netloc}/login"
     return "/login"
+
+
+def build_demo_payment_success_return_url(raw_url: str | None) -> str:
+    raw = (raw_url or "").strip()
+    if not raw:
+        return ""
+    parts = urlsplit(raw)
+    if parts.scheme and parts.netloc:
+        return urlunsplit(
+            (parts.scheme, parts.netloc, DEMO_PAYMENT_SUCCESS_PATH, "", "")
+        )
+    if raw.startswith("/"):
+        return DEMO_PAYMENT_SUCCESS_PATH
+    return ""
+
+
+def resolve_demo_paynow_return_url(
+    configured_url: str | None,
+    fallback_url: str | None,
+) -> str:
+    primary = build_demo_payment_success_return_url(configured_url)
+    if primary:
+        return primary
+    return build_demo_payment_success_return_url(fallback_url)
 
 
 def normalize_payment_method(value: str | None) -> str:
@@ -507,7 +532,9 @@ def confirm_demo_interest(
             else settings.paynow_monthly_amount_usd
         )
         merchant_reference = f"DEMO-{demo.id}-{int(now.timestamp())}"
-        return_url = (settings.paynow_return_url or demo.payment_link or "").strip()
+        return_url = resolve_demo_paynow_return_url(
+            settings.paynow_return_url, demo.payment_link
+        )
         result_url = (settings.paynow_result_url or "").strip()
         if not return_url:
             raise HTTPException(
@@ -649,7 +676,9 @@ async def paynow_result_callback(
     if not demo.paynow_poll_url:
         return {"status": "ignored", "detail": "No poll url available"}
 
-    return_url = (settings.paynow_return_url or demo.payment_link or "").strip()
+    return_url = resolve_demo_paynow_return_url(
+        settings.paynow_return_url, demo.payment_link
+    )
     result_url = (settings.paynow_result_url or "").strip()
     if not return_url or not result_url:
         return {"status": "ignored", "detail": "Paynow callback URLs not configured"}
@@ -700,7 +729,9 @@ def get_demo_account(
         and not is_paid_paynow_status(demo.paynow_status)
         and paynow_is_configured()
     ):
-        return_url = (settings.paynow_return_url or demo.payment_link or "").strip()
+        return_url = resolve_demo_paynow_return_url(
+            settings.paynow_return_url, demo.payment_link
+        )
         result_url = (settings.paynow_result_url or "").strip()
         if return_url and result_url:
             try:
