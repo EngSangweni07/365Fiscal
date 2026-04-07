@@ -2261,13 +2261,9 @@ thead.table-light th {
 .login-card {
   width: 100%;
   max-width: 400px;
-  background: rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(34px);
-  -webkit-backdrop-filter: blur(34px);
+  background: #ffffffff;
   border-radius: 32px;
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.72);
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.24), 0 0 0 1px rgba(255,255,255,0.14);
   animation: card-fade-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
   animation-delay: 0.15s;
   position: relative;
@@ -2278,9 +2274,6 @@ thead.table-light th {
 }
 
 .login-card-glass {
-  background: rgba(255, 255, 255, 0.42);
-  backdrop-filter: blur(34px);
-  -webkit-backdrop-filter: blur(34px);
 }
 
 @keyframes card-fade-in {
@@ -2533,33 +2526,41 @@ thead.table-light th {
   opacity: 0.6;
 }
 
-.input-group input {
+.login-card .input-group input {
   width: 100%;
   font-size: 15px;
   padding: 14px 16px;
   border-radius: 12px;
-  border: 1.5px solid rgba(255, 255, 255, 0.9);
-  background: rgba(255, 255, 255, 0.96);
+  border: 1.5px solid rgba(15, 23, 42, 0.24);
+  background: var(--color-base-white);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    0 1px 2px rgba(15, 23, 42, 0.08);
   transition: all 0.25s ease;
-  color: var(--color-base-black);
+  color: var(--color-text-primary);
 }
 
-.input-group input::placeholder {
-  color: rgba(0, 0, 0, 0.42);
+.login-card .input-group input::placeholder {
+  color: rgba(15, 23, 42, 0.52);
 }
 
-.input-group input:hover {
-  border-color: rgba(255, 255, 255, 0.95);
+.login-card .input-group input:hover {
+  border-color: rgba(15, 23, 42, 0.36);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 1px 3px rgba(15, 23, 42, 0.11);
 }
 
-.input-group input:focus {
+.login-card .input-group input:focus {
   border-color: var(--color-brand-primary);
-  box-shadow: 0 0 0 3px rgba(11, 69, 80, 0.14);
+  box-shadow:
+    0 0 0 3px rgba(11, 69, 80, 0.22),
+    0 4px 10px rgba(15, 23, 42, 0.12);
   outline: none;
 }
 
-.input-group input:disabled {
-  background: var(--color-bg-page);
+.login-card .input-group input:disabled {
+  background: #eef2f7;
   cursor: not-allowed;
   opacity: 0.7;
 }
@@ -9519,7 +9520,7 @@ button.danger:hover {
     padding: 14px 18px;
   }
 
-  .input-group input {
+  .login-card .input-group input {
     font-size: 14px;
     padding: 12px 14px;
   }
