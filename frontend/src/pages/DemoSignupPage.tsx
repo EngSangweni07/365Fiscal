@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { Building2, Mail, Users, Phone } from "lucide-react";
 import { apiFetch } from "../api";
 
-import { whatsappIcon } from "../assets/whatsapp-icon.svg?react";
+import WhatsappIcon from "../assets/whatsapp-icon.svg?react";
 
 const GEE_NET_SUPPORT_EMAIL = "support@geenet.co.zw";
 const GEE_NET_WHATSAPP_URL =
@@ -365,7 +365,7 @@ export default function DemoSignupPage() {
           aria-label="Chat with GeeNet on WhatsApp"
           title="Chat with GeeNet on WhatsApp"
         >
-          <whatsappIcon className="demo-whatsapp-icon" />
+          <WhatsappIcon className="demo-whatsapp-icon" />
         </a>
       </div>
     </div>
