@@ -3045,8 +3045,8 @@ thead.table-light th {
   .demo-whatsapp-float {
     width: 56px;
     height: 56px;
-    left: calc(50% + 225px);
-    bottom: 18px;
+    left: calc(90% + 550px);
+    bottom: -5rem;
   }
 
   .demo-whatsapp-float::before {

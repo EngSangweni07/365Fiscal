@@ -67,22 +67,6 @@
   text-transform: uppercase;
 }
 
-.invoice-page-shell .o-sidebar-item {
-  min-height: 46px;
-  border-radius: 12px;
-  padding: 0 12px;
-  margin-bottom: 6px;
-}
-
-.invoice-page-shell .o-sidebar-item:last-child {
-  margin-bottom: 0;
-}
-
-.invoice-page-shell .o-sidebar-item.active {
-  background: #3166e3;
-  box-shadow: 0 8px 18px rgba(49, 102, 227, 0.18);
-}
-
 .invoice-list-main {
   min-width: 0;
 }

@@ -1105,16 +1105,16 @@ export default function AppLauncherPage() {
   const billingPeriodLabel =
     demoInterestForm.subscription_period === "yearly" ? "Annual" : "Monthly";
   const perUserAmount = 10;
+  const perUserAmountWithTax = Number((perUserAmount * 1.155).toFixed(2));
   const userCount = Math.max(1, demoInterestForm.num_users);
-  const userSeatsAmount = userCount * perUserAmount;
+  const userSeatsAmount = userCount * perUserAmountWithTax;
   const periodMultiplier =
     demoInterestForm.subscription_period === "yearly" ? 12 : 1;
   const userSeatsAmountForPeriod = userSeatsAmount * periodMultiplier;
   const subscriptionAmount = userSeatsAmountForPeriod;
   const zimraIntegrationAmount = 0;
   const pricingSubtotal = subscriptionAmount + zimraIntegrationAmount;
-  const pricingTaxAmount = Number((pricingSubtotal * 0.155).toFixed(2));
-  const pricingTotal = pricingSubtotal + pricingTaxAmount;
+  const pricingTotal = pricingSubtotal;
   const hasAdditionalAssistanceSelected =
     demoInterestForm.wants_training_enhanced ||
     demoInterestForm.wants_implementation_enhanced;
@@ -2005,7 +2005,7 @@ export default function AppLauncherPage() {
                   <span>{billingPeriodLabel}</span>
                 </div>
                 <div className="demo-interest-pricing-item">
-                  <span>{`User License Fee (${userCount} X $10.00)`}</span>
+                  <span>{`User License Fee (${userCount} X ${formatMoney(perUserAmountWithTax)})`}</span>
                   <span>{formatMoney(userSeatsAmountForPeriod)}</span>
                 </div>
                 {demoInterestForm.wants_training_enhanced && (
@@ -2033,10 +2033,6 @@ export default function AppLauncherPage() {
                 <div className="demo-interest-summary-row text-muted">
                   <span>Subtotal</span>
                   <span>{formatMoney(pricingSubtotal)}</span>
-                </div>
-                <div className="demo-interest-summary-row text-muted">
-                  <span>Tax</span>
-                  <span>{formatMoney(pricingTaxAmount)}</span>
                 </div>
                 <div
                   className="demo-interest-summary-row demo-interest-summary-total"
