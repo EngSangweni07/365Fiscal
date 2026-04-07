@@ -2866,6 +2866,11 @@ thead.table-light th {
   gap: 7px;
 }
 
+.demo-form-compact .input-group > input {
+  margin-left: 0 !important;
+  border-radius: 12px !important;
+}
+
 .demo-field .input-label {
   font-size: 11px;
   color: rgba(15, 23, 42, 0.82);
