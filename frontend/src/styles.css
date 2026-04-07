@@ -3110,7 +3110,7 @@ thead.table-light th {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(145deg, #25d366 0%, #128c7e 100%);
+  background: #25d366;
   color: var(--color-base-white);
   box-shadow:
     0 18px 34px rgba(18, 140, 126, 0.34),
