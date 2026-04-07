@@ -7428,7 +7428,7 @@ button.danger:hover {
 }
 
 .o-sidebar-item.active {
-  background: var(--color-brand-primary);
+  background: var(--color-brand-primary-active);
   color: var(--color-base-white);
 }
 
@@ -7679,7 +7679,7 @@ button.danger:hover {
 }
 
 .o-statusbar-item.active {
-  background: var(--color-brand-primary);
+  background: var(--color-brand-primary-active);
   color: var(--color-base-white);
 }
 
