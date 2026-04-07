@@ -11,13 +11,16 @@ export default function DemoPaymentSuccessPage() {
           </div>
           <h1 className="demo-payment-success-title">Payment Successful</h1>
           <p className="demo-payment-success-copy">
-            Your demo payment has been confirmed. You can continue to your
-            subscription details or sign in to proceed.
+            Your payment was successful! <br />
+            You can now access your subscription and enjoy your services.
           </p>
         </div>
 
         <div className="login-card-footer demo-payment-success-footer">
-          <Link to="/subscriptions" className="login-btn demo-payment-success-btn">
+          <Link
+            to="/subscriptions"
+            className="login-btn demo-payment-success-btn"
+          >
             Continue
           </Link>
           <Link to="/login" className="demo-payment-success-link">
