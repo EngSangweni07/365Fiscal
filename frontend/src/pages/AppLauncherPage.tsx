@@ -1398,10 +1398,6 @@ export default function AppLauncherPage() {
               <div className="demo-interest-header-copy">
                 <span className="demo-interest-eyebrow">Support Request</span>
                 <h3>Need help with Three65?</h3>
-                <p className="demo-interest-header-note">
-                  Tell us what you need, and the app will send your message
-                  directly to our support inbox.
-                </p>
               </div>
               <button
                 className="outline"
@@ -1415,7 +1411,7 @@ export default function AppLauncherPage() {
             </div>
             <div className="modal-body demo-interest-body support-request-body">
               <div className="support-request-grid">
-                <div className="input-group">
+                <div className="input-group support-request-input">
                   <label className="input-label">Your name</label>
                   <input
                     value={supportForm.name}
@@ -1428,7 +1424,7 @@ export default function AppLauncherPage() {
                     placeholder="Your full name"
                   />
                 </div>
-                <div className="input-group">
+                <div className="input-group support-request-input">
                   <label className="input-label">Email</label>
                   <input
                     type="email"
@@ -1442,7 +1438,7 @@ export default function AppLauncherPage() {
                     placeholder="you@example.com"
                   />
                 </div>
-                <div className="input-group">
+                <div className="input-group support-request-input">
                   <label className="input-label">Phone number</label>
                   <input
                     value={supportForm.phone_number}
@@ -1455,7 +1451,7 @@ export default function AppLauncherPage() {
                     placeholder="077 123 4567"
                   />
                 </div>
-                <div className="input-group">
+                <div className="input-group support-request-input">
                   <label className="input-label">Company name</label>
                   <input
                     value={supportForm.company_name}
@@ -1468,7 +1464,7 @@ export default function AppLauncherPage() {
                     placeholder="Your company"
                   />
                 </div>
-                <div className="input-group support-request-field-full">
+                <div className="input-group support-request-input support-request-field-full">
                   <label className="input-label">Subject</label>
                   <input
                     value={supportForm.subject}
@@ -1481,7 +1477,7 @@ export default function AppLauncherPage() {
                     placeholder="What do you need help with?"
                   />
                 </div>
-                <div className="input-group support-request-field-full">
+                <div className="input-group support-request-input support-request-field-full">
                   <label className="input-label">Message</label>
                   <textarea
                     className="support-request-textarea"
@@ -1493,7 +1489,7 @@ export default function AppLauncherPage() {
                       }))
                     }
                     rows={6}
-                    placeholder="Describe the issue, what you were doing, and any error message you saw."
+                    placeholder="Briefly describe the issue or support you need."
                   />
                 </div>
               </div>
