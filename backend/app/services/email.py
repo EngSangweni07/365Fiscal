@@ -119,6 +119,88 @@ def send_plain_email(to_email: str, subject: str, body: str) -> None:
     _deliver_email(to_email=to_email, subject=subject, body=body)
 
 
+def send_support_request_email(
+    *,
+    to_email: str,
+    requester_name: str,
+    requester_email: str,
+    requester_phone: str = "",
+    company_name: str = "",
+    subject: str,
+    message: str,
+    current_path: str = "",
+    signed_in_email: str = "",
+    cc_emails: list[str] | None = None,
+) -> None:
+    phone_value = requester_phone or "-"
+    company_value = company_name or "-"
+    signed_in_value = signed_in_email or "-"
+    page_value = current_path or "-"
+
+    plain_body = "\n".join(
+        [
+            "A new Three65 support request was submitted from the app.",
+            "",
+            f"Subject: {subject}",
+            f"Requester name: {requester_name}",
+            f"Requester email: {requester_email}",
+            f"Contact number: {phone_value}",
+            f"Company name: {company_value}",
+            f"Signed-in account: {signed_in_value}",
+            f"Current page: {page_value}",
+            "",
+            "Message:",
+            message,
+        ]
+    )
+
+    html_body = f"""
+<!DOCTYPE html>
+<html lang="en">
+  <body style="margin:0;padding:24px;background:#eef3f6;font-family:Segoe UI,Arial,sans-serif;color:#101828;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:720px;margin:0 auto;background:#ffffff;border:1px solid #dbe5ea;border-radius:24px;overflow:hidden;box-shadow:0 24px 60px rgba(15,23,42,.12);">
+      <tr>
+        <td style="padding:24px 28px;border-bottom:4px solid #d1e826;background:linear-gradient(135deg, rgba(11,69,80,.08), rgba(11,69,80,.02));">
+          <div style="font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#0b4550;">Three65 Support</div>
+          <h1 style="margin:10px 0 8px;font-size:28px;line-height:1.15;color:#101828;">New support request</h1>
+          <p style="margin:0;font-size:15px;line-height:1.7;color:#475467;">A user submitted a help request from inside the Three65 app.</p>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:24px 28px 8px;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+            {_summary_row("Subject", subject)}
+            {_summary_row("Requester name", requester_name)}
+            {_summary_row("Requester email", requester_email)}
+            {_summary_row("Contact number", phone_value)}
+            {_summary_row("Company name", company_value)}
+            {_summary_row("Signed-in account", signed_in_value)}
+            {_summary_row("Current page", page_value)}
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:8px 28px 28px;">
+          <div style="border:1px solid #dbe5ea;border-radius:20px;background:#f8fbfc;padding:18px 20px;">
+            <div style="font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#0b4550;">Message</div>
+            <div style="margin-top:12px;font-size:15px;line-height:1.7;color:#101828;white-space:pre-wrap;">{html.escape(message)}</div>
+          </div>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+"""
+
+    _deliver_email(
+        to_email=to_email,
+        subject=f"Three65 support: {subject}",
+        body=plain_body,
+        html_body=html_body,
+        cc_emails=cc_emails,
+    )
+
+
 def _format_requested_apps(requested_apps: list[str] | None) -> list[str]:
     values = requested_apps or []
     return [APP_LABELS.get(item, item.replace("_", " ").title()) for item in values]

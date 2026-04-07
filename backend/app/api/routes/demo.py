@@ -14,6 +14,7 @@ from app.models.role import Role
 from app.models.subscription import ActivationCode, Subscription
 from app.models.user import User
 from app.schemas.demo_account import (
+    BatchDemoIds,
     DemoAccountCreate,
     DemoInterestRequest,
     DemoAccountRead,
@@ -875,6 +876,27 @@ def update_demo_account(
     db.refresh(demo)
     
     return serialize_demo(demo)
+
+
+@router.post("/batch-delete")
+def batch_delete_demo_accounts(
+    payload: BatchDemoIds,
+    db: Session = Depends(get_db),
+    _: object = Depends(require_admin),
+):
+    demos = db.query(DemoAccount).filter(DemoAccount.id.in_(payload.ids)).all()
+
+    if not demos:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No demo leads found",
+        )
+
+    for demo in demos:
+        db.delete(demo)
+
+    db.commit()
+    return {"deleted": len(demos)}
 
 
 @router.delete("/{demo_id}")

@@ -36,6 +36,10 @@ class DemoAccountUpdate(BaseModel):
     wants_implementation_enhanced: bool | None = None
 
 
+class BatchDemoIds(BaseModel):
+    ids: list[int]
+
+
 class DemoInterestRequest(BaseModel):
     wants_actual_three65: bool = True
     company_name: str = Field(min_length=2, max_length=255)

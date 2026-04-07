@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { apiFetch } from "../api";
 import { Sidebar } from "../components/Sidebar";
+import { useAlert } from "../context/AlertContext";
 import type { SidebarSection } from "../types/sidebar";
 
 type DemoLead = {
@@ -95,8 +96,19 @@ const buildInitialCompanyPayload = (lead: DemoLead): CompanyPayload => ({
   portal_apps: PORTAL_APPS,
 });
 
+const getErrorMessage = (err: unknown, fallback: string) => {
+  if (!(err instanceof Error) || !err.message) return fallback;
+  try {
+    const parsed = JSON.parse(err.message) as { detail?: string };
+    return parsed.detail || err.message;
+  } catch {
+    return err.message;
+  }
+};
+
 export default function LeadsPage() {
   const navigate = useNavigate();
+  const { showAlert, showConfirm } = useAlert();
   const [statusFilter, setStatusFilter] =
     useState<(typeof statusOptions)[number]>("all");
   const [viewMode, setViewMode] = useState<"cards" | "list">("list");
@@ -110,6 +122,8 @@ export default function LeadsPage() {
   const [savingPortal, setSavingPortal] = useState(false);
   const [actionMessage, setActionMessage] = useState("");
   const [deletingLeadId, setDeletingLeadId] = useState<number | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [batchDeleting, setBatchDeleting] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -131,6 +145,22 @@ export default function LeadsPage() {
   useEffect(() => {
     loadLeads(statusFilter);
   }, [statusFilter]);
+
+  useEffect(() => {
+    setSelectedIds((current) => {
+      const validIds = new Set(leads.map((lead) => lead.id));
+      let changed = false;
+      const next = new Set<number>();
+      current.forEach((id) => {
+        if (validIds.has(id)) {
+          next.add(id);
+        } else {
+          changed = true;
+        }
+      });
+      return changed ? next : current;
+    });
+  }, [leads]);
 
   useEffect(() => {
     setPage(1);
@@ -169,6 +199,10 @@ export default function LeadsPage() {
 
   const pageStart = filteredLeads.length ? (currentPage - 1) * pageSize + 1 : 0;
   const pageEnd = Math.min(currentPage * pageSize, filteredLeads.length);
+  const allSelectedOnPage =
+    paginatedLeads.length > 0 &&
+    paginatedLeads.every((lead) => selectedIds.has(lead.id));
+  const hasSelectedLeads = selectedIds.size > 0;
 
   const sidebarSections = useMemo<SidebarSection[]>(
     () => [
@@ -236,25 +270,102 @@ export default function LeadsPage() {
     setActionMessage("");
   };
 
+  const toggleSelect = (leadId: number) => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(leadId)) {
+        next.delete(leadId);
+      } else {
+        next.add(leadId);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAllOnPage = () => {
+    const pageIds = paginatedLeads.map((lead) => lead.id);
+    const shouldClear = pageIds.length > 0 && pageIds.every((id) => selectedIds.has(id));
+
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      pageIds.forEach((id) => {
+        if (shouldClear) {
+          next.delete(id);
+        } else {
+          next.add(id);
+        }
+      });
+      return next;
+    });
+  };
+
   const handleDeleteLead = async (lead: DemoLead) => {
-    const confirmed = window.confirm(`Delete lead for ${lead.company_name}?`);
+    const confirmed = await showConfirm({
+      title: "Delete lead",
+      message: `Delete lead for ${lead.company_name}? This action cannot be undone.`,
+      variant: "warning",
+      confirmLabel: "Delete",
+    });
     if (!confirmed) return;
 
     setDeletingLeadId(lead.id);
     setActionMessage("");
     try {
       await apiFetch(`/demo/${lead.id}`, { method: "DELETE" });
-      const remaining = leads.filter((item) => item.id !== lead.id);
-      setLeads(remaining);
+      setLeads((current) => current.filter((item) => item.id !== lead.id));
+      setSelectedIds((current) => {
+        if (!current.has(lead.id)) return current;
+        const next = new Set(current);
+        next.delete(lead.id);
+        return next;
+      });
       if (selectedLead?.id === lead.id) {
         closeLead();
       }
     } catch (err) {
-      setActionMessage(
-        err instanceof Error ? err.message : "Failed to delete lead.",
-      );
+      const message = getErrorMessage(err, "Failed to delete lead.");
+      if (selectedLead?.id === lead.id) {
+        setActionMessage(message);
+      } else {
+        showAlert({ message, variant: "danger" });
+      }
     } finally {
       setDeletingLeadId(null);
+    }
+  };
+
+  const handleBatchDelete = async () => {
+    if (!selectedIds.size) return;
+
+    const ids = Array.from(selectedIds);
+    const confirmed = await showConfirm({
+      title: "Delete leads",
+      message: `Delete ${ids.length} selected lead${ids.length === 1 ? "" : "s"}? This action cannot be undone.`,
+      variant: "warning",
+      confirmLabel: "Delete",
+    });
+    if (!confirmed) return;
+
+    setBatchDeleting(true);
+    setActionMessage("");
+    try {
+      await apiFetch("/demo/batch-delete", {
+        method: "POST",
+        body: JSON.stringify({ ids }),
+      });
+      const deletedIds = new Set(ids);
+      setLeads((current) => current.filter((lead) => !deletedIds.has(lead.id)));
+      setSelectedIds(new Set());
+      if (selectedLead && deletedIds.has(selectedLead.id)) {
+        closeLead();
+      }
+    } catch (err) {
+      showAlert({
+        message: getErrorMessage(err, "Failed to delete leads."),
+        variant: "danger",
+      });
+    } finally {
+      setBatchDeleting(false);
     }
   };
 
@@ -367,6 +478,37 @@ export default function LeadsPage() {
             </div>
           </div>
 
+          {hasSelectedLeads && (
+            <div className="batch-action-bar">
+              <span className="batch-count">{selectedIds.size} selected</span>
+              <label className="batch-master-toggle">
+                <input
+                  type="checkbox"
+                  checked={allSelectedOnPage}
+                  onChange={toggleSelectAllOnPage}
+                  className="batch-checkbox"
+                />
+                Select page
+              </label>
+              <button
+                className="batch-btn delete-btn"
+                type="button"
+                onClick={handleBatchDelete}
+                disabled={batchDeleting}
+              >
+                {batchDeleting ? "Deleting..." : `Delete (${selectedIds.size})`}
+              </button>
+              <button
+                className="batch-btn clear-btn"
+                type="button"
+                onClick={() => setSelectedIds(new Set())}
+                disabled={batchDeleting}
+              >
+                Clear
+              </button>
+            </div>
+          )}
+
           {loading ? (
             <div className="table-card full-width">
               <div className="leads-empty-state">Loading demo leads...</div>
@@ -384,6 +526,15 @@ export default function LeadsPage() {
               <table className="table leads-table">
                 <thead>
                   <tr>
+                    <th className="leads-select-cell">
+                      <input
+                        type="checkbox"
+                        checked={allSelectedOnPage}
+                        onChange={toggleSelectAllOnPage}
+                        className="batch-checkbox"
+                        aria-label="Select all leads on this page"
+                      />
+                    </th>
                     <th>Company</th>
                     <th>Email</th>
                     <th>Phone</th>
@@ -391,15 +542,30 @@ export default function LeadsPage() {
                     <th>Status</th>
                     <th>Created</th>
                     <th>Expires</th>
+                    <th className="leads-actions-cell">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {paginatedLeads.map((lead) => (
                     <tr
                       key={lead.id}
-                      className="leads-table-row"
+                      className={`leads-table-row ${
+                        selectedIds.has(lead.id) ? "row-selected" : ""
+                      }`}
                       onClick={() => openLead(lead)}
                     >
+                      <td
+                        className="leads-select-cell"
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(lead.id)}
+                          onChange={() => toggleSelect(lead.id)}
+                          className="batch-checkbox"
+                          aria-label={`Select ${lead.company_name}`}
+                        />
+                      </td>
                       <td>{lead.company_name}</td>
                       <td>{lead.email}</td>
                       <td>{lead.phone_number}</td>
@@ -416,7 +582,7 @@ export default function LeadsPage() {
                           className="leads-delete-btn"
                           type="button"
                           onClick={() => handleDeleteLead(lead)}
-                          disabled={deletingLeadId === lead.id}
+                          disabled={batchDeleting || deletingLeadId === lead.id}
                           title="Delete lead"
                         >
                           <Trash2 size={15} />
@@ -432,9 +598,23 @@ export default function LeadsPage() {
               {paginatedLeads.map((lead) => (
                 <article
                   key={lead.id}
-                  className="table-card leads-lead-card"
+                  className={`table-card leads-lead-card ${
+                    selectedIds.has(lead.id) ? "card-selected" : ""
+                  }`}
                   onClick={() => openLead(lead)}
                 >
+                  <div
+                    className="leads-card-select"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(lead.id)}
+                      onChange={() => toggleSelect(lead.id)}
+                      className="batch-checkbox"
+                      aria-label={`Select ${lead.company_name}`}
+                    />
+                  </div>
                   <button
                     className="leads-delete-btn leads-delete-btn-card"
                     type="button"
@@ -442,7 +622,7 @@ export default function LeadsPage() {
                       event.stopPropagation();
                       handleDeleteLead(lead);
                     }}
-                    disabled={deletingLeadId === lead.id}
+                    disabled={batchDeleting || deletingLeadId === lead.id}
                     title="Delete lead"
                   >
                     <Trash2 size={15} />
@@ -643,7 +823,7 @@ export default function LeadsPage() {
                 className="outline danger"
                 onClick={() => handleDeleteLead(selectedLead)}
                 type="button"
-                disabled={deletingLeadId === selectedLead.id}
+                disabled={batchDeleting || deletingLeadId === selectedLead.id}
               >
                 {deletingLeadId === selectedLead.id ? "Deleting..." : "Delete Lead"}
               </button>

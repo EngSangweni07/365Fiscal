@@ -4006,6 +4006,7 @@ button.demo-interest-app-option {
 }
 
 .leads-lead-card {
+  position: relative;
   display: grid;
   gap: 16px;
   cursor: pointer;
@@ -4108,6 +4109,10 @@ button.demo-interest-app-option {
   width: 100%;
 }
 
+.leads-select-cell {
+  width: 44px;
+}
+
 .leads-actions-cell {
   width: 64px;
   text-align: right;
@@ -4117,8 +4122,24 @@ button.demo-interest-app-option {
   cursor: pointer;
 }
 
+.leads-table-row.row-selected td {
+  background: var(--color-surface-brand-soft);
+}
+
 .leads-table-row:hover td {
   background: var(--color-bg-page);
+}
+
+.leads-table-row.row-selected:hover td {
+  background: var(--color-state-info-soft);
+}
+
+.leads-card-select {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  z-index: 2;
+  display: inline-flex;
 }
 
 .leads-modal {
@@ -9172,6 +9193,8 @@ button.danger:hover {
   display: flex;
   align-items: center;
   gap: 12px;
+  font: inherit;
+  text-align: left;
   color: #f8fffd;
   background: linear-gradient(145deg, rgba(4, 66, 77, 0.96) 0%, rgba(5, 88, 101, 0.96) 100%);
   box-shadow:
@@ -9241,6 +9264,43 @@ button.danger:hover {
   line-height: 1;
   color: rgba(228, 241, 242, 0.82);
   flex: 0 0 auto;
+}
+
+.support-request-modal {
+  max-width: 720px;
+}
+
+.support-request-body {
+  gap: 16px;
+}
+
+.support-request-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.support-request-field-full {
+  grid-column: 1 / -1;
+}
+
+.support-request-textarea {
+  width: 100%;
+  min-height: 160px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--color-base-black);
+  font-size: 15px;
+  resize: vertical;
+  transition: all 0.25s ease;
+}
+
+.support-request-textarea:focus {
+  border-color: var(--color-brand-primary);
+  box-shadow: 0 0 0 3px rgba(11, 69, 80, 0.14);
+  outline: none;
 }
 
 /* Entrance animations */
@@ -9390,6 +9450,10 @@ button.danger:hover {
 
   .app-launcher-support-copy small {
     font-size: 12px;
+  }
+
+  .support-request-grid {
+    grid-template-columns: 1fr;
   }
 
   .login-card {
@@ -9549,6 +9613,10 @@ button.danger:hover {
 
   .app-launcher-support-copy small {
     font-size: 11px;
+  }
+
+  .support-request-grid {
+    grid-template-columns: 1fr;
   }
 }
 

@@ -20,8 +20,9 @@ import {
   Settings,
   ShoppingCart,
   UsersRound,
+  X,
 } from "lucide-react";
-import { useMe } from "../hooks/useMe";
+import { useMe, type Me } from "../hooks/useMe";
 import { getInitials } from "../hooks/getInitials";
 import { apiFetch } from "../api";
 
@@ -104,6 +105,15 @@ type PaymentMethodKey =
   | "mastercard"
   | "innbucks";
 
+type SupportRequestForm = {
+  name: string;
+  email: string;
+  phone_number: string;
+  company_name: string;
+  subject: string;
+  message: string;
+};
+
 // App icons powered by Lucide
 const DashboardIcon = LayoutDashboard;
 const InvoiceIcon = FileText;
@@ -136,6 +146,28 @@ const SUPPORT_URL =
   `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(SUPPORT_SUBJECT)}` +
   `&body=${encodeURIComponent(SUPPORT_BODY)}`;
 const DEMO_PAYMENT_SUCCESS_PATH = "/demo/payment-success";
+
+const createSupportRequestForm = (me?: Me | null): SupportRequestForm => {
+  const company = me?.companies?.[0];
+  return {
+    name: me?.name || "",
+    email: me?.email || "",
+    phone_number: company?.phone || "",
+    company_name: company?.name || "",
+    subject: SUPPORT_SUBJECT,
+    message: "",
+  };
+};
+
+const getErrorMessage = (err: unknown, fallback: string) => {
+  if (!(err instanceof Error) || !err.message) return fallback;
+  try {
+    const parsed = JSON.parse(err.message) as { detail?: string };
+    return parsed.detail || err.message;
+  } catch {
+    return err.message;
+  }
+};
 
 interface AppItem {
   to: string;
@@ -521,6 +553,13 @@ export default function AppLauncherPage() {
   const [demoInterestSubmitting, setDemoInterestSubmitting] = useState(false);
   const [demoInterestSubmitted, setDemoInterestSubmitted] = useState(false);
   const [demoInterestStep, setDemoInterestStep] = useState(0);
+  const [supportModalOpen, setSupportModalOpen] = useState(false);
+  const [supportSubmitting, setSupportSubmitting] = useState(false);
+  const [supportError, setSupportError] = useState("");
+  const [supportSuccess, setSupportSuccess] = useState("");
+  const [supportForm, setSupportForm] = useState<SupportRequestForm>(
+    createSupportRequestForm(),
+  );
   const [paynowProcessing, setPaynowProcessing] = useState(false);
   const [paynowProcessingMessage, setPaynowProcessingMessage] = useState("");
   const [paynowProcessingVariant, setPaynowProcessingVariant] = useState<
@@ -571,6 +610,19 @@ export default function AppLauncherPage() {
         .finally(() => setActivationLoading(false));
     }
   }, [isAdmin, me]);
+
+  useEffect(() => {
+    if (!me) return;
+    const defaults = createSupportRequestForm(me);
+    setSupportForm((current) => ({
+      name: current.name || defaults.name,
+      email: current.email || defaults.email,
+      phone_number: current.phone_number || defaults.phone_number,
+      company_name: current.company_name || defaults.company_name,
+      subject: current.subject || defaults.subject,
+      message: current.message,
+    }));
+  }, [me]);
 
   useEffect(() => {
     if (!demoInterestForm.company_name.trim()) {
@@ -866,15 +918,74 @@ export default function AppLauncherPage() {
     window.location.href = "/login";
   };
 
+  const openSupportModal = () => {
+    setSupportForm(createSupportRequestForm(me));
+    setSupportError("");
+    setSupportSuccess("");
+    setSupportModalOpen(true);
+  };
+
+  const closeSupportModal = () => {
+    if (supportSubmitting) return;
+    setSupportModalOpen(false);
+    setSupportError("");
+    setSupportSuccess("");
+  };
+
   const handleTalkToUsFirst = () => {
     setDemoRegistrationPromptOpen(false);
     setDemoInterestOpen(false);
-    window.open("http://www.geenet.co.zw", "_blank", "noopener,noreferrer");
+    openSupportModal();
   };
 
   const handleContinueRegistration = () => {
     setDemoRegistrationPromptOpen(false);
     setDemoInterestOpen(true);
+  };
+
+  const handleSupportSubmit = async () => {
+    if (!supportForm.name.trim()) {
+      setSupportError("Please enter your name.");
+      return;
+    }
+    if (!supportForm.email.trim()) {
+      setSupportError("Please enter your email address.");
+      return;
+    }
+    if (!supportForm.subject.trim()) {
+      setSupportError("Please enter a subject.");
+      return;
+    }
+    if (supportForm.message.trim().length < 10) {
+      setSupportError("Please enter a short description of the issue.");
+      return;
+    }
+
+    setSupportSubmitting(true);
+    setSupportError("");
+    setSupportSuccess("");
+    try {
+      await apiFetch("/support/request", {
+        method: "POST",
+        body: JSON.stringify({
+          ...supportForm,
+          current_path: `${window.location.pathname}${window.location.search}`,
+        }),
+      });
+      setSupportSuccess(
+        `Your request has been sent to ${SUPPORT_EMAIL}. Our team will contact you soon.`,
+      );
+      setSupportForm((current) => ({
+        ...current,
+        message: "",
+      }));
+    } catch (err) {
+      setSupportError(
+        getErrorMessage(err, "We could not send your support request."),
+      );
+    } finally {
+      setSupportSubmitting(false);
+    }
   };
 
   const handleDemoInterestSubmit = async () => {
@@ -1258,13 +1369,12 @@ export default function AppLauncherPage() {
         </div>
       </div>
 
-      <a
-        href={SUPPORT_URL}
-        target="_blank"
-        rel="noreferrer"
+      <button
+        type="button"
         className="app-launcher-support-float"
-        aria-label="Open support"
+        aria-label="Open support form"
         title="Support"
+        onClick={openSupportModal}
       >
         <span className="app-launcher-support-icon">
           <SupportIcon size={24} strokeWidth={2.2} />
@@ -1276,7 +1386,144 @@ export default function AppLauncherPage() {
         <span className="app-launcher-support-arrow" aria-hidden="true">
           ›
         </span>
-      </a>
+      </button>
+
+      {supportModalOpen && (
+        <div className="modal-overlay" onClick={closeSupportModal}>
+          <div
+            className="modal modal--centered demo-interest-modal support-request-modal"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="modal-header demo-interest-header">
+              <div className="demo-interest-header-copy">
+                <span className="demo-interest-eyebrow">Support Request</span>
+                <h3>Need help with Three65?</h3>
+                <p className="demo-interest-header-note">
+                  Tell us what you need, and the app will send your message
+                  directly to our support inbox.
+                </p>
+              </div>
+              <button
+                className="outline"
+                type="button"
+                onClick={closeSupportModal}
+                disabled={supportSubmitting}
+                aria-label="Close support form"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="modal-body demo-interest-body support-request-body">
+              <div className="support-request-grid">
+                <div className="input-group">
+                  <label className="input-label">Your name</label>
+                  <input
+                    value={supportForm.name}
+                    onChange={(event) =>
+                      setSupportForm((current) => ({
+                        ...current,
+                        name: event.target.value,
+                      }))
+                    }
+                    placeholder="Your full name"
+                  />
+                </div>
+                <div className="input-group">
+                  <label className="input-label">Email</label>
+                  <input
+                    type="email"
+                    value={supportForm.email}
+                    onChange={(event) =>
+                      setSupportForm((current) => ({
+                        ...current,
+                        email: event.target.value,
+                      }))
+                    }
+                    placeholder="you@example.com"
+                  />
+                </div>
+                <div className="input-group">
+                  <label className="input-label">Phone number</label>
+                  <input
+                    value={supportForm.phone_number}
+                    onChange={(event) =>
+                      setSupportForm((current) => ({
+                        ...current,
+                        phone_number: event.target.value,
+                      }))
+                    }
+                    placeholder="077 123 4567"
+                  />
+                </div>
+                <div className="input-group">
+                  <label className="input-label">Company name</label>
+                  <input
+                    value={supportForm.company_name}
+                    onChange={(event) =>
+                      setSupportForm((current) => ({
+                        ...current,
+                        company_name: event.target.value,
+                      }))
+                    }
+                    placeholder="Your company"
+                  />
+                </div>
+                <div className="input-group support-request-field-full">
+                  <label className="input-label">Subject</label>
+                  <input
+                    value={supportForm.subject}
+                    onChange={(event) =>
+                      setSupportForm((current) => ({
+                        ...current,
+                        subject: event.target.value,
+                      }))
+                    }
+                    placeholder="What do you need help with?"
+                  />
+                </div>
+                <div className="input-group support-request-field-full">
+                  <label className="input-label">Message</label>
+                  <textarea
+                    className="support-request-textarea"
+                    value={supportForm.message}
+                    onChange={(event) =>
+                      setSupportForm((current) => ({
+                        ...current,
+                        message: event.target.value,
+                      }))
+                    }
+                    rows={6}
+                    placeholder="Describe the issue, what you were doing, and any error message you saw."
+                  />
+                </div>
+              </div>
+
+              {supportError && <div className="login-error">{supportError}</div>}
+              {supportSuccess && (
+                <div className="login-status">{supportSuccess}</div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button
+                className="outline"
+                type="button"
+                onClick={closeSupportModal}
+                disabled={supportSubmitting}
+              >
+                Close
+              </button>
+              <button
+                className="login-btn demo-interest-submit"
+                type="button"
+                onClick={handleSupportSubmit}
+                disabled={supportSubmitting}
+              >
+                {supportSubmitting ? "Sending..." : "Send Request"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {demoRegistrationPromptOpen && demoAccount && (
         <div className="modal-overlay">
