@@ -2271,6 +2271,7 @@ thead.table-light th {
   z-index: 2;
   display: flex;
   flex-direction: column;
+  border: solid 2px var(--color-brand-primary);
 }
 
 .login-card-glass {
@@ -2879,26 +2880,6 @@ thead.table-light th {
   text-transform: uppercase;
 }
 
-.demo-field input {
-  padding: 12px 14px;
-  color: var(--color-text-primary);
-  background: rgba(255, 255, 255, 0.96);
-  border: 1px solid rgba(148, 163, 184, 0.28);
-  border-radius: 18px;
-  box-shadow: 0 8px 24px rgba(255, 255, 255, 0.16), 0 1px 0 rgba(255, 255, 255, 0.72) inset;
-}
-
-.demo-field input::placeholder {
-  color: rgba(15, 23, 42, 0.36);
-}
-
-.demo-field input:focus {
-  border-color: rgba(11, 69, 80, 0.42);
-  box-shadow:
-    0 0 0 4px rgba(11, 69, 80, 0.1),
-    0 12px 28px rgba(15, 23, 42, 0.12);
-}
-
 .demo-checkbox {
   display: flex;
   align-items: flex-start;
@@ -3045,10 +3026,6 @@ thead.table-light th {
     font-size: 10px;
   }
 
-  .demo-field input {
-    padding: 11px 12px;
-  }
-
   .demo-checkbox {
     gap: 10px;
     padding: 10px 12px;
@@ -3106,10 +3083,6 @@ thead.table-light th {
 
   .demo-form-caption {
     font-size: 0.82rem;
-  }
-
-  .demo-field input {
-    padding: 9px 11px;
   }
 
   .demo-checkbox {
@@ -3233,10 +3206,6 @@ thead.table-light th {
 
   .demo-form-compact {
     gap: 10px;
-  }
-
-  .demo-field input {
-    padding: 11px 12px;
   }
 
   .demo-checkbox {
