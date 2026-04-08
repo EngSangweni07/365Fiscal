@@ -3774,6 +3774,37 @@ button.demo-interest-app-option {
   gap: 14px;
 }
 
+.demo-interest-payment-type-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.demo-interest-payment-type-btn {
+  width: 100%;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 12px;
+  background: rgba(248, 250, 252, 0.98);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-weight: 600;
+  padding: 11px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.demo-interest-payment-type-btn:hover {
+  border-color: rgba(11, 69, 80, 0.32);
+}
+
+.demo-interest-payment-type-btn.selected {
+  border-color: rgba(11, 69, 80, 0.4);
+  color: var(--color-brand-primary);
+  background: linear-gradient(180deg, rgba(11, 69, 80, 0.08), rgba(11, 69, 80, 0.04));
+  box-shadow: 0 8px 16px rgba(11, 69, 80, 0.08);
+}
+
 .demo-interest-app-option input {
   width: 16px;
   height: 16px;
@@ -3899,6 +3930,10 @@ button.demo-interest-app-option {
 
   .demo-interest-payment-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .demo-interest-payment-type-grid {
+    grid-template-columns: 1fr;
   }
 
   .demo-interest-choice-grid {

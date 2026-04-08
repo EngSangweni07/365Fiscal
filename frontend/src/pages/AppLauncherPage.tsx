@@ -30,7 +30,6 @@ import ecocashBadge from "../assets/ecocash.svg";
 import visaBadge from "../assets/visa.svg";
 import mastercardBadge from "../assets/mastercard.svg";
 import onemoneyBadge from "../assets/onemoney.svg";
-import telecashBadge from "../assets/telecash.svg";
 import innbucksBadge from "../assets/innbucks.svg";
 
 type ActivationStatus = {
@@ -55,7 +54,6 @@ type DemoAccount = {
   payment_method?:
     | "ecocash"
     | "onemoney"
-    | "telecash"
     | "innbucks"
     | "visa"
     | "mastercard"
@@ -82,7 +80,6 @@ type DemoInterestForm = {
   payment_method?:
     | "ecocash"
     | "onemoney"
-    | "telecash"
     | "innbucks"
     | "visa"
     | "mastercard"
@@ -100,10 +97,10 @@ type DemoInterestForm = {
 type PaymentMethodKey =
   | "ecocash"
   | "onemoney"
-  | "telecash"
   | "visa"
   | "mastercard"
   | "innbucks";
+type PaymentMethodType = "mobile" | "card";
 
 type SupportRequestForm = {
   name: string;
@@ -429,7 +426,6 @@ const demoInterestAppOptions = [
 const paymentMethodOptions = [
   { key: "ecocash", label: "EcoCash", badge: ecocashBadge, type: "mobile" },
   { key: "onemoney", label: "OneMoney", badge: onemoneyBadge, type: "mobile" },
-  { key: "telecash", label: "TeleCash", badge: telecashBadge, type: "mobile" },
   { key: "visa", label: "Visa Card", badge: visaBadge, type: "card" },
   {
     key: "mastercard",
@@ -451,6 +447,11 @@ const cardPaymentMethodKeys = new Set<PaymentMethodKey>(
     .filter((method) => method.type === "card")
     .map((method) => method.key),
 );
+
+const paymentTypeOptions: { key: PaymentMethodType; label: string }[] = [
+  { key: "mobile", label: "Mobile Payments" },
+  { key: "card", label: "Card Payments" },
+];
 
 const pendingPaynowStatuses = new Set([
   "created",
@@ -571,6 +572,8 @@ export default function AppLauncherPage() {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
     PaymentMethodKey | ""
   >("");
+  const [selectedPaymentType, setSelectedPaymentType] =
+    useState<PaymentMethodType>("mobile");
   const [mobilePhoneNumber, setMobilePhoneNumber] = useState("");
   const [demoInterestForm, setDemoInterestForm] = useState<DemoInterestForm>({
     wants_actual_three65: true,
@@ -743,6 +746,18 @@ export default function AppLauncherPage() {
     setDemoInterestStep(0);
     setDemoInterestError("");
   }, [demoInterestOpen]);
+
+  useEffect(() => {
+    if (!selectedPaymentMethod) {
+      return;
+    }
+    const selectedMethod = paymentMethodOptions.find(
+      (method) => method.key === selectedPaymentMethod,
+    );
+    if (selectedMethod && selectedMethod.type !== selectedPaymentType) {
+      setSelectedPaymentType(selectedMethod.type);
+    }
+  }, [selectedPaymentMethod, selectedPaymentType]);
 
   useEffect(() => {
     if (
@@ -1056,9 +1071,7 @@ export default function AppLauncherPage() {
           "Payment is being processed. We will update this page when payment is confirmed.",
         );
         setPaynowPollingDemoId(demoAccountId);
-        if (
-          /^https?:\/\//i.test(data.payment_link || "")
-        ) {
+        if (/^https?:\/\//i.test(data.payment_link || "")) {
           if (visaPaymentTab && !visaPaymentTab.closed) {
             visaPaymentTab.location.href = data.payment_link;
           } else {
@@ -1118,6 +1131,9 @@ export default function AppLauncherPage() {
   const hasAdditionalAssistanceSelected =
     demoInterestForm.wants_training_enhanced ||
     demoInterestForm.wants_implementation_enhanced;
+  const visiblePaymentMethodOptions = paymentMethodOptions.filter(
+    (method) => method.type === selectedPaymentType,
+  );
 
   // Show loading state
   if (loading || activationLoading) {
@@ -1494,7 +1510,9 @@ export default function AppLauncherPage() {
                 </div>
               </div>
 
-              {supportError && <div className="login-error">{supportError}</div>}
+              {supportError && (
+                <div className="login-error">{supportError}</div>
+              )}
               {supportSuccess && (
                 <div className="login-status">{supportSuccess}</div>
               )}
@@ -1891,8 +1909,27 @@ export default function AppLauncherPage() {
                     <h4>Select your preferred payment method.</h4>
                   </div>
                   <div className="demo-interest-apps">
+                    <div className="demo-interest-payment-type-grid">
+                      {paymentTypeOptions.map((paymentType) => {
+                        const selected = selectedPaymentType === paymentType.key;
+                        return (
+                          <button
+                            key={paymentType.key}
+                            type="button"
+                            aria-pressed={selected}
+                            className={`demo-interest-payment-type-btn ${selected ? "selected" : ""}`}
+                            onClick={() => {
+                              setSelectedPaymentType(paymentType.key);
+                              setSelectedPaymentMethod("");
+                            }}
+                          >
+                            {paymentType.label}
+                          </button>
+                        );
+                      })}
+                    </div>
                     <div className="demo-interest-apps-grid demo-interest-payment-grid">
-                      {paymentMethodOptions.map((method) => {
+                      {visiblePaymentMethodOptions.map((method) => {
                         const selected = selectedPaymentMethod === method.key;
                         return (
                           <button
