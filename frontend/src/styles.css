@@ -3689,6 +3689,7 @@ thead.table-light th {
 .demo-interest-apps {
   display: grid;
   gap: 12px;
+  position: relative;
 }
 
 .demo-interest-apps-head {
@@ -3815,31 +3816,90 @@ button.demo-interest-app-option {
   padding: 10px 12px;
 }
 
-.demo-interest-mobile-modal {
-  width: min(92vw, 500px);
+.mobile-payment-popover {
+  position: absolute;
+  left: 0;
+  top: 108px;
+  width: min(100%, 380px);
+  border-radius: 16px;
+  border: 1px solid rgba(11, 69, 80, 0.18);
+  background: #ffffff;
+  box-shadow:
+    0 18px 30px rgba(15, 23, 42, 0.22),
+    0 8px 16px rgba(11, 69, 80, 0.1);
+  z-index: 40;
+  overflow: hidden;
 }
 
-.demo-interest-mobile-modal-body {
+.mobile-payment-popover-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--color-border-soft);
+  background: linear-gradient(180deg, rgba(11, 69, 80, 0.08), rgba(11, 69, 80, 0.03));
+}
+
+.mobile-payment-popover-copy {
   display: grid;
-  gap: 10px;
+  gap: 4px;
 }
 
-.demo-interest-mobile-modal-body .input-group {
+.mobile-payment-popover-copy h4 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.mobile-payment-popover-copy p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.mobile-payment-popover-close {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.36);
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--color-text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.mobile-payment-popover-close:hover {
+  border-color: rgba(11, 69, 80, 0.34);
+  color: var(--color-brand-primary);
+}
+
+.mobile-payment-popover-body {
+  padding: 14px 16px;
+  display: grid;
   gap: 8px;
 }
 
-.demo-interest-mobile-modal-body .input-label {
+.mobile-payment-popover-body .input-group {
+  gap: 8px;
+}
+
+.mobile-payment-popover-body .input-label {
   color: var(--color-brand-primary);
-  font-size: 12px;
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   font-weight: 800;
 }
 
-.demo-interest-mobile-modal-body input {
+.mobile-payment-popover-body input {
   width: 100%;
-  padding: 13px 14px;
-  border-radius: 14px;
+  padding: 11px 12px;
+  border-radius: 12px;
   border: 1px solid rgba(148, 163, 184, 0.28);
   background: rgba(248, 250, 252, 0.98);
   color: var(--color-text-primary);
@@ -3847,10 +3907,19 @@ button.demo-interest-app-option {
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
 }
 
-.demo-interest-mobile-modal-body input:focus {
+.mobile-payment-popover-body input:focus {
   outline: none;
   border-color: rgba(11, 69, 80, 0.4);
   box-shadow: 0 0 0 4px rgba(11, 69, 80, 0.08);
+}
+
+.mobile-payment-popover-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 16px 14px;
+  border-top: 1px solid var(--color-border-soft);
+  background: rgba(248, 250, 252, 0.72);
 }
 
 .demo-interest-app-option input {
@@ -3982,6 +4051,11 @@ button.demo-interest-app-option {
 
   .demo-interest-payment-type-grid {
     grid-template-columns: 1fr;
+  }
+
+  .mobile-payment-popover {
+    position: static;
+    width: 100%;
   }
 
   .demo-interest-choice-grid {

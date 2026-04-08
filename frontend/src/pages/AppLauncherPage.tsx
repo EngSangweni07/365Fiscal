@@ -1981,67 +1981,64 @@ export default function AppLauncherPage() {
                       mobilePaymentMethodKeys.has(selectedPaymentMethod) &&
                       mobilePaymentModalOpen && (
                         <div
-                          className="modal-overlay"
-                          onClick={() => setMobilePaymentModalOpen(false)}
+                          className="mobile-payment-popover"
+                          role="dialog"
+                          aria-modal="false"
+                          aria-label="Mobile payment details"
                         >
-                          <div
-                            className="modal modal--centered demo-interest-mobile-modal"
-                            onClick={(event) => event.stopPropagation()}
-                          >
-                            <div className="modal-header demo-interest-header">
-                              <div className="demo-interest-header-copy">
-                                <h3>Mobile Payment Details</h3>
-                                <p className="demo-interest-header-note">
-                                  Enter the number to use for{" "}
-                                  {
-                                    paymentMethodOptions.find(
-                                      (method) =>
-                                        method.key === selectedPaymentMethod,
-                                    )?.label
-                                  }
-                                  .
-                                </p>
-                              </div>
-                              <button
-                                className="outline"
-                                type="button"
-                                onClick={() => setMobilePaymentModalOpen(false)}
-                                aria-label="Close mobile payment details"
-                              >
-                                <X size={16} />
-                              </button>
+                          <div className="mobile-payment-popover-header">
+                            <div className="mobile-payment-popover-copy">
+                              <h4>Mobile Payment Details</h4>
+                              <p>
+                                Enter the number to use for{" "}
+                                {
+                                  paymentMethodOptions.find(
+                                    (method) =>
+                                      method.key === selectedPaymentMethod,
+                                  )?.label
+                                }
+                                .
+                              </p>
                             </div>
-                            <div className="modal-body demo-interest-mobile-modal-body">
-                              <div className="input-group">
-                                <label className="input-label">
-                                  Mobile phone number
-                                </label>
-                                <input
-                                  type="tel"
-                                  value={mobilePhoneNumber}
-                                  onChange={(event) =>
-                                    setMobilePhoneNumber(event.target.value)
-                                  }
-                                  placeholder="077 123 4567"
-                                />
-                              </div>
+                            <button
+                              className="mobile-payment-popover-close"
+                              type="button"
+                              onClick={() => setMobilePaymentModalOpen(false)}
+                              aria-label="Close mobile payment details"
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
+                          <div className="mobile-payment-popover-body">
+                            <div className="input-group">
+                              <label className="input-label">
+                                Mobile phone number
+                              </label>
+                              <input
+                                type="tel"
+                                value={mobilePhoneNumber}
+                                onChange={(event) =>
+                                  setMobilePhoneNumber(event.target.value)
+                                }
+                                placeholder="077 123 4567"
+                              />
                             </div>
-                            <div className="modal-footer">
-                              <button
-                                className="outline"
-                                type="button"
-                                onClick={() => setMobilePaymentModalOpen(false)}
-                              >
-                                Close
-                              </button>
-                              <button
-                                className="login-btn demo-interest-submit"
-                                type="button"
-                                onClick={() => setMobilePaymentModalOpen(false)}
-                              >
-                                Save
-                              </button>
-                            </div>
+                          </div>
+                          <div className="mobile-payment-popover-actions">
+                            <button
+                              className="outline"
+                              type="button"
+                              onClick={() => setMobilePaymentModalOpen(false)}
+                            >
+                              Close
+                            </button>
+                            <button
+                              className="login-btn demo-interest-submit"
+                              type="button"
+                              onClick={() => setMobilePaymentModalOpen(false)}
+                            >
+                              Save
+                            </button>
                           </div>
                         </div>
                       )}
