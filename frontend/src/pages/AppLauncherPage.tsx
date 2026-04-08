@@ -1918,7 +1918,8 @@ export default function AppLauncherPage() {
                   <div className="demo-interest-apps">
                     <div className="demo-interest-payment-type-grid">
                       {paymentTypeOptions.map((paymentType) => {
-                        const selected = selectedPaymentType === paymentType.key;
+                        const selected =
+                          selectedPaymentType === paymentType.key;
                         return (
                           <button
                             key={paymentType.key}
@@ -1947,8 +1948,7 @@ export default function AppLauncherPage() {
                             aria-label={method.label}
                             className={`demo-interest-app-option demo-interest-payment-option ${selected ? "selected" : ""}`}
                             onClick={() => {
-                              const isMobileMethod =
-                                method.type === "mobile";
+                              const isMobileMethod = method.type === "mobile";
                               setSelectedPaymentMethod((current) =>
                                 current === method.key ? "" : method.key,
                               );
@@ -1987,19 +1987,6 @@ export default function AppLauncherPage() {
                           aria-label="Mobile payment details"
                         >
                           <div className="mobile-payment-popover-header">
-                            <div className="mobile-payment-popover-copy">
-                              <h4>Mobile Payment Details</h4>
-                              <p>
-                                Enter the number to use for{" "}
-                                {
-                                  paymentMethodOptions.find(
-                                    (method) =>
-                                      method.key === selectedPaymentMethod,
-                                  )?.label
-                                }
-                                .
-                              </p>
-                            </div>
                             <button
                               className="mobile-payment-popover-close"
                               type="button"
