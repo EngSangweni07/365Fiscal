@@ -574,6 +574,7 @@ export default function AppLauncherPage() {
   >("");
   const [selectedPaymentType, setSelectedPaymentType] =
     useState<PaymentMethodType>("mobile");
+  const [mobilePaymentModalOpen, setMobilePaymentModalOpen] = useState(false);
   const [mobilePhoneNumber, setMobilePhoneNumber] = useState("");
   const [demoInterestForm, setDemoInterestForm] = useState<DemoInterestForm>({
     wants_actual_three65: true,
@@ -746,6 +747,12 @@ export default function AppLauncherPage() {
     setDemoInterestStep(0);
     setDemoInterestError("");
   }, [demoInterestOpen]);
+
+  useEffect(() => {
+    if (!demoInterestOpen || demoInterestStep !== 3) {
+      setMobilePaymentModalOpen(false);
+    }
+  }, [demoInterestOpen, demoInterestStep]);
 
   useEffect(() => {
     if (!selectedPaymentMethod) {
@@ -1921,6 +1928,7 @@ export default function AppLauncherPage() {
                             onClick={() => {
                               setSelectedPaymentType(paymentType.key);
                               setSelectedPaymentMethod("");
+                              setMobilePaymentModalOpen(false);
                             }}
                           >
                             {paymentType.label}
@@ -1938,11 +1946,20 @@ export default function AppLauncherPage() {
                             aria-pressed={selected}
                             aria-label={method.label}
                             className={`demo-interest-app-option demo-interest-payment-option ${selected ? "selected" : ""}`}
-                            onClick={() =>
+                            onClick={() => {
+                              const isMobileMethod =
+                                method.type === "mobile";
                               setSelectedPaymentMethod((current) =>
                                 current === method.key ? "" : method.key,
-                              )
-                            }
+                              );
+                              if (isMobileMethod) {
+                                setMobilePaymentModalOpen((current) =>
+                                  selected ? false : true,
+                                );
+                              } else {
+                                setMobilePaymentModalOpen(false);
+                              }
+                            }}
                           >
                             <img
                               src={method.badge}
@@ -1954,19 +1971,78 @@ export default function AppLauncherPage() {
                       })}
                     </div>
                     {selectedPaymentMethod &&
-                      mobilePaymentMethodKeys.has(selectedPaymentMethod) && (
-                        <div className="input-group" style={{ marginTop: 12 }}>
-                          <label className="input-label">
-                            Mobile phone number
-                          </label>
-                          <input
-                            type="tel"
-                            value={mobilePhoneNumber}
-                            onChange={(event) =>
-                              setMobilePhoneNumber(event.target.value)
-                            }
-                            placeholder="077 123 4567"
-                          />
+                      mobilePaymentMethodKeys.has(selectedPaymentMethod) &&
+                      mobilePhoneNumber.trim() && (
+                        <div className="demo-interest-mobile-number">
+                          Mobile number: {mobilePhoneNumber.trim()}
+                        </div>
+                      )}
+                    {selectedPaymentMethod &&
+                      mobilePaymentMethodKeys.has(selectedPaymentMethod) &&
+                      mobilePaymentModalOpen && (
+                        <div
+                          className="modal-overlay"
+                          onClick={() => setMobilePaymentModalOpen(false)}
+                        >
+                          <div
+                            className="modal modal--centered demo-interest-mobile-modal"
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            <div className="modal-header demo-interest-header">
+                              <div className="demo-interest-header-copy">
+                                <h3>Mobile Payment Details</h3>
+                                <p className="demo-interest-header-note">
+                                  Enter the number to use for{" "}
+                                  {
+                                    paymentMethodOptions.find(
+                                      (method) =>
+                                        method.key === selectedPaymentMethod,
+                                    )?.label
+                                  }
+                                  .
+                                </p>
+                              </div>
+                              <button
+                                className="outline"
+                                type="button"
+                                onClick={() => setMobilePaymentModalOpen(false)}
+                                aria-label="Close mobile payment details"
+                              >
+                                <X size={16} />
+                              </button>
+                            </div>
+                            <div className="modal-body demo-interest-mobile-modal-body">
+                              <div className="input-group">
+                                <label className="input-label">
+                                  Mobile phone number
+                                </label>
+                                <input
+                                  type="tel"
+                                  value={mobilePhoneNumber}
+                                  onChange={(event) =>
+                                    setMobilePhoneNumber(event.target.value)
+                                  }
+                                  placeholder="077 123 4567"
+                                />
+                              </div>
+                            </div>
+                            <div className="modal-footer">
+                              <button
+                                className="outline"
+                                type="button"
+                                onClick={() => setMobilePaymentModalOpen(false)}
+                              >
+                                Close
+                              </button>
+                              <button
+                                className="login-btn demo-interest-submit"
+                                type="button"
+                                onClick={() => setMobilePaymentModalOpen(false)}
+                              >
+                                Save
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       )}
                     {paynowProcessing && (
