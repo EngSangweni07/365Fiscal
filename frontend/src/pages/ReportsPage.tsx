@@ -2523,8 +2523,8 @@ export default function ReportsPage() {
           {
             title: "SUMMARY",
             rows: [
-              ["Total Sales (Actual)", qpdReport.total_sales.toFixed(2)],
-              ["Total Purchases/Expenses (Actual)", qpdReport.total_expenses.toFixed(2)],
+              ["Total Sales", qpdReport.total_sales.toFixed(2)],
+              ["Total Purchases/Expenses", qpdReport.total_expenses.toFixed(2)],
               ["Net Taxable Income", qpdReport.period_taxable_income.toFixed(2)],
               ["Estimated Annual Taxable Income", qpdReport.estimated_annual_taxable_income.toFixed(2)],
               ["Tax Rate", `${qpdReport.tax_rate.toFixed(2)}%`],
@@ -2911,8 +2911,8 @@ export default function ReportsPage() {
     } else if (activeReport === "qpd" && qpdReport) {
       bodyHTML = `
         <div class="summary-grid">
-          <div class="summary-box"><div class="label">Total Sales (Actual)</div><div class="val">${formatCurrency(qpdReport.total_sales)}</div></div>
-          <div class="summary-box"><div class="label">Total Purchases/Expenses (Actual)</div><div class="val">${formatCurrency(qpdReport.total_expenses)}</div></div>
+          <div class="summary-box"><div class="label">Total Sales</div><div class="val">${formatCurrency(qpdReport.total_sales)}</div></div>
+          <div class="summary-box"><div class="label">Total Purchases/Expenses</div><div class="val">${formatCurrency(qpdReport.total_expenses)}</div></div>
           <div class="summary-box"><div class="label">Net Taxable Income</div><div class="val">${formatCurrency(qpdReport.period_taxable_income)}</div></div>
           <div class="summary-box"><div class="label">Estimated Annual Tax Due</div><div class="val">${formatCurrency(qpdReport.estimated_annual_tax_due)}</div></div>
         </div>
@@ -4049,11 +4049,11 @@ export default function ReportsPage() {
             <div className="report-content">
               <div className="metrics-row">
                 <MetricCard
-                  label="Total Sales (Actual)"
+                  label="Total Sales"
                   value={formatCurrency(qpdReport.total_sales)}
                 />
                 <MetricCard
-                  label="Total Purchases/Expenses (Actual)"
+                  label="Total Purchases/Expenses"
                   value={formatCurrency(qpdReport.total_expenses)}
                 />
                 <MetricCard
