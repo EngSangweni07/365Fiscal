@@ -4140,7 +4140,7 @@ export default function ReportsPage() {
                                 {formatCurrency(entry.amount_due)}
                               </td>
                             </tr>
-                          ))}}
+                          ))}
                         </tbody>
                       </table>
                       <TablePagination
