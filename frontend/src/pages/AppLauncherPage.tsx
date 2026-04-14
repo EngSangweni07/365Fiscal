@@ -30,7 +30,6 @@ import ecocashBadge from "../assets/ecocash.svg";
 import visaBadge from "../assets/visa.svg";
 import mastercardBadge from "../assets/mastercard.svg";
 import onemoneyBadge from "../assets/onemoney.svg";
-import telecashBadge from "../assets/telecash.svg";
 import innbucksBadge from "../assets/innbucks.svg";
 
 type ActivationStatus = {
@@ -55,7 +54,6 @@ type DemoAccount = {
   payment_method?:
     | "ecocash"
     | "onemoney"
-    | "telecash"
     | "innbucks"
     | "visa"
     | "mastercard"
@@ -82,7 +80,6 @@ type DemoInterestForm = {
   payment_method?:
     | "ecocash"
     | "onemoney"
-    | "telecash"
     | "innbucks"
     | "visa"
     | "mastercard"
@@ -100,10 +97,10 @@ type DemoInterestForm = {
 type PaymentMethodKey =
   | "ecocash"
   | "onemoney"
-  | "telecash"
   | "visa"
   | "mastercard"
   | "innbucks";
+type PaymentMethodType = "mobile" | "card";
 
 type SupportRequestForm = {
   name: string;
@@ -429,7 +426,6 @@ const demoInterestAppOptions = [
 const paymentMethodOptions = [
   { key: "ecocash", label: "EcoCash", badge: ecocashBadge, type: "mobile" },
   { key: "onemoney", label: "OneMoney", badge: onemoneyBadge, type: "mobile" },
-  { key: "telecash", label: "TeleCash", badge: telecashBadge, type: "mobile" },
   { key: "visa", label: "Visa Card", badge: visaBadge, type: "card" },
   {
     key: "mastercard",
@@ -451,6 +447,11 @@ const cardPaymentMethodKeys = new Set<PaymentMethodKey>(
     .filter((method) => method.type === "card")
     .map((method) => method.key),
 );
+
+const paymentTypeOptions: { key: PaymentMethodType; label: string }[] = [
+  { key: "mobile", label: "Mobile Payments" },
+  { key: "card", label: "Card Payments" },
+];
 
 const pendingPaynowStatuses = new Set([
   "created",
@@ -571,6 +572,9 @@ export default function AppLauncherPage() {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
     PaymentMethodKey | ""
   >("");
+  const [selectedPaymentType, setSelectedPaymentType] =
+    useState<PaymentMethodType>("mobile");
+  const [mobilePaymentModalOpen, setMobilePaymentModalOpen] = useState(false);
   const [mobilePhoneNumber, setMobilePhoneNumber] = useState("");
   const [demoInterestForm, setDemoInterestForm] = useState<DemoInterestForm>({
     wants_actual_three65: true,
@@ -743,6 +747,24 @@ export default function AppLauncherPage() {
     setDemoInterestStep(0);
     setDemoInterestError("");
   }, [demoInterestOpen]);
+
+  useEffect(() => {
+    if (!demoInterestOpen || demoInterestStep !== 3) {
+      setMobilePaymentModalOpen(false);
+    }
+  }, [demoInterestOpen, demoInterestStep]);
+
+  useEffect(() => {
+    if (!selectedPaymentMethod) {
+      return;
+    }
+    const selectedMethod = paymentMethodOptions.find(
+      (method) => method.key === selectedPaymentMethod,
+    );
+    if (selectedMethod && selectedMethod.type !== selectedPaymentType) {
+      setSelectedPaymentType(selectedMethod.type);
+    }
+  }, [selectedPaymentMethod, selectedPaymentType]);
 
   useEffect(() => {
     if (
@@ -1056,9 +1078,7 @@ export default function AppLauncherPage() {
           "Payment is being processed. We will update this page when payment is confirmed.",
         );
         setPaynowPollingDemoId(demoAccountId);
-        if (
-          /^https?:\/\//i.test(data.payment_link || "")
-        ) {
+        if (/^https?:\/\//i.test(data.payment_link || "")) {
           if (visaPaymentTab && !visaPaymentTab.closed) {
             visaPaymentTab.location.href = data.payment_link;
           } else {
@@ -1105,19 +1125,22 @@ export default function AppLauncherPage() {
   const billingPeriodLabel =
     demoInterestForm.subscription_period === "yearly" ? "Annual" : "Monthly";
   const perUserAmount = 10;
+  const perUserAmountWithTax = Number((perUserAmount * 1.155).toFixed(2));
   const userCount = Math.max(1, demoInterestForm.num_users);
-  const userSeatsAmount = userCount * perUserAmount;
+  const userSeatsAmount = userCount * perUserAmountWithTax;
   const periodMultiplier =
     demoInterestForm.subscription_period === "yearly" ? 12 : 1;
   const userSeatsAmountForPeriod = userSeatsAmount * periodMultiplier;
   const subscriptionAmount = userSeatsAmountForPeriod;
   const zimraIntegrationAmount = 0;
   const pricingSubtotal = subscriptionAmount + zimraIntegrationAmount;
-  const pricingTaxAmount = Number((pricingSubtotal * 0.155).toFixed(2));
-  const pricingTotal = pricingSubtotal + pricingTaxAmount;
+  const pricingTotal = pricingSubtotal;
   const hasAdditionalAssistanceSelected =
     demoInterestForm.wants_training_enhanced ||
     demoInterestForm.wants_implementation_enhanced;
+  const visiblePaymentMethodOptions = paymentMethodOptions.filter(
+    (method) => method.type === selectedPaymentType,
+  );
 
   // Show loading state
   if (loading || activationLoading) {
@@ -1494,7 +1517,9 @@ export default function AppLauncherPage() {
                 </div>
               </div>
 
-              {supportError && <div className="login-error">{supportError}</div>}
+              {supportError && (
+                <div className="login-error">{supportError}</div>
+              )}
               {supportSuccess && (
                 <div className="login-status">{supportSuccess}</div>
               )}
@@ -1891,8 +1916,29 @@ export default function AppLauncherPage() {
                     <h4>Select your preferred payment method.</h4>
                   </div>
                   <div className="demo-interest-apps">
+                    <div className="demo-interest-payment-type-grid">
+                      {paymentTypeOptions.map((paymentType) => {
+                        const selected =
+                          selectedPaymentType === paymentType.key;
+                        return (
+                          <button
+                            key={paymentType.key}
+                            type="button"
+                            aria-pressed={selected}
+                            className={`demo-interest-payment-type-btn ${selected ? "selected" : ""}`}
+                            onClick={() => {
+                              setSelectedPaymentType(paymentType.key);
+                              setSelectedPaymentMethod("");
+                              setMobilePaymentModalOpen(false);
+                            }}
+                          >
+                            {paymentType.label}
+                          </button>
+                        );
+                      })}
+                    </div>
                     <div className="demo-interest-apps-grid demo-interest-payment-grid">
-                      {paymentMethodOptions.map((method) => {
+                      {visiblePaymentMethodOptions.map((method) => {
                         const selected = selectedPaymentMethod === method.key;
                         return (
                           <button
@@ -1901,11 +1947,19 @@ export default function AppLauncherPage() {
                             aria-pressed={selected}
                             aria-label={method.label}
                             className={`demo-interest-app-option demo-interest-payment-option ${selected ? "selected" : ""}`}
-                            onClick={() =>
+                            onClick={() => {
+                              const isMobileMethod = method.type === "mobile";
                               setSelectedPaymentMethod((current) =>
                                 current === method.key ? "" : method.key,
-                              )
-                            }
+                              );
+                              if (isMobileMethod) {
+                                setMobilePaymentModalOpen((current) =>
+                                  selected ? false : true,
+                                );
+                              } else {
+                                setMobilePaymentModalOpen(false);
+                              }
+                            }}
                           >
                             <img
                               src={method.badge}
@@ -1917,19 +1971,62 @@ export default function AppLauncherPage() {
                       })}
                     </div>
                     {selectedPaymentMethod &&
-                      mobilePaymentMethodKeys.has(selectedPaymentMethod) && (
-                        <div className="input-group" style={{ marginTop: 12 }}>
-                          <label className="input-label">
-                            Mobile phone number
-                          </label>
-                          <input
-                            type="tel"
-                            value={mobilePhoneNumber}
-                            onChange={(event) =>
-                              setMobilePhoneNumber(event.target.value)
-                            }
-                            placeholder="077 123 4567"
-                          />
+                      mobilePaymentMethodKeys.has(selectedPaymentMethod) &&
+                      mobilePhoneNumber.trim() && (
+                        <div className="demo-interest-mobile-number">
+                          Mobile number: {mobilePhoneNumber.trim()}
+                        </div>
+                      )}
+                    {selectedPaymentMethod &&
+                      mobilePaymentMethodKeys.has(selectedPaymentMethod) &&
+                      mobilePaymentModalOpen && (
+                        <div
+                          className="mobile-payment-popover"
+                          role="dialog"
+                          aria-modal="false"
+                          aria-label="Mobile payment details"
+                        >
+                          <div className="mobile-payment-popover-header">
+                            <button
+                              className="mobile-payment-popover-close"
+                              type="button"
+                              onClick={() => setMobilePaymentModalOpen(false)}
+                              aria-label="Close mobile payment details"
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
+                          <div className="mobile-payment-popover-body">
+                            <div className="input-group">
+                              <label className="input-label">
+                                Mobile phone number
+                              </label>
+                              <input
+                                type="tel"
+                                value={mobilePhoneNumber}
+                                onChange={(event) =>
+                                  setMobilePhoneNumber(event.target.value)
+                                }
+                                placeholder="077 123 4567"
+                              />
+                            </div>
+                          </div>
+                          <div className="mobile-payment-popover-actions">
+                            <button
+                              className="outline"
+                              type="button"
+                              onClick={() => setMobilePaymentModalOpen(false)}
+                            >
+                              Close
+                            </button>
+                            <button
+                              className="login-btn demo-interest-submit"
+                              type="button"
+                              onClick={() => setMobilePaymentModalOpen(false)}
+                            >
+                              Save
+                            </button>
+                          </div>
                         </div>
                       )}
                     {paynowProcessing && (
@@ -2005,7 +2102,7 @@ export default function AppLauncherPage() {
                   <span>{billingPeriodLabel}</span>
                 </div>
                 <div className="demo-interest-pricing-item">
-                  <span>{`User License Fee (${userCount} X $10.00)`}</span>
+                  <span>{`User License Fee (${userCount} X ${formatMoney(perUserAmountWithTax)})`}</span>
                   <span>{formatMoney(userSeatsAmountForPeriod)}</span>
                 </div>
                 {demoInterestForm.wants_training_enhanced && (
@@ -2033,10 +2130,6 @@ export default function AppLauncherPage() {
                 <div className="demo-interest-summary-row text-muted">
                   <span>Subtotal</span>
                   <span>{formatMoney(pricingSubtotal)}</span>
-                </div>
-                <div className="demo-interest-summary-row text-muted">
-                  <span>Tax</span>
-                  <span>{formatMoney(pricingTaxAmount)}</span>
                 </div>
                 <div
                   className="demo-interest-summary-row demo-interest-summary-total"

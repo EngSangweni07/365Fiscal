@@ -3,6 +3,8 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { Building2, Mail, Users, Phone } from "lucide-react";
 import { apiFetch } from "../api";
 
+import WhatsappIcon from "../assets/whatsapp-icon.svg?react";
+
 const GEE_NET_SUPPORT_EMAIL = "support@geenet.co.zw";
 const GEE_NET_WHATSAPP_URL =
   "https://wa.me/263777589119?text=Hello%20GeeNet,%20I%20need%20help%20with%20the%20Three65%20demo.";
@@ -363,16 +365,7 @@ export default function DemoSignupPage() {
           aria-label="Chat with GeeNet on WhatsApp"
           title="Chat with GeeNet on WhatsApp"
         >
-          <svg viewBox="0 0 32 32" aria-hidden="true">
-            <path
-              fill="currentColor"
-              d="M19.11 17.23c-.28-.14-1.64-.81-1.9-.9-.25-.09-.43-.14-.61.14-.18.28-.7.9-.86 1.08-.16.19-.31.21-.59.07-.28-.14-1.17-.43-2.23-1.37-.82-.74-1.38-1.65-1.54-1.93-.16-.28-.02-.43.12-.57.12-.12.28-.31.42-.47.14-.16.19-.28.28-.47.09-.19.05-.35-.02-.49-.07-.14-.61-1.48-.84-2.03-.22-.52-.45-.45-.61-.46h-.52c-.19 0-.49.07-.75.35-.26.28-.98.96-.98 2.35s1 2.74 1.14 2.93c.14.19 1.96 2.99 4.75 4.2.66.28 1.18.45 1.58.57.66.21 1.26.18 1.73.11.53-.08 1.64-.67 1.87-1.32.23-.66.23-1.22.16-1.33-.06-.12-.24-.19-.52-.33Z"
-            />
-            <path
-              fill="currentColor"
-              d="M16.03 3.2c-7.08 0-12.8 5.68-12.8 12.68 0 2.24.59 4.43 1.7 6.36L3.2 28.8l6.78-1.77a12.9 12.9 0 0 0 6.05 1.54h.01c7.07 0 12.8-5.68 12.8-12.68S23.1 3.2 16.03 3.2Zm0 23.2h-.01a10.8 10.8 0 0 1-5.5-1.5l-.39-.23-4.02 1.05 1.08-3.9-.25-.4a10.57 10.57 0 0 1-1.64-5.55c0-5.86 4.82-10.63 10.74-10.63 2.87 0 5.56 1.11 7.59 3.13a10.51 10.51 0 0 1 3.14 7.5c0 5.86-4.83 10.63-10.74 10.63Z"
-            />
-          </svg>
+          <WhatsappIcon className="demo-whatsapp-icon" />
         </a>
       </div>
     </div>

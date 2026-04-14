@@ -902,17 +902,21 @@ textarea {
 }
 
 .outline {
-  background: var(--color-base-white);
+background: var(--color-base-white);
   border: 1px solid var(--color-border-soft);
   color: var(--color-text-secondary);
-  padding: 6px 12px;
   border-radius: var(--radius-md);
   cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  padding: 16px 24px;
   font-size: 13px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  transition: all 0.15s ease;
+  transition: all .15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-height: 3rem;
 }
 
 .outline:hover {
@@ -2261,13 +2265,9 @@ thead.table-light th {
 .login-card {
   width: 100%;
   max-width: 400px;
-  background: rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(34px);
-  -webkit-backdrop-filter: blur(34px);
+  background: #ffffffff;
   border-radius: 32px;
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.72);
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.24), 0 0 0 1px rgba(255,255,255,0.14);
   animation: card-fade-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
   animation-delay: 0.15s;
   position: relative;
@@ -2275,12 +2275,10 @@ thead.table-light th {
   z-index: 2;
   display: flex;
   flex-direction: column;
+  border: solid 2px var(--color-brand-primary);
 }
 
 .login-card-glass {
-  background: rgba(255, 255, 255, 0.42);
-  backdrop-filter: blur(34px);
-  -webkit-backdrop-filter: blur(34px);
 }
 
 @keyframes card-fade-in {
@@ -2533,33 +2531,41 @@ thead.table-light th {
   opacity: 0.6;
 }
 
-.input-group input {
+.login-card .input-group input {
   width: 100%;
   font-size: 15px;
   padding: 14px 16px;
   border-radius: 12px;
-  border: 1.5px solid rgba(255, 255, 255, 0.9);
-  background: rgba(255, 255, 255, 0.96);
+  border: 1.5px solid rgba(15, 23, 42, 0.24);
+  background: var(--color-base-white);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    0 1px 2px rgba(15, 23, 42, 0.08);
   transition: all 0.25s ease;
-  color: var(--color-base-black);
+  color: var(--color-text-primary);
 }
 
-.input-group input::placeholder {
-  color: rgba(0, 0, 0, 0.42);
+.login-card .input-group input::placeholder {
+  color: rgba(15, 23, 42, 0.52);
 }
 
-.input-group input:hover {
-  border-color: rgba(255, 255, 255, 0.95);
+.login-card .input-group input:hover {
+  border-color: rgba(15, 23, 42, 0.36);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 1px 3px rgba(15, 23, 42, 0.11);
 }
 
-.input-group input:focus {
+.login-card .input-group input:focus {
   border-color: var(--color-brand-primary);
-  box-shadow: 0 0 0 3px rgba(11, 69, 80, 0.14);
+  box-shadow:
+    0 0 0 3px rgba(11, 69, 80, 0.22),
+    0 4px 10px rgba(15, 23, 42, 0.12);
   outline: none;
 }
 
-.input-group input:disabled {
-  background: var(--color-bg-page);
+.login-card .input-group input:disabled {
+  background: #eef2f7;
   cursor: not-allowed;
   opacity: 0.7;
 }
@@ -2578,24 +2584,22 @@ thead.table-light th {
 }
 
 .login-btn {
-  /* width: 100%; */
-  display: flex;
-  align-items: center;
+ color: var(--color-base-white);
+  background: var(--color-brand-primary);
+  cursor: pointer;
+  border: none;
+  border-radius: 12px;
   justify-content: center;
+  align-items: center;
   gap: 10px;
+  margin-top: 8px;
   padding: 16px 24px;
   font-size: 15px;
   font-weight: 600;
-  animation: slide-up-fade 0.6s ease both;
-  animation-delay: 0.6s;
-  color: var(--color-base-white);
-  background: var(--color-brand-primary);
-  border: none;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 14px rgba(11, 69, 80, 0.28);
-  margin-top: 8px;
+  transition: all .3s;
+  animation: .6s .6s both slide-up-fade;
+  display: flex;
+  box-shadow: 0 4px 14px 
 }
 
 .login-btn:hover:not(:disabled) {
@@ -2803,13 +2807,8 @@ thead.table-light th {
   max-width: 438px;
   margin: 0 auto;
   min-height: auto;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0.22) 100%);
   backdrop-filter: blur(32px);
   -webkit-backdrop-filter: blur(32px);
-  border-color: rgba(255, 255, 255, 0.5);
-  box-shadow:
-    0 32px 70px rgba(15, 23, 42, 0.22),
-    0 1px 0 rgba(255, 255, 255, 0.45) inset;
   overflow: hidden;
 }
 
@@ -2869,6 +2868,11 @@ thead.table-light th {
   gap: 7px;
 }
 
+.demo-form-compact .input-group > input {
+  margin-left: 0 !important;
+  border-radius: 12px !important;
+}
+
 .demo-field .input-label {
   font-size: 11px;
   color: rgba(15, 23, 42, 0.82);
@@ -2876,26 +2880,6 @@ thead.table-light th {
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-}
-
-.demo-field input {
-  padding: 12px 14px;
-  color: var(--color-text-primary);
-  background: rgba(255, 255, 255, 0.96);
-  border: 1px solid rgba(148, 163, 184, 0.28);
-  border-radius: 18px;
-  box-shadow: 0 8px 24px rgba(255, 255, 255, 0.16), 0 1px 0 rgba(255, 255, 255, 0.72) inset;
-}
-
-.demo-field input::placeholder {
-  color: rgba(15, 23, 42, 0.36);
-}
-
-.demo-field input:focus {
-  border-color: rgba(11, 69, 80, 0.42);
-  box-shadow:
-    0 0 0 4px rgba(11, 69, 80, 0.1),
-    0 12px 28px rgba(15, 23, 42, 0.12);
 }
 
 .demo-checkbox {
@@ -3044,10 +3028,6 @@ thead.table-light th {
     font-size: 10px;
   }
 
-  .demo-field input {
-    padding: 11px 12px;
-  }
-
   .demo-checkbox {
     gap: 10px;
     padding: 10px 12px;
@@ -3067,8 +3047,8 @@ thead.table-light th {
   .demo-whatsapp-float {
     width: 56px;
     height: 56px;
-    left: calc(50% + 225px);
-    bottom: 18px;
+    left: calc(90% + 550px);
+    bottom: -5rem;  
   }
 
   .demo-whatsapp-float::before {
@@ -3107,10 +3087,6 @@ thead.table-light th {
     font-size: 0.82rem;
   }
 
-  .demo-field input {
-    padding: 9px 11px;
-  }
-
   .demo-checkbox {
     font-size: 11px;
     padding: 9px 11px;
@@ -3128,15 +3104,15 @@ thead.table-light th {
 
 .demo-whatsapp-float {
   position: fixed;
-  left: calc(50% + 245px);
-  bottom: 24px;
+  left: calc(90% + 550px);
+  bottom: -5rem;  
   width: 68px;
   height: 68px;
   border-radius: 22px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(145deg, #25d366 0%, #128c7e 100%);
+  background: #25d366;
   color: var(--color-base-white);
   box-shadow:
     0 18px 34px rgba(18, 140, 126, 0.34),
@@ -3232,10 +3208,6 @@ thead.table-light th {
 
   .demo-form-compact {
     gap: 10px;
-  }
-
-  .demo-field input {
-    padding: 11px 12px;
   }
 
   .demo-checkbox {
@@ -3719,6 +3691,7 @@ thead.table-light th {
 .demo-interest-apps {
   display: grid;
   gap: 12px;
+  position: relative;
 }
 
 .demo-interest-apps-head {
@@ -3802,6 +3775,153 @@ button.demo-interest-app-option {
 .demo-interest-payment-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
+}
+
+.demo-interest-payment-type-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.demo-interest-payment-type-btn {
+  width: 100%;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 12px;
+  background: rgba(248, 250, 252, 0.98);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-weight: 600;
+  padding: 11px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.demo-interest-payment-type-btn:hover {
+  border-color: rgba(11, 69, 80, 0.32);
+}
+
+.demo-interest-payment-type-btn.selected {
+  border-color: rgba(11, 69, 80, 0.4);
+  color: var(--color-brand-primary);
+  background: linear-gradient(180deg, rgba(11, 69, 80, 0.08), rgba(11, 69, 80, 0.04));
+  box-shadow: 0 8px 16px rgba(11, 69, 80, 0.08);
+}
+
+.demo-interest-mobile-number {
+  border-radius: 12px;
+  border: 1px solid rgba(11, 69, 80, 0.24);
+  background: rgba(11, 69, 80, 0.06);
+  color: var(--color-brand-primary);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 10px 12px;
+}
+
+.mobile-payment-popover {
+  position: absolute;
+  left: 5vw;
+  width: min(100%, 380px);
+  border-radius: 16px;
+  border: 1px solid rgba(11, 69, 80, 0.18);
+  background: #ffffff;
+  box-shadow:
+    0 18px 30px rgba(15, 23, 42, 0.22),
+    0 8px 16px rgba(11, 69, 80, 0.1);
+  z-index: 40;
+  overflow: hidden;
+}
+
+.mobile-payment-popover-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--color-border-soft);
+  background: linear-gradient(180deg, rgba(11, 69, 80, 0.08), rgba(11, 69, 80, 0.03));
+}
+
+.mobile-payment-popover-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.mobile-payment-popover-copy h4 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.mobile-payment-popover-copy p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.mobile-payment-popover-close {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.36);
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--color-text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.mobile-payment-popover-close:hover {
+  border-color: rgba(11, 69, 80, 0.34);
+  color: var(--color-brand-primary);
+}
+
+.mobile-payment-popover-body {
+  padding: 14px 16px;
+  display: grid;
+  gap: 8px;
+}
+
+.mobile-payment-popover-body .input-group {
+  gap: 8px;
+}
+
+.mobile-payment-popover-body .input-label {
+  color: var(--color-brand-primary);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 800;
+}
+
+.mobile-payment-popover-body input {
+  width: 100%;
+  padding: 11px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(248, 250, 252, 0.98);
+  color: var(--color-text-primary);
+  font: inherit;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.mobile-payment-popover-body input:focus {
+  outline: none;
+  border-color: rgba(11, 69, 80, 0.4);
+  box-shadow: 0 0 0 4px rgba(11, 69, 80, 0.08);
+}
+
+.mobile-payment-popover-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 16px 14px;
+  border-top: 1px solid var(--color-border-soft);
+  background: rgba(248, 250, 252, 0.72);
+  align-items: center ;
 }
 
 .demo-interest-app-option input {
@@ -3929,6 +4049,15 @@ button.demo-interest-app-option {
 
   .demo-interest-payment-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .demo-interest-payment-type-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mobile-payment-popover {
+    position: static;
+    width: 100%;
   }
 
   .demo-interest-choice-grid {
@@ -7458,7 +7587,7 @@ button.danger:hover {
 }
 
 .o-sidebar-item.active {
-  background: var(--color-brand-primary);
+  background: var(--color-brand-primary-active);
   color: var(--color-base-white);
 }
 
@@ -7709,7 +7838,7 @@ button.danger:hover {
 }
 
 .o-statusbar-item.active {
-  background: var(--color-brand-primary);
+  background: var(--color-brand-primary-active);
   color: var(--color-base-white);
 }
 
@@ -9519,7 +9648,7 @@ button.danger:hover {
     padding: 14px 18px;
   }
 
-  .input-group input {
+  .login-card .input-group input {
     font-size: 14px;
     padding: 12px 14px;
   }
