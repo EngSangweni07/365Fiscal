@@ -353,6 +353,46 @@ interface POSOrdersReportData {
   recent_orders: POSOrderReportItem[];
 }
 
+interface ProfitLossJournalEntry {
+  date: string;
+  source: string;
+  reference: string;
+  party: string;
+  description: string;
+  debit: number;
+  credit: number;
+  running_profit: number;
+  status: string;
+}
+
+interface ProfitLossJournalReport {
+  total_credits: number;
+  total_debits: number;
+  net_profit: number;
+  entries: ProfitLossJournalEntry[];
+}
+
+interface QpdScheduleEntry {
+  quarter: string;
+  due_date: string;
+  installment_percentage: number;
+  cumulative_percentage: number;
+  cumulative_tax_due: number;
+  prior_qpds_due: number;
+  amount_due: number;
+  remittance_form: string;
+}
+
+interface QpdReport {
+  tax_year: number;
+  tax_rate: number;
+  period_taxable_income: number;
+  annualisation_factor: number;
+  estimated_annual_taxable_income: number;
+  estimated_annual_tax_due: number;
+  payment_schedule: QpdScheduleEntry[];
+}
+
 interface POSOrderReportRaw {
   id: number;
   reference: string;
@@ -379,6 +419,8 @@ type ReportType =
   | "debtors"
   | "creditors"
   | "income_statement"
+  | "profit_loss_journal"
+  | "qpd"
   | "vat"
   | "purchases"
   | "pos_orders";
@@ -428,6 +470,20 @@ const REPORT_MENU_ITEMS: ReportMenuItem[] = [
     background: "rgba(79, 70, 229, 0.15)",
   },
   {
+    key: "profit_loss_journal",
+    label: "P&L JOURNAL",
+    icon: FileText,
+    color: "var(--cyan-600)",
+    background: "rgba(8, 145, 178, 0.14)",
+  },
+  {
+    key: "qpd",
+    label: "QPD TAX REPORT",
+    icon: Percent,
+    color: "var(--fuchsia-600)",
+    background: "rgba(192, 38, 211, 0.12)",
+  },
+  {
     key: "vat",
     label: "VAT RETURN",
     icon: Percent,
@@ -473,6 +529,27 @@ const MONTH_NAMES = [
   "Nov",
   "Dec",
 ];
+
+const PROVISIONAL_TAX_RATE = 25.75;
+
+const QPD_INSTALLMENTS = [
+  { quarter: "Q1", month: 2, day: 25, installmentPercentage: 10 },
+  { quarter: "Q2", month: 5, day: 25, installmentPercentage: 25 },
+  { quarter: "Q3", month: 8, day: 25, installmentPercentage: 30 },
+  { quarter: "Q4", month: 11, day: 20, installmentPercentage: 35 },
+] as const;
+
+const getDaysInclusive = (from: Date | null, to: Date | null) => {
+  if (!from || !to) return 0;
+  const msPerDay = 24 * 60 * 60 * 1000;
+  return Math.max(1, Math.floor((to.getTime() - from.getTime()) / msPerDay) + 1);
+};
+
+const getTaxYearLength = (year: number) => {
+  const isLeapYear =
+    (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+  return isLeapYear ? 366 : 365;
+};
 
 /* ── Component ───────────────────────────────────────── */
 
@@ -566,6 +643,9 @@ export default function ReportsPage() {
     useState<CreditorsReport | null>(null);
   const [incomeStatementReport, setIncomeStatementReport] =
     useState<IncomeStatementReport | null>(null);
+  const [profitLossJournalReport, setProfitLossJournalReport] =
+    useState<ProfitLossJournalReport | null>(null);
+  const [qpdReport, setQpdReport] = useState<QpdReport | null>(null);
   const [vatReport, setVatReport] = useState<VatReport | null>(null);
   const [purchaseReport, setPurchaseReport] =
     useState<PurchaseReportData | null>(null);
@@ -666,6 +746,63 @@ export default function ReportsPage() {
     },
     [resolvedCurrencyPrefix],
   );
+
+  const loadIncomeStatementSourceData = useCallback(async () => {
+    if (!companyId) return null;
+
+    const currencyParam = reportCurrency
+      ? `&currency=${encodeURIComponent(reportCurrency)}`
+      : "";
+
+    const [invoices, expenses, contacts] = await Promise.all([
+      apiFetch<Invoice[]>(
+        `/invoices?company_id=${companyId}${currencyParam}`,
+      ).catch(() => [] as Invoice[]),
+      apiFetch<Expense[]>(
+        `/expenses?company_id=${companyId}${currencyParam}`,
+      ).catch(() => [] as Expense[]),
+      apiFetch<{ id: number; name: string }[]>(
+        `/contacts?company_id=${companyId}`,
+      ).catch(() => [] as { id: number; name: string }[]),
+    ]);
+
+    const contactLookup = new Map(contacts.map((c) => [c.id, c.name]));
+    const fromDate = dateRange.from ? new Date(`${dateRange.from}T00:00:00`) : null;
+    const toDate = dateRange.to ? new Date(`${dateRange.to}T23:59:59`) : null;
+
+    const inRange = (value: string | null | undefined, fallback: string) => {
+      const dateValue = value ? new Date(value) : new Date(fallback);
+      if (fromDate && dateValue < fromDate) return false;
+      if (toDate && dateValue > toDate) return false;
+      return true;
+    };
+
+    const salesInvoices = invoices.filter((inv) => {
+      if (inv.invoice_type === "credit_note") return false;
+      if (inv.status === "cancelled") return false;
+      return inRange(inv.invoice_date, inv.created_at);
+    });
+
+    const creditNotes = invoices.filter((inv) => {
+      if (inv.invoice_type !== "credit_note") return false;
+      if (inv.status === "cancelled") return false;
+      return inRange(inv.invoice_date, inv.created_at);
+    });
+
+    const filteredExpenses = expenses.filter((ex) => {
+      if (ex.status === "cancelled") return false;
+      return inRange(ex.expense_date, ex.expense_date || "");
+    });
+
+    return {
+      salesInvoices,
+      creditNotes,
+      filteredExpenses,
+      contactLookup,
+      fromDate,
+      toDate,
+    };
+  }, [companyId, dateRange.from, dateRange.to, reportCurrency]);
 
   /* ── Data loaders ──────────────────────────────── */
 
@@ -791,49 +928,12 @@ export default function ReportsPage() {
   }, [companyId, dateRange, reportCurrency]);
 
   const loadIncomeStatementReport = useCallback(async () => {
-    if (!companyId) return;
+    const sourceData = await loadIncomeStatementSourceData();
+    if (!sourceData) return;
 
-    const currencyParam = reportCurrency
-      ? `&currency=${encodeURIComponent(reportCurrency)}`
-      : "";
+    const { salesInvoices, filteredExpenses, contactLookup } = sourceData;
 
-    const [invoices, expenses, contacts] = await Promise.all([
-      apiFetch<Invoice[]>(
-        `/invoices?company_id=${companyId}${currencyParam}`,
-      ).catch(() => [] as Invoice[]),
-      apiFetch<Expense[]>(
-        `/expenses?company_id=${companyId}${currencyParam}`,
-      ).catch(() => [] as Expense[]),
-      apiFetch<{ id: number; name: string }[]>(
-        `/contacts?company_id=${companyId}`,
-      ).catch(() => [] as { id: number; name: string }[]),
-    ]);
-
-    const contactLookup = new Map(contacts.map((c) => [c.id, c.name]));
-
-    const fromDate = dateRange.from ? new Date(dateRange.from) : null;
-    const toDate = dateRange.to ? new Date(dateRange.to + "T23:59:59") : null;
-
-    const filteredInvoices = invoices.filter((inv) => {
-      if (inv.invoice_type === "credit_note") return false;
-      if (inv.status === "cancelled") return false;
-      const d = inv.invoice_date
-        ? new Date(inv.invoice_date)
-        : new Date(inv.created_at);
-      if (fromDate && d < fromDate) return false;
-      if (toDate && d > toDate) return false;
-      return true;
-    });
-
-    const filteredExpenses = expenses.filter((ex) => {
-      if (ex.status === "cancelled") return false;
-      const d = ex.expense_date ? new Date(ex.expense_date) : null;
-      if (fromDate && d && d < fromDate) return false;
-      if (toDate && d && d > toDate) return false;
-      return true;
-    });
-
-    const grossRevenueExVat = filteredInvoices.reduce(
+    const grossRevenueExVat = salesInvoices.reduce(
       (s, inv) =>
         s + (inv.subtotal ?? (inv.total_amount || 0) - (inv.tax_amount || 0)),
       0,
@@ -847,7 +947,7 @@ export default function ReportsPage() {
       gross_revenue_ex_vat: grossRevenueExVat,
       expenses_ex_vat: expensesExVat,
       net_revenue_ex_vat: grossRevenueExVat - expensesExVat,
-      invoices: filteredInvoices
+      invoices: salesInvoices
         .sort((a, b) => {
           const da = a.invoice_date
             ? new Date(a.invoice_date).getTime()
@@ -892,7 +992,167 @@ export default function ReportsPage() {
           total: ex.total_amount || 0,
         })),
     });
-  }, [companyId, dateRange, reportCurrency]);
+  }, [loadIncomeStatementSourceData]);
+
+  const loadProfitAndLossJournalReport = useCallback(async () => {
+    const sourceData = await loadIncomeStatementSourceData();
+    if (!sourceData) return;
+
+    const { salesInvoices, creditNotes, filteredExpenses, contactLookup } =
+      sourceData;
+
+    const datedEntries = [
+      ...salesInvoices.map((inv) => ({
+        sortDate: inv.invoice_date || inv.created_at,
+        entry: {
+          date: inv.invoice_date
+            ? new Date(inv.invoice_date).toLocaleDateString()
+            : new Date(inv.created_at).toLocaleDateString(),
+          source: "Invoice",
+          reference: inv.reference,
+          party: inv.customer_id
+            ? contactLookup.get(inv.customer_id) || "-"
+            : "-",
+          description: "Revenue recognised from invoice",
+          debit: 0,
+          credit:
+            inv.subtotal ?? (inv.total_amount || 0) - (inv.tax_amount || 0),
+          running_profit: 0,
+          status: inv.status,
+        } satisfies ProfitLossJournalEntry,
+      })),
+      ...creditNotes.map((inv) => ({
+        sortDate: inv.invoice_date || inv.created_at,
+        entry: {
+          date: inv.invoice_date
+            ? new Date(inv.invoice_date).toLocaleDateString()
+            : new Date(inv.created_at).toLocaleDateString(),
+          source: "Credit Note",
+          reference: inv.reference,
+          party: inv.customer_id
+            ? contactLookup.get(inv.customer_id) || "-"
+            : "-",
+          description: "Revenue reversal from credit note",
+          debit:
+            inv.subtotal ?? (inv.total_amount || 0) - (inv.tax_amount || 0),
+          credit: 0,
+          running_profit: 0,
+          status: inv.status,
+        } satisfies ProfitLossJournalEntry,
+      })),
+      ...filteredExpenses.map((ex) => ({
+        sortDate: ex.expense_date || ex.reference || "",
+        entry: {
+          date: ex.expense_date
+            ? new Date(ex.expense_date).toLocaleDateString()
+            : "-",
+          source: "Expense",
+          reference: ex.reference || "-",
+          party: ex.supplier_id ? contactLookup.get(ex.supplier_id) || "-" : "-",
+          description: ex.description || ex.category || "Expense posted",
+          debit: ex.subtotal || 0,
+          credit: 0,
+          running_profit: 0,
+          status: ex.status,
+        } satisfies ProfitLossJournalEntry,
+      })),
+    ].sort(
+      (a, b) => new Date(a.sortDate).getTime() - new Date(b.sortDate).getTime(),
+    );
+
+    let runningProfit = 0;
+    const entries = datedEntries.map(({ entry }) => {
+      runningProfit += entry.credit - entry.debit;
+      return {
+        ...entry,
+        running_profit: runningProfit,
+      };
+    });
+
+    const totalCredits = entries.reduce((sum, entry) => sum + entry.credit, 0);
+    const totalDebits = entries.reduce((sum, entry) => sum + entry.debit, 0);
+
+    setProfitLossJournalReport({
+      total_credits: totalCredits,
+      total_debits: totalDebits,
+      net_profit: totalCredits - totalDebits,
+      entries,
+    });
+  }, [loadIncomeStatementSourceData]);
+
+  const loadQpdReport = useCallback(async () => {
+    const sourceData = await loadIncomeStatementSourceData();
+    if (!sourceData) return;
+
+    const { salesInvoices, creditNotes, filteredExpenses, fromDate, toDate } =
+      sourceData;
+
+    const periodRevenue = salesInvoices.reduce(
+      (sum, inv) =>
+        sum + (inv.subtotal ?? (inv.total_amount || 0) - (inv.tax_amount || 0)),
+      0,
+    );
+    const periodCreditNotes = creditNotes.reduce(
+      (sum, inv) =>
+        sum + (inv.subtotal ?? (inv.total_amount || 0) - (inv.tax_amount || 0)),
+      0,
+    );
+    const periodExpenses = filteredExpenses.reduce(
+      (sum, ex) => sum + (ex.subtotal || 0),
+      0,
+    );
+    const periodTaxableIncome = Math.max(
+      0,
+      periodRevenue - periodCreditNotes - periodExpenses,
+    );
+    const taxYear =
+      (dateRange.to ? new Date(`${dateRange.to}T12:00:00`) : new Date()).getFullYear();
+    const daysInPeriod = getDaysInclusive(fromDate, toDate);
+    const annualisationFactor =
+      daysInPeriod > 0 ? getTaxYearLength(taxYear) / daysInPeriod : 1;
+    const estimatedAnnualTaxableIncome = Math.max(
+      0,
+      periodTaxableIncome * annualisationFactor,
+    );
+    const estimatedAnnualTaxDue =
+      estimatedAnnualTaxableIncome * (PROVISIONAL_TAX_RATE / 100);
+
+    let cumulativePercentage = 0;
+    let priorQpdsDue = 0;
+    const paymentSchedule = QPD_INSTALLMENTS.map((item) => {
+      cumulativePercentage += item.installmentPercentage;
+      const cumulativeTaxDue =
+        estimatedAnnualTaxDue * (cumulativePercentage / 100);
+      const amountDue = Math.max(0, cumulativeTaxDue - priorQpdsDue);
+      const dueDate = new Date(taxYear, item.month, item.day);
+      const entry = {
+        quarter: item.quarter,
+        due_date: dueDate.toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "long",
+          year: "numeric",
+        }),
+        installment_percentage: item.installmentPercentage,
+        cumulative_percentage: cumulativePercentage,
+        cumulative_tax_due: cumulativeTaxDue,
+        prior_qpds_due: priorQpdsDue,
+        amount_due: amountDue,
+        remittance_form: "ITF 12B",
+      };
+      priorQpdsDue = cumulativeTaxDue;
+      return entry;
+    });
+
+    setQpdReport({
+      tax_year: taxYear,
+      tax_rate: PROVISIONAL_TAX_RATE,
+      period_taxable_income: periodTaxableIncome,
+      annualisation_factor: annualisationFactor,
+      estimated_annual_taxable_income: estimatedAnnualTaxableIncome,
+      estimated_annual_tax_due: estimatedAnnualTaxDue,
+      payment_schedule: paymentSchedule,
+    });
+  }, [dateRange.to, loadIncomeStatementSourceData]);
 
   const loadStockReport = useCallback(async () => {
     if (!companyId) return;
@@ -1558,6 +1818,9 @@ export default function ReportsPage() {
       if (activeReport === "sales") await loadSalesReport();
       else if (activeReport === "income_statement")
         await loadIncomeStatementReport();
+      else if (activeReport === "profit_loss_journal")
+        await loadProfitAndLossJournalReport();
+      else if (activeReport === "qpd") await loadQpdReport();
       else if (activeReport === "stock") await loadStockReport();
       else if (activeReport === "debtors") await loadDebtorsReport();
       else if (activeReport === "creditors") await loadCreditorsReport();
@@ -1574,6 +1837,8 @@ export default function ReportsPage() {
     activeReport,
     loadSalesReport,
     loadIncomeStatementReport,
+    loadProfitAndLossJournalReport,
+    loadQpdReport,
     loadStockReport,
     loadDebtorsReport,
     loadCreditorsReport,
@@ -2198,6 +2463,96 @@ export default function ReportsPage() {
         ],
         [130, 150, 110, 120, 110, 110, 110, 110],
       );
+    } else if (
+      activeReport === "profit_loss_journal" &&
+      profitLossJournalReport
+    ) {
+      filename = `profit-loss-journal-${dateRange.from}-to-${dateRange.to}.xls`;
+      workbookXml = buildWorkbookXml(
+        "P&L Journal",
+        "PROFIT AND LOSS JOURNAL",
+        `${dateRange.from} to ${dateRange.to}`,
+        [
+          {
+            title: "SUMMARY",
+            rows: [
+              ["Income Credits", profitLossJournalReport.total_credits.toFixed(2)],
+              ["Expense / Contra Debits", profitLossJournalReport.total_debits.toFixed(2)],
+              ["Net Profit", profitLossJournalReport.net_profit.toFixed(2)],
+            ],
+          },
+          {
+            title: "JOURNAL ENTRIES",
+            headers: [
+              "Date",
+              "Source",
+              "Reference",
+              "Party",
+              "Description",
+              "Debit",
+              "Credit",
+              "Running Profit",
+              "Status",
+            ],
+            rows: profitLossJournalReport.entries.map((entry) => [
+              entry.date,
+              entry.source,
+              entry.reference,
+              entry.party,
+              entry.description,
+              entry.debit.toFixed(2),
+              entry.credit.toFixed(2),
+              entry.running_profit.toFixed(2),
+              entry.status,
+            ]),
+          },
+        ],
+        [100, 100, 120, 140, 210, 100, 100, 110, 90],
+      );
+    } else if (activeReport === "qpd" && qpdReport) {
+      filename = `qpd-report-${qpdReport.tax_year}.xls`;
+      workbookXml = buildWorkbookXml(
+        "QPD Report",
+        "QPD PROVISIONAL TAX REPORT",
+        `Tax Year ${qpdReport.tax_year}`,
+        [
+          {
+            title: "SUMMARY",
+            rows: [
+              ["Taxable Income In Period", qpdReport.period_taxable_income.toFixed(2)],
+              ["Annualisation Factor", qpdReport.annualisation_factor.toFixed(4)],
+              ["Estimated Annual Taxable Income", qpdReport.estimated_annual_taxable_income.toFixed(2)],
+              ["Tax Rate", `${qpdReport.tax_rate.toFixed(2)}%`],
+              ["Estimated Annual Tax Due", qpdReport.estimated_annual_tax_due.toFixed(2)],
+              ["Remittance Form", "ITF 12B"],
+            ],
+          },
+          {
+            title: "PAYMENT SCHEDULE",
+            headers: [
+              "Quarter",
+              "Due Date",
+              "Installment %",
+              "Cumulative %",
+              "Cumulative Tax Due",
+              "Less Previous QPDs",
+              "Amount Due",
+              "Form",
+            ],
+            rows: qpdReport.payment_schedule.map((entry) => [
+              entry.quarter,
+              entry.due_date,
+              `${entry.installment_percentage.toFixed(2)}%`,
+              `${entry.cumulative_percentage.toFixed(2)}%`,
+              entry.cumulative_tax_due.toFixed(2),
+              entry.prior_qpds_due.toFixed(2),
+              entry.amount_due.toFixed(2),
+              entry.remittance_form,
+            ]),
+          },
+        ],
+        [90, 130, 100, 100, 120, 120, 110, 90],
+      );
     } else if (activeReport === "stock" && stockReport) {
       filename = `stock-report-${new Date().toISOString().split("T")[0]}.xls`;
       workbookXml = buildWorkbookXml(
@@ -2479,6 +2834,10 @@ export default function ReportsPage() {
               ? "Creditors"
               : activeReport === "income_statement"
                 ? "Income Statement"
+                : activeReport === "profit_loss_journal"
+                  ? "Profit and Loss Journal"
+                  : activeReport === "qpd"
+                    ? "QPD Provisional Tax"
                 : activeReport === "purchases"
                   ? "Purchase Report"
                   : activeReport === "pos_orders"
@@ -2529,6 +2888,33 @@ export default function ReportsPage() {
         <h3>Expenses (${incomeStatementReport.expenses.length})</h3>
         <table><thead><tr><th>Reference</th><th>Supplier</th><th>Category</th><th>Date</th><th style="text-align:right">Subtotal</th><th style="text-align:right">Tax</th><th style="text-align:right">Total</th></tr></thead><tbody>
           ${incomeStatementReport.expenses.map((ex) => `<tr><td>${ex.reference}</td><td>${ex.supplier}</td><td>${ex.category}</td><td>${ex.date}</td><td style="text-align:right">${formatCurrency(ex.subtotal)}</td><td style="text-align:right">${formatCurrency(ex.tax)}</td><td style="text-align:right">${formatCurrency(ex.total)}</td></tr>`).join("")}
+        </tbody></table>`;
+    } else if (
+      activeReport === "profit_loss_journal" &&
+      profitLossJournalReport
+    ) {
+      bodyHTML = `
+        <div class="summary-grid">
+          <div class="summary-box"><div class="label">Income Credits</div><div class="val">${formatCurrency(profitLossJournalReport.total_credits)}</div></div>
+          <div class="summary-box"><div class="label">Expense / Contra Debits</div><div class="val">${formatCurrency(profitLossJournalReport.total_debits)}</div></div>
+          <div class="summary-box"><div class="label">Net Profit</div><div class="val">${formatCurrency(profitLossJournalReport.net_profit)}</div></div>
+        </div>
+        <h3>Journal Entries</h3>
+        <table><thead><tr><th>Date</th><th>Source</th><th>Reference</th><th>Party</th><th>Description</th><th style="text-align:right">Debit</th><th style="text-align:right">Credit</th><th style="text-align:right">Running Profit</th><th>Status</th></tr></thead><tbody>
+          ${profitLossJournalReport.entries.map((entry) => `<tr><td>${entry.date}</td><td>${entry.source}</td><td>${entry.reference}</td><td>${entry.party}</td><td>${entry.description}</td><td style="text-align:right">${formatCurrency(entry.debit)}</td><td style="text-align:right">${formatCurrency(entry.credit)}</td><td style="text-align:right">${formatCurrency(entry.running_profit)}</td><td>${entry.status}</td></tr>`).join("")}
+        </tbody></table>`;
+    } else if (activeReport === "qpd" && qpdReport) {
+      bodyHTML = `
+        <div class="summary-grid">
+          <div class="summary-box"><div class="label">Taxable Income In Period</div><div class="val">${formatCurrency(qpdReport.period_taxable_income)}</div></div>
+          <div class="summary-box"><div class="label">Annualisation Factor</div><div class="val">${qpdReport.annualisation_factor.toFixed(2)}x</div></div>
+          <div class="summary-box"><div class="label">Estimated Annual Taxable Income</div><div class="val">${formatCurrency(qpdReport.estimated_annual_taxable_income)}</div></div>
+          <div class="summary-box"><div class="label">Estimated Annual Tax Due</div><div class="val">${formatCurrency(qpdReport.estimated_annual_tax_due)}</div></div>
+        </div>
+        <p><strong>Tax rate:</strong> ${qpdReport.tax_rate.toFixed(2)}% &nbsp; <strong>Remittance form:</strong> ITF 12B</p>
+        <h3>QPD Schedule</h3>
+        <table><thead><tr><th>Quarter</th><th>Due Date</th><th style="text-align:right">Installment %</th><th style="text-align:right">Cumulative %</th><th style="text-align:right">Cumulative Tax Due</th><th style="text-align:right">Less Previous QPDs</th><th style="text-align:right">Amount Due</th><th>Form</th></tr></thead><tbody>
+          ${qpdReport.payment_schedule.map((entry) => `<tr><td>${entry.quarter}</td><td>${entry.due_date}</td><td style="text-align:right">${entry.installment_percentage.toFixed(2)}%</td><td style="text-align:right">${entry.cumulative_percentage.toFixed(2)}%</td><td style="text-align:right">${formatCurrency(entry.cumulative_tax_due)}</td><td style="text-align:right">${formatCurrency(entry.prior_qpds_due)}</td><td style="text-align:right">${formatCurrency(entry.amount_due)}</td><td>${entry.remittance_form}</td></tr>`).join("")}
         </tbody></table>`;
     } else if (activeReport === "stock" && stockReport) {
       bodyHTML = `
@@ -2732,6 +3118,14 @@ export default function ReportsPage() {
     "income_expenses",
     incomeStatementReport?.expenses ?? [],
   );
+  const profitLossJournalTable = getPaginatedTable(
+    "profit_loss_journal",
+    profitLossJournalReport?.entries ?? [],
+  );
+  const qpdScheduleTable = getPaginatedTable(
+    "qpd_schedule",
+    qpdReport?.payment_schedule ?? [],
+  );
   const stockLowItemsTable = getPaginatedTable(
     "stock_low_items",
     stockReport?.low_stock_items ?? [],
@@ -2795,6 +3189,8 @@ export default function ReportsPage() {
     setStockReport(null);
     setDebtorsReport(null);
     setCreditorsReport(null);
+    setProfitLossJournalReport(null);
+    setQpdReport(null);
     setVatReport(null);
     setPurchaseReport(null);
     setPosOrdersReport(null);
@@ -3543,6 +3939,221 @@ export default function ReportsPage() {
                 )}
               </div>
             )}
+
+          {!loading &&
+            activeReport === "profit_loss_journal" &&
+            profitLossJournalReport && (
+              <div className="report-content">
+                <div className="metrics-row">
+                  <MetricCard
+                    label="Income Credits"
+                    value={formatCurrency(profitLossJournalReport.total_credits)}
+                  />
+                  <MetricCard
+                    label="Expense / Contra Debits"
+                    value={formatCurrency(profitLossJournalReport.total_debits)}
+                    variant="warning"
+                  />
+                  <MetricCard
+                    label="Net Profit"
+                    value={formatCurrency(profitLossJournalReport.net_profit)}
+                    variant={
+                      profitLossJournalReport.net_profit >= 0
+                        ? "success"
+                        : "danger"
+                    }
+                  />
+                </div>
+
+                <div className="report-card">
+                  <h3>Journal Entries</h3>
+                  {profitLossJournalReport.entries.length === 0 ? (
+                    <p className="empty-state">
+                      No profit and loss entries in this period.
+                    </p>
+                  ) : (
+                    <>
+                      <table className="report-table">
+                        <thead>
+                          <tr>
+                            <th>Date</th>
+                            <th>Source</th>
+                            <th>Reference</th>
+                            <th>Party</th>
+                            <th>Description</th>
+                            <th className="text-right">Debit</th>
+                            <th className="text-right">Credit</th>
+                            <th className="text-right">Running Profit</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {profitLossJournalTable.rows.map((entry, index) => (
+                            <tr key={`${entry.reference}-${entry.date}-${index}`}>
+                              <td>{entry.date}</td>
+                              <td>{entry.source}</td>
+                              <td
+                                style={{
+                                  fontFamily: "monospace",
+                                  fontSize: 12,
+                                }}
+                              >
+                                {entry.reference}
+                              </td>
+                              <td>{entry.party}</td>
+                              <td>{entry.description}</td>
+                              <td className="text-right">
+                                {entry.debit > 0 ? formatCurrency(entry.debit) : "-"}
+                              </td>
+                              <td className="text-right">
+                                {entry.credit > 0
+                                  ? formatCurrency(entry.credit)
+                                  : "-"}
+                              </td>
+                              <td
+                                className={`text-right ${entry.running_profit < 0 ? "report-negative-value" : ""}`}
+                              >
+                                {formatCurrency(entry.running_profit)}
+                              </td>
+                              <td>
+                                <span
+                                  className={`badge ${entry.status === "paid" || entry.status === "posted" || entry.status === "fiscalized" ? "badge-success" : entry.status === "cancelled" ? "badge-danger" : "badge-secondary"}`}
+                                  style={{ textTransform: "capitalize" }}
+                                >
+                                  {entry.status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      <TablePagination
+                        page={profitLossJournalTable.page}
+                        pageSize={profitLossJournalTable.pageSize}
+                        totalItems={profitLossJournalTable.totalItems}
+                        onPageChange={profitLossJournalTable.setPage}
+                        onPageSizeChange={profitLossJournalTable.setPageSize}
+                      />
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+          {!loading && activeReport === "qpd" && qpdReport && (
+            <div className="report-content">
+              <div className="metrics-row">
+                <MetricCard
+                  label="Taxable Income In Period"
+                  value={formatCurrency(qpdReport.period_taxable_income)}
+                />
+                <MetricCard
+                  label="Annualisation Factor"
+                  value={`${qpdReport.annualisation_factor.toFixed(2)}x`}
+                />
+                <MetricCard
+                  label="Estimated Annual Taxable Income"
+                  value={formatCurrency(qpdReport.estimated_annual_taxable_income)}
+                />
+                <MetricCard
+                  label="Estimated Annual Tax Due"
+                  value={formatCurrency(qpdReport.estimated_annual_tax_due)}
+                  variant={qpdReport.estimated_annual_tax_due > 0 ? "warning" : "success"}
+                />
+              </div>
+
+              <div className="report-grid">
+                <div className="report-card">
+                  <h3>QPD Calculation Summary</h3>
+                  <table className="report-table">
+                    <tbody>
+                      <tr>
+                        <td style={{ fontWeight: 600 }}>Tax Year</td>
+                        <td className="text-right">{qpdReport.tax_year}</td>
+                      </tr>
+                      <tr>
+                        <td style={{ fontWeight: 600 }}>Tax Rate</td>
+                        <td className="text-right">
+                          {qpdReport.tax_rate.toFixed(2)}%
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style={{ fontWeight: 600 }}>
+                          Estimated Annual Tax Due
+                        </td>
+                        <td className="text-right">
+                          {formatCurrency(qpdReport.estimated_annual_tax_due)}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style={{ fontWeight: 600 }}>Remittance Form</td>
+                        <td className="text-right">ITF 12B</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <p className="empty-state" style={{ textAlign: "left", margin: 0 }}>
+                    QPD due is calculated as cumulative tax due less QPDs already
+                    due for earlier quarters.
+                  </p>
+                </div>
+
+                <div className="report-card">
+                  <h3>Quarterly Payment Dates</h3>
+                  {qpdReport.payment_schedule.length === 0 ? (
+                    <p className="empty-state">No QPD schedule available.</p>
+                  ) : (
+                    <>
+                      <table className="report-table">
+                        <thead>
+                          <tr>
+                            <th>Quarter</th>
+                            <th>Due Date</th>
+                            <th className="text-right">Installment %</th>
+                            <th className="text-right">Cumulative %</th>
+                            <th className="text-right">Cumulative Tax Due</th>
+                            <th className="text-right">Less Previous QPDs</th>
+                            <th className="text-right">Amount Due</th>
+                            <th>Form</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {qpdScheduleTable.rows.map((entry) => (
+                            <tr key={`${entry.quarter}-${entry.due_date}`}>
+                              <td>{entry.quarter}</td>
+                              <td>{entry.due_date}</td>
+                              <td className="text-right">
+                                {entry.installment_percentage.toFixed(2)}%
+                              </td>
+                              <td className="text-right">
+                                {entry.cumulative_percentage.toFixed(2)}%
+                              </td>
+                              <td className="text-right">
+                                {formatCurrency(entry.cumulative_tax_due)}
+                              </td>
+                              <td className="text-right">
+                                {formatCurrency(entry.prior_qpds_due)}
+                              </td>
+                              <td className="text-right">
+                                {formatCurrency(entry.amount_due)}
+                              </td>
+                              <td>{entry.remittance_form}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      <TablePagination
+                        page={qpdScheduleTable.page}
+                        pageSize={qpdScheduleTable.pageSize}
+                        totalItems={qpdScheduleTable.totalItems}
+                        onPageChange={qpdScheduleTable.setPage}
+                        onPageSizeChange={qpdScheduleTable.setPageSize}
+                      />
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* ─── Stock Report ─── */}
           {!loading && activeReport === "stock" && stockReport && (
@@ -4814,6 +5425,9 @@ export default function ReportsPage() {
             !error &&
             ((activeReport === "sales" && !salesReport) ||
               (activeReport === "income_statement" && !incomeStatementReport) ||
+              (activeReport === "profit_loss_journal" &&
+                !profitLossJournalReport) ||
+              (activeReport === "qpd" && !qpdReport) ||
               (activeReport === "stock" && !stockReport) ||
               (activeReport === "debtors" && !debtorsReport) ||
               (activeReport === "creditors" && !creditorsReport) ||
