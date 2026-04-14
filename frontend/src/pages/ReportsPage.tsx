@@ -2542,7 +2542,6 @@ export default function ReportsPage() {
               "Cumulative Tax Due",
               "Less Previous QPDs",
               "Amount Due",
-              "Form",
             ],
             rows: qpdReport.payment_schedule.map((entry) => [
               entry.quarter,
@@ -2552,11 +2551,10 @@ export default function ReportsPage() {
               entry.cumulative_tax_due.toFixed(2),
               entry.prior_qpds_due.toFixed(2),
               entry.amount_due.toFixed(2),
-              entry.remittance_form,
             ]),
           },
         ],
-        [90, 130, 100, 100, 120, 120, 110, 90],
+        [90, 130, 100, 100, 120, 120, 110],
       );
     } else if (activeReport === "stock" && stockReport) {
       filename = `stock-report-${new Date().toISOString().split("T")[0]}.xls`;
@@ -2918,8 +2916,8 @@ export default function ReportsPage() {
         </div>
         <p><strong>Tax rate:</strong> ${qpdReport.tax_rate.toFixed(2)}% &nbsp; <strong>Remittance form:</strong> ITF 12B</p>
         <h3>QPD Schedule</h3>
-        <table><thead><tr><th>Quarter</th><th>Due Date</th><th style="text-align:right">Installment %</th><th style="text-align:right">Cumulative %</th><th style="text-align:right">Cumulative Tax Due</th><th style="text-align:right">Less Previous QPDs</th><th style="text-align:right">Amount Due</th><th>Form</th></tr></thead><tbody>
-          ${qpdReport.payment_schedule.map((entry) => `<tr><td>${entry.quarter}</td><td>${entry.due_date}</td><td style="text-align:right">${entry.installment_percentage.toFixed(2)}%</td><td style="text-align:right">${entry.cumulative_percentage.toFixed(2)}%</td><td style="text-align:right">${formatCurrency(entry.cumulative_tax_due)}</td><td style="text-align:right">${formatCurrency(entry.prior_qpds_due)}</td><td style="text-align:right">${formatCurrency(entry.amount_due)}</td><td>${entry.remittance_form}</td></tr>`).join("")}
+        <table><thead><tr><th>Quarter</th><th>Due Date</th><th style="text-align:right">Installment %</th><th style="text-align:right">Cumulative %</th><th style="text-align:right">Cumulative Tax Due</th><th style="text-align:right">Less Previous QPDs</th><th style="text-align:right">Amount Due</th></tr></thead><tbody>
+          ${qpdReport.payment_schedule.map((entry) => `<tr><td>${entry.quarter}</td><td>${entry.due_date}</td><td style="text-align:right">${entry.installment_percentage.toFixed(2)}%</td><td style="text-align:right">${entry.cumulative_percentage.toFixed(2)}%</td><td style="text-align:right">${formatCurrency(entry.cumulative_tax_due)}</td><td style="text-align:right">${formatCurrency(entry.prior_qpds_due)}</td><td style="text-align:right">${formatCurrency(entry.amount_due)}</td></tr>`).join("")}
         </tbody></table>`;
     } else if (activeReport === "stock" && stockReport) {
       bodyHTML = `
@@ -4141,9 +4139,8 @@ export default function ReportsPage() {
                               <td className="text-right">
                                 {formatCurrency(entry.amount_due)}
                               </td>
-                              <td>{entry.remittance_form}</td>
                             </tr>
-                          ))}
+                          ))}}
                         </tbody>
                       </table>
                       <TablePagination
