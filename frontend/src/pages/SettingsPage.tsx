@@ -650,6 +650,7 @@ function parseApiErrorMessage(err: any, fallback: string) {
   const showTaxSettings =
     canUsePortalApp("invoices") || canUsePortalApp("purchases");
   const showPOSSettings = canUsePortalApp("pos");
+  const showAccountingSettings = canUsePortalApp("invoices");
 
   // Close till dropdown on outside click
   useEffect(() => {
@@ -709,10 +710,7 @@ const [currencyRates, setCurrencyRates] = useState<CurrencyRateRead[]>([]);
       "currencies",
       "users-companies",
       "subscription",
-      "acc-accounts",
-      "acc-journals",
-      "acc-payment-terms",
-      "acc-budgets",
+      ...(showAccountingSettings ? ["acc-accounts", "acc-journals", "acc-payment-terms", "acc-budgets"] : []),
       ...(showDocumentSettings ? ["document-layout"] : []),
       ...(showInvoiceSettings ? ["sequences"] : []),
       ...(showTaxSettings ? ["zimra-tax"] : []),
@@ -2445,6 +2443,8 @@ const [currencyRates, setCurrencyRates] = useState<CurrencyRateRead[]>([]);
           >
             My Subscription
           </button>
+          {showAccountingSettings && (
+            <>
           <div className="settings-sidebar-title">Accounting</div>
           <button
             className={`settings-sidebar-item ${activeSection === "acc-accounts" ? "active" : ""}`}
@@ -2471,6 +2471,8 @@ const [currencyRates, setCurrencyRates] = useState<CurrencyRateRead[]>([]);
           >
             Financial Budgets
           </button>
+            </>
+          )}
         </aside>
         <main className="settings-main">
           {status && (

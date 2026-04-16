@@ -640,30 +640,28 @@ export default function ReportsPage() {
       {
         id: "reports-menu",
         title: "FINANCIAL REPORTS",
-        items,
-      },
-      {
-        id: "acc-reports-menu",
-        title: "ACCOUNTING REPORTS",
-        items: ACC_REPORT_MENU_ITEMS.map((item) => {
-          const Icon = item.icon;
-          return {
-            id: `acc-report-menu-${item.key}`,
-            label: item.label,
-            icon: (
-              <Icon
-                size={18}
-                strokeWidth={1.5}
-                aria-hidden="true"
-                color={item.color}
-              />
-            ),
-            isActive: activeReport === item.key,
-            onClick: () => setActiveReport(item.key),
-            iconColor: item.color,
-            iconBackground: item.background,
-          };
-        }),
+        items: [
+          ...items,
+          ...ACC_REPORT_MENU_ITEMS.map((item) => {
+            const Icon = item.icon;
+            return {
+              id: `acc-report-menu-${item.key}`,
+              label: item.label,
+              icon: (
+                <Icon
+                  size={18}
+                  strokeWidth={1.5}
+                  aria-hidden="true"
+                  color={item.color}
+                />
+              ),
+              isActive: activeReport === item.key,
+              onClick: () => setActiveReport(item.key),
+              iconColor: item.color,
+              iconBackground: item.background,
+            };
+          }),
+        ],
       },
     ];
   }, [activeReport]);
