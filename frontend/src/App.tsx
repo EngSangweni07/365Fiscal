@@ -1000,3 +1000,5 @@ function POSIcon() {
 function SubscriptionIcon() {
   return <WalletCards size={20} strokeWidth={2} />;
 }
+
+

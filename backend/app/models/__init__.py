@@ -31,3 +31,8 @@ from app.models.pos_employee import POSEmployee
 from app.models.pos_till import POSTill, pos_till_employees
 from app.models.currency import Currency, CurrencyRate
 from app.models.demo_account import DemoAccount
+from app.models.account import (
+    Account, Journal, JournalEntry, JournalEntryLine,
+    PaymentTerm, FiscalPosition, FiscalPositionTax,
+    Budget, BudgetLine,
+)

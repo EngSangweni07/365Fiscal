@@ -4,6 +4,7 @@ import {
   ChevronDown,
   Monitor,
   PencilLine,
+  Plus,
   Search,
   Store,
   Trash2,
@@ -24,6 +25,28 @@ type DeviceBasic = {
   model: string;
   company_id: number;
 };
+
+/* ── Accounting Config Types ── */
+type AccAccount = { id: number; company_id: number; code: string; name: string; account_type: string; parent_id: number | null; is_reconcilable: boolean; is_active: boolean; currency_code: string; notes: string };
+type AccJournal = { id: number; company_id: number; name: string; code: string; journal_type: string; default_account_id: number | null; currency_code: string; is_active: boolean };
+type AccPaymentTerm = { id: number; company_id: number; name: string; description: string; due_days: number; discount_percentage: number; discount_days: number; is_active: boolean };
+type AccFiscalPosition = { id: number; company_id: number; name: string; description: string; auto_apply: boolean; is_active: boolean; tax_mappings: { id: number; source_tax_id: number | null; destination_tax_id: number | null }[] };
+type AccBudget = { id: number; company_id: number; name: string; date_from: string; date_to: string; status: string; notes: string; lines: { id: number; account_id: number | null; planned_amount: number; practical_amount: number }[] };
+
+const ACC_ACCOUNT_TYPES = [
+  { value: "asset", label: "Asset" },
+  { value: "liability", label: "Liability" },
+  { value: "equity", label: "Equity" },
+  { value: "income", label: "Income" },
+  { value: "expense", label: "Expense" },
+];
+const ACC_JOURNAL_TYPES = [
+  { value: "sale", label: "Sales" },
+  { value: "purchase", label: "Purchases" },
+  { value: "bank", label: "Bank" },
+  { value: "cash", label: "Cash" },
+  { value: "general", label: "Miscellaneous" },
+];
 
 const TAX_TYPES = [
   { value: "sales", label: "Sales" },
@@ -319,6 +342,19 @@ export default function SettingsPage() {
   const [pulling, setPulling] = useState(false);
   const [pullError, setPullError] = useState<string | null>(null);
   const [pullSuccess, setPullSuccess] = useState<string | null>(null);
+
+  /* ── Accounting Config State ── */
+  const [accAccounts, setAccAccounts] = useState<AccAccount[]>([]);
+  const [accJournals, setAccJournals] = useState<AccJournal[]>([]);
+  const [accPaymentTerms, setAccPaymentTerms] = useState<AccPaymentTerm[]>([]);
+  const [accFiscalPositions, setAccFiscalPositions] = useState<AccFiscalPosition[]>([]);
+  const [accBudgets, setAccBudgets] = useState<AccBudget[]>([]);
+  const [accShowForm, setAccShowForm] = useState(false);
+  const [accEditingId, setAccEditingId] = useState<number | null>(null);
+  const [accFormData, setAccFormData] = useState<Record<string, any>>({});
+  const [accSaving, setAccSaving] = useState(false);
+  const [accError, setAccError] = useState<string | null>(null);
+
   const [settingsForm, setSettingsForm] = useState({
     currency_code: "USD",
     currency_symbol: "$",
@@ -667,6 +703,11 @@ const [currencyRates, setCurrencyRates] = useState<CurrencyRateRead[]>([]);
       "currencies",
       "users-companies",
       "subscription",
+      "acc-accounts",
+      "acc-journals",
+      "acc-payment-terms",
+      "acc-fiscal-positions",
+      "acc-budgets",
       ...(showDocumentSettings ? ["document-layout"] : []),
       ...(showInvoiceSettings ? ["sequences"] : []),
       ...(showTaxSettings ? ["zimra-tax"] : []),
@@ -684,6 +725,51 @@ const [currencyRates, setCurrencyRates] = useState<CurrencyRateRead[]>([]);
     showPOSSettings,
     showTaxSettings,
   ]);
+
+  /* ── Accounting Config: Fetch on section change ── */
+  useEffect(() => {
+    if (!companyId) return;
+    const accSections: Record<string, () => void> = {
+      "acc-accounts": () => apiFetch<AccAccount[]>(`/accounting/accounts?company_id=${companyId}`).then(setAccAccounts).catch(() => setAccAccounts([])),
+      "acc-journals": () => apiFetch<AccJournal[]>(`/accounting/journals?company_id=${companyId}`).then(setAccJournals).catch(() => setAccJournals([])),
+      "acc-payment-terms": () => apiFetch<AccPaymentTerm[]>(`/accounting/payment-terms?company_id=${companyId}`).then(setAccPaymentTerms).catch(() => setAccPaymentTerms([])),
+      "acc-fiscal-positions": () => apiFetch<AccFiscalPosition[]>(`/accounting/fiscal-positions?company_id=${companyId}`).then(setAccFiscalPositions).catch(() => setAccFiscalPositions([])),
+      "acc-budgets": () => apiFetch<AccBudget[]>(`/accounting/budgets?company_id=${companyId}`).then(setAccBudgets).catch(() => setAccBudgets([])),
+    };
+    if (accSections[activeSection]) accSections[activeSection]();
+  }, [activeSection, companyId]);
+
+  const accResetForm = () => { setAccShowForm(false); setAccEditingId(null); setAccFormData({}); setAccError(null); };
+
+  const accHandleSave = async (endpoint: string) => {
+    if (!companyId) return;
+    setAccSaving(true); setAccError(null);
+    try {
+      if (accEditingId) {
+        await apiFetch(`${endpoint}/${accEditingId}`, { method: "PATCH", body: JSON.stringify(accFormData) });
+      } else {
+        await apiFetch(endpoint, { method: "POST", body: JSON.stringify({ ...accFormData, company_id: companyId }) });
+      }
+      accResetForm();
+      // Trigger refetch
+      setActiveSection(prev => { const tmp = prev; setActiveSection(""); setTimeout(() => setActiveSection(tmp), 20); return prev; });
+    } catch (err: any) { setAccError(err?.detail || err?.message || "Failed to save"); }
+    finally { setAccSaving(false); }
+  };
+
+  const accHandleDelete = async (endpoint: string, id: number) => {
+    if (!confirm("Are you sure you want to delete this item?")) return;
+    try { await apiFetch(`${endpoint}/${id}`, { method: "DELETE" }); }
+    catch { /* ignore */ }
+    setActiveSection(prev => { const tmp = prev; setActiveSection(""); setTimeout(() => setActiveSection(tmp), 20); return prev; });
+  };
+
+  const accHandleEdit = (item: any) => {
+    setAccEditingId(item.id);
+    const { id, company_id, ...rest } = item;
+    setAccFormData(rest);
+    setAccShowForm(true);
+  };
 
   // Track changes
   useEffect(() => {
@@ -2286,6 +2372,37 @@ const [currencyRates, setCurrencyRates] = useState<CurrencyRateRead[]>([]);
             }}
           >
             My Subscription
+          </button>
+          <div className="settings-sidebar-title">Accounting</div>
+          <button
+            className={`settings-sidebar-item ${activeSection === "acc-accounts" ? "active" : ""}`}
+            onClick={() => { setActiveTopTab("general"); setActiveSection("acc-accounts"); accResetForm(); }}
+          >
+            Chart of Accounts
+          </button>
+          <button
+            className={`settings-sidebar-item ${activeSection === "acc-journals" ? "active" : ""}`}
+            onClick={() => { setActiveTopTab("general"); setActiveSection("acc-journals"); accResetForm(); }}
+          >
+            Journals
+          </button>
+          <button
+            className={`settings-sidebar-item ${activeSection === "acc-payment-terms" ? "active" : ""}`}
+            onClick={() => { setActiveTopTab("general"); setActiveSection("acc-payment-terms"); accResetForm(); }}
+          >
+            Payment Terms
+          </button>
+          <button
+            className={`settings-sidebar-item ${activeSection === "acc-fiscal-positions" ? "active" : ""}`}
+            onClick={() => { setActiveTopTab("general"); setActiveSection("acc-fiscal-positions"); accResetForm(); }}
+          >
+            Fiscal Positions
+          </button>
+          <button
+            className={`settings-sidebar-item ${activeSection === "acc-budgets" ? "active" : ""}`}
+            onClick={() => { setActiveTopTab("general"); setActiveSection("acc-budgets"); accResetForm(); }}
+          >
+            Financial Budgets
           </button>
         </aside>
         <main className="settings-main">
@@ -5821,6 +5938,251 @@ const [currencyRates, setCurrencyRates] = useState<CurrencyRateRead[]>([]);
                       )}
                     </div>
                   )}
+                </section>
+              )}
+
+              {/* ── Chart of Accounts ── */}
+              {activeSection === "acc-accounts" && (
+                <section className="settings-section">
+                  <div className="settings-section-header">
+                    <h4>Chart of Accounts</h4>
+                    <button className="primary" style={{ display: "flex", alignItems: "center", gap: 6 }} onClick={() => { accResetForm(); setAccShowForm(true); }}>
+                      <Plus size={14} /> New Account
+                    </button>
+                  </div>
+                  {accError && <div className="alert alert-danger" style={{ marginBottom: 12 }}>{accError}</div>}
+                  {accShowForm && (
+                    <div className="settings-card" style={{ marginBottom: 16, padding: 16 }}>
+                      <h5 style={{ margin: "0 0 12px" }}>{accEditingId ? "Edit" : "New"} Account</h5>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                        <div><label className="settings-label">Code</label><input className="settings-input" value={accFormData.code ?? ""} onChange={e => setAccFormData({ ...accFormData, code: e.target.value })} /></div>
+                        <div><label className="settings-label">Name</label><input className="settings-input" value={accFormData.name ?? ""} onChange={e => setAccFormData({ ...accFormData, name: e.target.value })} /></div>
+                        <div><label className="settings-label">Type</label><select className="settings-input" value={accFormData.account_type ?? ""} onChange={e => setAccFormData({ ...accFormData, account_type: e.target.value })}><option value="">Select...</option>{ACC_ACCOUNT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}</select></div>
+                        <div><label className="settings-label">Currency</label><input className="settings-input" value={accFormData.currency_code ?? ""} onChange={e => setAccFormData({ ...accFormData, currency_code: e.target.value })} /></div>
+                        <div><label className="settings-label">Reconcilable</label><br/><input type="checkbox" checked={!!accFormData.is_reconcilable} onChange={e => setAccFormData({ ...accFormData, is_reconcilable: e.target.checked })} /></div>
+                        <div style={{ gridColumn: "1 / -1" }}><label className="settings-label">Notes</label><input className="settings-input" value={accFormData.notes ?? ""} onChange={e => setAccFormData({ ...accFormData, notes: e.target.value })} /></div>
+                      </div>
+                      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                        <button className="primary" onClick={() => accHandleSave("/accounting/accounts")} disabled={accSaving}>{accSaving ? "Saving..." : "Save"}</button>
+                        <button className="settings-btn-sm" onClick={accResetForm}>Cancel</button>
+                      </div>
+                    </div>
+                  )}
+                  <table className="settings-table" style={{ width: "100%" }}>
+                    <thead><tr><th>Code</th><th>Name</th><th>Type</th><th>Currency</th><th>Reconcilable</th><th>Actions</th></tr></thead>
+                    <tbody>
+                      {accAccounts.length === 0 && <tr><td colSpan={6} style={{ textAlign: "center", color: "var(--muted)" }}>No accounts yet</td></tr>}
+                      {accAccounts.map(a => (
+                        <tr key={a.id}>
+                          <td style={{ fontWeight: 600 }}>{a.code}</td>
+                          <td>{a.name}</td>
+                          <td><span className={`badge badge-${a.account_type === "asset" ? "info" : a.account_type === "income" ? "success" : a.account_type === "expense" ? "danger" : "secondary"}`}>{a.account_type}</span></td>
+                          <td>{a.currency_code}</td>
+                          <td>{a.is_reconcilable ? "Yes" : "No"}</td>
+                          <td>
+                            <div style={{ display: "flex", gap: 4 }}>
+                              <button className="settings-btn-sm" onClick={() => accHandleEdit(a)}><PencilLine size={12} /> Edit</button>
+                              <button className="settings-btn-sm" style={{ color: "var(--danger)" }} onClick={() => accHandleDelete("/accounting/accounts", a.id)}><Trash2 size={12} /></button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </section>
+              )}
+
+              {/* ── Journals ── */}
+              {activeSection === "acc-journals" && (
+                <section className="settings-section">
+                  <div className="settings-section-header">
+                    <h4>Journals</h4>
+                    <button className="primary" style={{ display: "flex", alignItems: "center", gap: 6 }} onClick={() => { accResetForm(); setAccShowForm(true); }}>
+                      <Plus size={14} /> New Journal
+                    </button>
+                  </div>
+                  {accError && <div className="alert alert-danger" style={{ marginBottom: 12 }}>{accError}</div>}
+                  {accShowForm && (
+                    <div className="settings-card" style={{ marginBottom: 16, padding: 16 }}>
+                      <h5 style={{ margin: "0 0 12px" }}>{accEditingId ? "Edit" : "New"} Journal</h5>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                        <div><label className="settings-label">Name</label><input className="settings-input" value={accFormData.name ?? ""} onChange={e => setAccFormData({ ...accFormData, name: e.target.value })} /></div>
+                        <div><label className="settings-label">Short Code</label><input className="settings-input" value={accFormData.code ?? ""} onChange={e => setAccFormData({ ...accFormData, code: e.target.value })} /></div>
+                        <div><label className="settings-label">Type</label><select className="settings-input" value={accFormData.journal_type ?? ""} onChange={e => setAccFormData({ ...accFormData, journal_type: e.target.value })}><option value="">Select...</option>{ACC_JOURNAL_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}</select></div>
+                        <div><label className="settings-label">Currency</label><input className="settings-input" value={accFormData.currency_code ?? ""} onChange={e => setAccFormData({ ...accFormData, currency_code: e.target.value })} /></div>
+                      </div>
+                      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                        <button className="primary" onClick={() => accHandleSave("/accounting/journals")} disabled={accSaving}>{accSaving ? "Saving..." : "Save"}</button>
+                        <button className="settings-btn-sm" onClick={accResetForm}>Cancel</button>
+                      </div>
+                    </div>
+                  )}
+                  <table className="settings-table" style={{ width: "100%" }}>
+                    <thead><tr><th>Code</th><th>Name</th><th>Type</th><th>Currency</th><th>Active</th><th>Actions</th></tr></thead>
+                    <tbody>
+                      {accJournals.length === 0 && <tr><td colSpan={6} style={{ textAlign: "center", color: "var(--muted)" }}>No journals yet</td></tr>}
+                      {accJournals.map(j => (
+                        <tr key={j.id}>
+                          <td style={{ fontWeight: 600 }}>{j.code}</td>
+                          <td>{j.name}</td>
+                          <td><span className={`badge badge-${j.journal_type === "sale" ? "success" : j.journal_type === "purchase" ? "danger" : j.journal_type === "bank" ? "info" : "secondary"}`}>{ACC_JOURNAL_TYPES.find(t => t.value === j.journal_type)?.label || j.journal_type}</span></td>
+                          <td>{j.currency_code}</td>
+                          <td>{j.is_active ? "✓" : "—"}</td>
+                          <td>
+                            <div style={{ display: "flex", gap: 4 }}>
+                              <button className="settings-btn-sm" onClick={() => accHandleEdit(j)}><PencilLine size={12} /> Edit</button>
+                              <button className="settings-btn-sm" style={{ color: "var(--danger)" }} onClick={() => accHandleDelete("/accounting/journals", j.id)}><Trash2 size={12} /></button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </section>
+              )}
+
+              {/* ── Payment Terms ── */}
+              {activeSection === "acc-payment-terms" && (
+                <section className="settings-section">
+                  <div className="settings-section-header">
+                    <h4>Payment Terms</h4>
+                    <button className="primary" style={{ display: "flex", alignItems: "center", gap: 6 }} onClick={() => { accResetForm(); setAccShowForm(true); }}>
+                      <Plus size={14} /> New Payment Term
+                    </button>
+                  </div>
+                  {accError && <div className="alert alert-danger" style={{ marginBottom: 12 }}>{accError}</div>}
+                  {accShowForm && (
+                    <div className="settings-card" style={{ marginBottom: 16, padding: 16 }}>
+                      <h5 style={{ margin: "0 0 12px" }}>{accEditingId ? "Edit" : "New"} Payment Term</h5>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                        <div style={{ gridColumn: "1 / -1" }}><label className="settings-label">Name</label><input className="settings-input" value={accFormData.name ?? ""} onChange={e => setAccFormData({ ...accFormData, name: e.target.value })} /></div>
+                        <div style={{ gridColumn: "1 / -1" }}><label className="settings-label">Description</label><input className="settings-input" value={accFormData.description ?? ""} onChange={e => setAccFormData({ ...accFormData, description: e.target.value })} /></div>
+                        <div><label className="settings-label">Due Days</label><input type="number" className="settings-input" value={accFormData.due_days ?? ""} onChange={e => setAccFormData({ ...accFormData, due_days: parseInt(e.target.value) || 0 })} /></div>
+                        <div><label className="settings-label">Discount %</label><input type="number" className="settings-input" value={accFormData.discount_percentage ?? ""} onChange={e => setAccFormData({ ...accFormData, discount_percentage: parseFloat(e.target.value) || 0 })} /></div>
+                        <div><label className="settings-label">Discount Days</label><input type="number" className="settings-input" value={accFormData.discount_days ?? ""} onChange={e => setAccFormData({ ...accFormData, discount_days: parseInt(e.target.value) || 0 })} /></div>
+                      </div>
+                      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                        <button className="primary" onClick={() => accHandleSave("/accounting/payment-terms")} disabled={accSaving}>{accSaving ? "Saving..." : "Save"}</button>
+                        <button className="settings-btn-sm" onClick={accResetForm}>Cancel</button>
+                      </div>
+                    </div>
+                  )}
+                  <table className="settings-table" style={{ width: "100%" }}>
+                    <thead><tr><th>Name</th><th>Description</th><th>Due Days</th><th>Discount %</th><th>Discount Days</th><th>Actions</th></tr></thead>
+                    <tbody>
+                      {accPaymentTerms.length === 0 && <tr><td colSpan={6} style={{ textAlign: "center", color: "var(--muted)" }}>No payment terms yet</td></tr>}
+                      {accPaymentTerms.map(pt => (
+                        <tr key={pt.id}>
+                          <td style={{ fontWeight: 600 }}>{pt.name}</td>
+                          <td>{pt.description || "—"}</td>
+                          <td>{pt.due_days}</td>
+                          <td>{pt.discount_percentage}%</td>
+                          <td>{pt.discount_days}</td>
+                          <td>
+                            <div style={{ display: "flex", gap: 4 }}>
+                              <button className="settings-btn-sm" onClick={() => accHandleEdit(pt)}><PencilLine size={12} /> Edit</button>
+                              <button className="settings-btn-sm" style={{ color: "var(--danger)" }} onClick={() => accHandleDelete("/accounting/payment-terms", pt.id)}><Trash2 size={12} /></button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </section>
+              )}
+
+              {/* ── Fiscal Positions ── */}
+              {activeSection === "acc-fiscal-positions" && (
+                <section className="settings-section">
+                  <div className="settings-section-header">
+                    <h4>Fiscal Positions</h4>
+                    <button className="primary" style={{ display: "flex", alignItems: "center", gap: 6 }} onClick={() => { accResetForm(); setAccShowForm(true); }}>
+                      <Plus size={14} /> New Fiscal Position
+                    </button>
+                  </div>
+                  {accError && <div className="alert alert-danger" style={{ marginBottom: 12 }}>{accError}</div>}
+                  {accShowForm && (
+                    <div className="settings-card" style={{ marginBottom: 16, padding: 16 }}>
+                      <h5 style={{ margin: "0 0 12px" }}>{accEditingId ? "Edit" : "New"} Fiscal Position</h5>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                        <div><label className="settings-label">Name</label><input className="settings-input" value={accFormData.name ?? ""} onChange={e => setAccFormData({ ...accFormData, name: e.target.value })} /></div>
+                        <div><label className="settings-label">Auto Apply</label><br/><input type="checkbox" checked={!!accFormData.auto_apply} onChange={e => setAccFormData({ ...accFormData, auto_apply: e.target.checked })} /></div>
+                        <div style={{ gridColumn: "1 / -1" }}><label className="settings-label">Description</label><input className="settings-input" value={accFormData.description ?? ""} onChange={e => setAccFormData({ ...accFormData, description: e.target.value })} /></div>
+                      </div>
+                      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                        <button className="primary" onClick={() => accHandleSave("/accounting/fiscal-positions")} disabled={accSaving}>{accSaving ? "Saving..." : "Save"}</button>
+                        <button className="settings-btn-sm" onClick={accResetForm}>Cancel</button>
+                      </div>
+                    </div>
+                  )}
+                  <table className="settings-table" style={{ width: "100%" }}>
+                    <thead><tr><th>Name</th><th>Description</th><th>Auto Apply</th><th>Tax Mappings</th><th>Actions</th></tr></thead>
+                    <tbody>
+                      {accFiscalPositions.length === 0 && <tr><td colSpan={5} style={{ textAlign: "center", color: "var(--muted)" }}>No fiscal positions yet</td></tr>}
+                      {accFiscalPositions.map(fp => (
+                        <tr key={fp.id}>
+                          <td style={{ fontWeight: 600 }}>{fp.name}</td>
+                          <td>{fp.description || "—"}</td>
+                          <td>{fp.auto_apply ? "Yes" : "No"}</td>
+                          <td>{fp.tax_mappings?.length || 0}</td>
+                          <td>
+                            <div style={{ display: "flex", gap: 4 }}>
+                              <button className="settings-btn-sm" onClick={() => accHandleEdit(fp)}><PencilLine size={12} /> Edit</button>
+                              <button className="settings-btn-sm" style={{ color: "var(--danger)" }} onClick={() => accHandleDelete("/accounting/fiscal-positions", fp.id)}><Trash2 size={12} /></button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </section>
+              )}
+
+              {/* ── Financial Budgets ── */}
+              {activeSection === "acc-budgets" && (
+                <section className="settings-section">
+                  <div className="settings-section-header">
+                    <h4>Financial Budgets</h4>
+                    <button className="primary" style={{ display: "flex", alignItems: "center", gap: 6 }} onClick={() => { accResetForm(); setAccShowForm(true); }}>
+                      <Plus size={14} /> New Budget
+                    </button>
+                  </div>
+                  {accError && <div className="alert alert-danger" style={{ marginBottom: 12 }}>{accError}</div>}
+                  {accShowForm && (
+                    <div className="settings-card" style={{ marginBottom: 16, padding: 16 }}>
+                      <h5 style={{ margin: "0 0 12px" }}>{accEditingId ? "Edit" : "New"} Budget</h5>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                        <div style={{ gridColumn: "1 / -1" }}><label className="settings-label">Name</label><input className="settings-input" value={accFormData.name ?? ""} onChange={e => setAccFormData({ ...accFormData, name: e.target.value })} /></div>
+                        <div><label className="settings-label">From</label><input type="date" className="settings-input" value={accFormData.date_from ?? ""} onChange={e => setAccFormData({ ...accFormData, date_from: e.target.value })} /></div>
+                        <div><label className="settings-label">To</label><input type="date" className="settings-input" value={accFormData.date_to ?? ""} onChange={e => setAccFormData({ ...accFormData, date_to: e.target.value })} /></div>
+                        <div style={{ gridColumn: "1 / -1" }}><label className="settings-label">Notes</label><input className="settings-input" value={accFormData.notes ?? ""} onChange={e => setAccFormData({ ...accFormData, notes: e.target.value })} /></div>
+                      </div>
+                      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                        <button className="primary" onClick={() => accHandleSave("/accounting/budgets")} disabled={accSaving}>{accSaving ? "Saving..." : "Save"}</button>
+                        <button className="settings-btn-sm" onClick={accResetForm}>Cancel</button>
+                      </div>
+                    </div>
+                  )}
+                  <table className="settings-table" style={{ width: "100%" }}>
+                    <thead><tr><th>Name</th><th>Period</th><th>Status</th><th>Lines</th><th>Actions</th></tr></thead>
+                    <tbody>
+                      {accBudgets.length === 0 && <tr><td colSpan={5} style={{ textAlign: "center", color: "var(--muted)" }}>No budgets yet</td></tr>}
+                      {accBudgets.map(b => (
+                        <tr key={b.id}>
+                          <td style={{ fontWeight: 600 }}>{b.name}</td>
+                          <td>{new Date(b.date_from).toLocaleDateString()} — {new Date(b.date_to).toLocaleDateString()}</td>
+                          <td><span className={`badge badge-${b.status === "confirmed" ? "success" : b.status === "done" ? "info" : "warning"}`}>{b.status}</span></td>
+                          <td>{b.lines?.length || 0}</td>
+                          <td>
+                            <div style={{ display: "flex", gap: 4 }}>
+                              <button className="settings-btn-sm" onClick={() => accHandleEdit(b)}><PencilLine size={12} /> Edit</button>
+                              <button className="settings-btn-sm" style={{ color: "var(--danger)" }} onClick={() => accHandleDelete("/accounting/budgets", b.id)}><Trash2 size={12} /></button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </section>
               )}
             </>

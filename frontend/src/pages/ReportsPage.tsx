@@ -18,14 +18,18 @@ import {
 } from "../utils/revenueTrend";
 import {
   BarChart,
+  BookOpen,
   CreditCard,
+  DollarSign,
   FileText,
   Layers,
   Monitor,
   Percent,
+  PieChart,
   ShoppingBag,
   ShoppingCart,
   TrendingUp,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 import type { CurrencyItem } from "../types/currency";
@@ -425,7 +429,16 @@ type ReportType =
   | "qpd"
   | "vat"
   | "purchases"
-  | "pos_orders";
+  | "pos_orders"
+  | "acc_balance_sheet"
+  | "acc_profit_loss"
+  | "acc_cash_flow"
+  | "acc_executive_summary"
+  | "acc_tax_return"
+  | "acc_trial_balance"
+  | "acc_general_ledger"
+  | "acc_aged_receivable"
+  | "acc_aged_payable";
 
 type ReportMenuItem = {
   key: ReportType;
@@ -506,6 +519,18 @@ const REPORT_MENU_ITEMS: ReportMenuItem[] = [
     color: "var(--teal-500)",
     background: "rgba(45, 212, 191, 0.15)",
   },
+];
+
+const ACC_REPORT_MENU_ITEMS: ReportMenuItem[] = [
+  { key: "acc_balance_sheet", label: "BALANCE SHEET", icon: Layers, color: "var(--blue-500)", background: "rgba(37, 99, 235, 0.15)" },
+  { key: "acc_profit_loss", label: "PROFIT AND LOSS", icon: TrendingUp, color: "var(--emerald-500)", background: "rgba(16, 185, 129, 0.15)" },
+  { key: "acc_cash_flow", label: "CASH FLOW", icon: DollarSign, color: "var(--cyan-600)", background: "rgba(8, 145, 178, 0.14)" },
+  { key: "acc_executive_summary", label: "EXECUTIVE SUMMARY", icon: PieChart, color: "var(--indigo-500)", background: "rgba(79, 70, 229, 0.15)" },
+  { key: "acc_tax_return", label: "TAX RETURN", icon: Percent, color: "var(--fuchsia-600)", background: "rgba(192, 38, 211, 0.12)" },
+  { key: "acc_trial_balance", label: "TRIAL BALANCE", icon: BookOpen, color: "var(--amber-500)", background: "rgba(234, 179, 8, 0.15)" },
+  { key: "acc_general_ledger", label: "GENERAL LEDGER", icon: FileText, color: "var(--orange-500)", background: "rgba(249, 115, 22, 0.15)" },
+  { key: "acc_aged_receivable", label: "AGED RECEIVABLE", icon: Users, color: "var(--violet-500)", background: "rgba(168, 85, 247, 0.12)" },
+  { key: "acc_aged_payable", label: "AGED PAYABLE", icon: CreditCard, color: "var(--rose-500)", background: "rgba(244, 63, 94, 0.12)" },
 ];
 
 type VatSectionTab =
@@ -617,6 +642,29 @@ export default function ReportsPage() {
         title: "FINANCIAL REPORTS",
         items,
       },
+      {
+        id: "acc-reports-menu",
+        title: "ACCOUNTING REPORTS",
+        items: ACC_REPORT_MENU_ITEMS.map((item) => {
+          const Icon = item.icon;
+          return {
+            id: `acc-report-menu-${item.key}`,
+            label: item.label,
+            icon: (
+              <Icon
+                size={18}
+                strokeWidth={1.5}
+                aria-hidden="true"
+                color={item.color}
+              />
+            ),
+            isActive: activeReport === item.key,
+            onClick: () => setActiveReport(item.key),
+            iconColor: item.color,
+            iconBackground: item.background,
+          };
+        }),
+      },
     ];
   }, [activeReport]);
   const [activeIncomeTab, setActiveIncomeTab] =
@@ -656,6 +704,11 @@ export default function ReportsPage() {
   const [companySettings, setCompanySettings] =
     useState<CompanySettings | null>(null);
   const [currencyList, setCurrencyList] = useState<CurrencyItem[]>([]);
+
+  /* ── Accounting Report State ── */
+  const [accReportData, setAccReportData] = useState<any>(null);
+  const [accReportLoading, setAccReportLoading] = useState(false);
+  const [accReportError, setAccReportError] = useState<string | null>(null);
 
   // Set default date range to cover the last six months so trends show prior data
   useEffect(() => {
@@ -1855,6 +1908,35 @@ export default function ReportsPage() {
     if (!companyId || !dateRange.from || !dateRange.to) return;
     loadReport();
   }, [companyId, activeReport, dateRange.from, dateRange.to, reportCurrency]);
+
+  /* ── Accounting Report Loader ── */
+  useEffect(() => {
+    if (!companyId || !activeReport.startsWith("acc_")) return;
+    setAccReportLoading(true);
+    setAccReportError(null);
+    setAccReportData(null);
+    const params = new URLSearchParams({ company_id: String(companyId) });
+    if (dateRange.from) params.set("date_from", dateRange.from);
+    if (dateRange.to) params.set("date_to", dateRange.to);
+    if (dateRange.to) params.set("as_of", dateRange.to);
+    const endpointMap: Record<string, string> = {
+      acc_balance_sheet: "balance-sheet",
+      acc_profit_loss: "profit-and-loss",
+      acc_cash_flow: "cash-flow",
+      acc_executive_summary: "executive-summary",
+      acc_tax_return: "tax-return",
+      acc_trial_balance: "trial-balance",
+      acc_general_ledger: "general-ledger",
+      acc_aged_receivable: "aged-receivable",
+      acc_aged_payable: "aged-payable",
+    };
+    const ep = endpointMap[activeReport];
+    if (!ep) return;
+    apiFetch(`/accounting/reports/${ep}?${params}`)
+      .then(setAccReportData)
+      .catch((err: any) => setAccReportError(err?.detail || err?.message || "Failed to load"))
+      .finally(() => setAccReportLoading(false));
+  }, [companyId, activeReport, dateRange.from, dateRange.to]);
 
   useEffect(() => {
     if (activeReport !== "vat") setActiveVatTab("sales_vat");
@@ -5419,6 +5501,323 @@ export default function ReportsPage() {
                   </>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* ── Accounting Reports ── */}
+          {activeReport.startsWith("acc_") && (
+            <div>
+              {accReportLoading && (
+                <div style={{ textAlign: "center", padding: "60px 20px", color: "var(--gray-500)" }}>Loading accounting report...</div>
+              )}
+              {accReportError && (
+                <div style={{ textAlign: "center", padding: "40px 20px", color: "var(--red-500, #ef4444)" }}>{accReportError}</div>
+              )}
+
+              {/* Balance Sheet */}
+              {activeReport === "acc_balance_sheet" && accReportData && (() => {
+                const { assets, liabilities, equity } = accReportData;
+                const fmt = (n: number) => n?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? "0.00";
+                return (
+                  <div>
+                    <h3 className="report-section-title" style={{ marginBottom: 16 }}>Balance Sheet as of {new Date(accReportData.as_of).toLocaleDateString()}</h3>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+                      <div className="report-card" style={{ padding: 16 }}>
+                        <div style={{ fontWeight: 700, color: "var(--blue-600)", marginBottom: 12, fontSize: 12, textTransform: "uppercase", letterSpacing: "0.5px" }}>Assets</div>
+                        <div style={{ fontSize: 13 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid var(--gray-100)" }}><span>Cash & Bank</span><span style={{ fontWeight: 600 }}>{fmt(assets?.cash_and_bank)}</span></div>
+                          <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid var(--gray-100)" }}><span>Accounts Receivable</span><span style={{ fontWeight: 600 }}>{fmt(assets?.accounts_receivable)}</span></div>
+                          <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid var(--gray-100)" }}><span>Inventory</span><span style={{ fontWeight: 600 }}>{fmt(assets?.inventory)}</span></div>
+                          <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", fontWeight: 700, borderTop: "2px solid var(--gray-200)", marginTop: 4 }}><span>Total Assets</span><span style={{ color: "var(--blue-600)" }}>{fmt(assets?.total)}</span></div>
+                        </div>
+                      </div>
+                      <div className="report-card" style={{ padding: 16 }}>
+                        <div style={{ fontWeight: 700, color: "var(--red-600)", marginBottom: 12, fontSize: 12, textTransform: "uppercase", letterSpacing: "0.5px" }}>Liabilities</div>
+                        <div style={{ fontSize: 13 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid var(--gray-100)" }}><span>Accounts Payable</span><span style={{ fontWeight: 600 }}>{fmt(liabilities?.accounts_payable)}</span></div>
+                          <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", fontWeight: 700, borderTop: "2px solid var(--gray-200)", marginTop: 4 }}><span>Total Liabilities</span><span style={{ color: "var(--red-600)" }}>{fmt(liabilities?.total)}</span></div>
+                        </div>
+                      </div>
+                      <div className="report-card" style={{ padding: 16 }}>
+                        <div style={{ fontWeight: 700, color: "var(--emerald-600)", marginBottom: 12, fontSize: 12, textTransform: "uppercase", letterSpacing: "0.5px" }}>Equity</div>
+                        <div style={{ fontSize: 13 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid var(--gray-100)" }}><span>Retained Earnings</span><span style={{ fontWeight: 600 }}>{fmt(equity?.retained_earnings)}</span></div>
+                          <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", fontWeight: 700, borderTop: "2px solid var(--gray-200)", marginTop: 4 }}><span>Total Equity</span><span style={{ color: "var(--emerald-600)" }}>{fmt(equity?.total)}</span></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Profit & Loss */}
+              {activeReport === "acc_profit_loss" && accReportData && (() => {
+                const { revenue, cost_of_goods_sold, gross_profit, operating_expenses, net_profit } = accReportData;
+                const fmt = (n: number) => n?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? "0.00";
+                return (
+                  <div>
+                    <h3 className="report-section-title" style={{ marginBottom: 16 }}>Profit and Loss: {new Date(accReportData.period_from).toLocaleDateString()} — {new Date(accReportData.period_to).toLocaleDateString()}</h3>
+                    <div className="report-card" style={{ padding: 16 }}>
+                      <table className="report-table" style={{ width: "100%" }}>
+                        <tbody>
+                          <tr style={{ background: "var(--gray-50)" }}><td style={{ fontWeight: 700, padding: "10px 14px" }}>Revenue</td><td></td></tr>
+                          <tr><td style={{ padding: "8px 14px" }}>Gross Sales</td><td style={{ textAlign: "right", padding: "8px 14px" }}>{fmt(revenue?.gross_sales)}</td></tr>
+                          <tr><td style={{ padding: "8px 14px" }}>Sales Tax</td><td style={{ textAlign: "right", padding: "8px 14px" }}>{fmt(revenue?.sales_tax)}</td></tr>
+                          <tr><td style={{ padding: "8px 14px" }}>Less: Credit Notes</td><td style={{ textAlign: "right", padding: "8px 14px", color: "var(--red-500)" }}>({fmt(revenue?.credit_notes)})</td></tr>
+                          <tr style={{ fontWeight: 700 }}><td style={{ padding: "8px 14px" }}>Net Revenue</td><td style={{ textAlign: "right", padding: "8px 14px" }}>{fmt(revenue?.net_revenue)}</td></tr>
+                          <tr><td style={{ padding: "8px 14px" }}>Cost of Goods Sold</td><td style={{ textAlign: "right", padding: "8px 14px", color: "var(--red-500)" }}>({fmt(cost_of_goods_sold)})</td></tr>
+                          <tr style={{ fontWeight: 700, background: "var(--emerald-50, #f0fdf4)" }}><td style={{ padding: "8px 14px" }}>Gross Profit</td><td style={{ textAlign: "right", padding: "8px 14px", color: "var(--emerald-600)" }}>{fmt(gross_profit)}</td></tr>
+                          <tr style={{ background: "var(--gray-50)" }}><td style={{ fontWeight: 700, padding: "10px 14px" }}>Operating Expenses</td><td></td></tr>
+                          {operating_expenses?.by_category?.map((c: any) => (
+                            <tr key={c.category}><td style={{ padding: "8px 14px 8px 28px" }}>{c.category}</td><td style={{ textAlign: "right", padding: "8px 14px" }}>{fmt(c.amount)}</td></tr>
+                          ))}
+                          <tr style={{ fontWeight: 700 }}><td style={{ padding: "8px 14px" }}>Total Operating Expenses</td><td style={{ textAlign: "right", padding: "8px 14px", color: "var(--red-500)" }}>({fmt(operating_expenses?.total)})</td></tr>
+                          <tr style={{ fontWeight: 700, background: net_profit >= 0 ? "var(--emerald-50, #f0fdf4)" : "var(--red-50, #fef2f2)", borderTop: "2px solid var(--gray-200)" }}>
+                            <td style={{ padding: "10px 14px", fontSize: 15 }}>Net Profit / (Loss)</td>
+                            <td style={{ textAlign: "right", padding: "10px 14px", fontSize: 15, color: net_profit >= 0 ? "var(--emerald-600)" : "var(--red-500)" }}>{net_profit >= 0 ? fmt(net_profit) : `(${fmt(Math.abs(net_profit))})`}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Cash Flow */}
+              {activeReport === "acc_cash_flow" && accReportData && (() => {
+                const { operating_activities, net_cash_change } = accReportData;
+                const fmt = (n: number) => n?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? "0.00";
+                return (
+                  <div>
+                    <h3 className="report-section-title" style={{ marginBottom: 16 }}>Cash Flow Statement: {new Date(accReportData.period_from).toLocaleDateString()} — {new Date(accReportData.period_to).toLocaleDateString()}</h3>
+                    <div className="report-card" style={{ padding: 16 }}>
+                      <table className="report-table" style={{ width: "100%" }}>
+                        <tbody>
+                          <tr style={{ background: "var(--gray-50)", fontWeight: 700 }}><td style={{ padding: "10px 14px" }}>Operating Activities</td><td></td></tr>
+                          <tr style={{ fontWeight: 600 }}><td style={{ padding: "8px 14px" }}>Cash Received</td><td style={{ textAlign: "right", padding: "8px 14px", color: "var(--emerald-600)" }}>{fmt(operating_activities?.cash_received)}</td></tr>
+                          {operating_activities?.by_method?.map((m: any) => (
+                            <tr key={m.method}><td style={{ padding: "8px 14px 8px 28px" }}>{m.method}</td><td style={{ textAlign: "right", padding: "8px 14px" }}>{fmt(m.amount)}</td></tr>
+                          ))}
+                          <tr style={{ fontWeight: 600 }}><td style={{ padding: "8px 14px" }}>Cash Paid</td><td style={{ textAlign: "right", padding: "8px 14px", color: "var(--red-500)" }}>({fmt(operating_activities?.cash_paid)})</td></tr>
+                          {operating_activities?.by_category?.map((c: any) => (
+                            <tr key={c.category}><td style={{ padding: "8px 14px 8px 28px" }}>{c.category}</td><td style={{ textAlign: "right", padding: "8px 14px" }}>{fmt(c.amount)}</td></tr>
+                          ))}
+                          <tr style={{ fontWeight: 700, fontSize: 15, background: net_cash_change >= 0 ? "var(--emerald-50, #f0fdf4)" : "var(--red-50, #fef2f2)", borderTop: "2px solid var(--gray-200)" }}>
+                            <td style={{ padding: "10px 14px" }}>Net Cash Change</td>
+                            <td style={{ textAlign: "right", padding: "10px 14px", color: net_cash_change >= 0 ? "var(--emerald-600)" : "var(--red-500)" }}>{net_cash_change >= 0 ? fmt(net_cash_change) : `(${fmt(Math.abs(net_cash_change))})`}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Executive Summary */}
+              {activeReport === "acc_executive_summary" && accReportData && (() => {
+                const d = accReportData;
+                const fmt = (n: number) => n?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? "0.00";
+                return (
+                  <div>
+                    <h3 className="report-section-title" style={{ marginBottom: 16 }}>Executive Summary — {d.year}</h3>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 20 }}>
+                      <MetricCard label="YTD Revenue" value={fmt(d.ytd_revenue)} variant="success" />
+                      <MetricCard label="YTD Expenses" value={fmt(d.ytd_expenses)} variant="danger" />
+                      <MetricCard label="YTD Net Profit" value={fmt(d.ytd_net_profit)} variant={d.ytd_net_profit >= 0 ? "success" : "danger"} />
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                      <MetricCard label="Outstanding Receivables" value={fmt(d.outstanding_receivables)} variant="info" />
+                      <MetricCard label="Overdue Receivables" value={fmt(d.overdue_receivables)} variant="warning" />
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Tax Return */}
+              {activeReport === "acc_tax_return" && accReportData && (() => {
+                const d = accReportData;
+                const fmt = (n: number) => n?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? "0.00";
+                return (
+                  <div>
+                    <h3 className="report-section-title" style={{ marginBottom: 16 }}>Tax Return: {new Date(d.period_from).toLocaleDateString()} — {new Date(d.period_to).toLocaleDateString()}</h3>
+                    <div className="report-card" style={{ padding: 16 }}>
+                      <table className="report-table" style={{ width: "100%" }}>
+                        <tbody>
+                          <tr><td style={{ padding: "8px 14px" }}>Output VAT (Sales)</td><td style={{ textAlign: "right", padding: "8px 14px" }}>{fmt(d.output_vat)}</td></tr>
+                          <tr><td style={{ padding: "8px 14px" }}>Less: Credit Note VAT</td><td style={{ textAlign: "right", padding: "8px 14px", color: "var(--red-500)" }}>({fmt(d.credit_note_vat)})</td></tr>
+                          <tr><td style={{ padding: "8px 14px" }}>Less: Input VAT (Expenses)</td><td style={{ textAlign: "right", padding: "8px 14px", color: "var(--red-500)" }}>({fmt(d.input_vat)})</td></tr>
+                          <tr style={{ fontWeight: 700, borderTop: "2px solid var(--gray-200)", background: d.net_vat_payable >= 0 ? "var(--red-50, #fef2f2)" : "var(--emerald-50, #f0fdf4)" }}>
+                            <td style={{ padding: "10px 14px", fontSize: 15 }}>{d.net_vat_payable >= 0 ? "Net VAT Payable" : "Net VAT Refundable"}</td>
+                            <td style={{ textAlign: "right", padding: "10px 14px", fontSize: 15, color: d.net_vat_payable >= 0 ? "var(--red-500)" : "var(--emerald-600)" }}>{fmt(Math.abs(d.net_vat_payable))}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Trial Balance */}
+              {activeReport === "acc_trial_balance" && accReportData && (() => {
+                const d = accReportData;
+                const fmt = (n: number) => n?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? "0.00";
+                return (
+                  <div>
+                    <h3 className="report-section-title" style={{ marginBottom: 16 }}>Trial Balance as of {new Date(d.as_of).toLocaleDateString()}</h3>
+                    <div className="report-card" style={{ padding: 16 }}>
+                      <table className="report-table" style={{ width: "100%" }}>
+                        <thead><tr><th style={{ padding: "10px 14px", textAlign: "left" }}>Code</th><th style={{ padding: "10px 14px", textAlign: "left" }}>Account</th><th style={{ padding: "10px 14px", textAlign: "left" }}>Type</th><th style={{ padding: "10px 14px", textAlign: "right" }}>Debit</th><th style={{ padding: "10px 14px", textAlign: "right" }}>Credit</th><th style={{ padding: "10px 14px", textAlign: "right" }}>Balance</th></tr></thead>
+                        <tbody>
+                          {d.rows?.map((r: any, i: number) => (
+                            <tr key={i}>
+                              <td style={{ fontWeight: 600, padding: "8px 14px" }}>{r.account_code}</td>
+                              <td style={{ padding: "8px 14px" }}>{r.account_name}</td>
+                              <td style={{ padding: "8px 14px" }}><span className={`badge badge-${r.account_type === "asset" ? "info" : r.account_type === "income" ? "success" : r.account_type === "expense" ? "danger" : "secondary"}`}>{r.account_type}</span></td>
+                              <td style={{ textAlign: "right", padding: "8px 14px" }}>{r.debit ? fmt(r.debit) : "—"}</td>
+                              <td style={{ textAlign: "right", padding: "8px 14px" }}>{r.credit ? fmt(r.credit) : "—"}</td>
+                              <td style={{ textAlign: "right", padding: "8px 14px", fontWeight: 600, color: r.balance >= 0 ? "var(--emerald-600)" : "var(--red-500)" }}>{fmt(r.balance)}</td>
+                            </tr>
+                          ))}
+                          <tr style={{ fontWeight: 700, background: "var(--gray-50)" }}>
+                            <td colSpan={3} style={{ padding: "10px 14px" }}>Totals</td>
+                            <td style={{ textAlign: "right", padding: "10px 14px" }}>{fmt(d.total_debit)}</td>
+                            <td style={{ textAlign: "right", padding: "10px 14px" }}>{fmt(d.total_credit)}</td>
+                            <td style={{ textAlign: "right", padding: "10px 14px", color: d.difference === 0 ? "var(--emerald-600)" : "var(--red-500)" }}>{fmt(d.difference)}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                      {d.difference !== 0 && <div style={{ marginTop: 8, color: "var(--red-500)", fontSize: 12, fontWeight: 600 }}>⚠ Trial balance out of balance by {fmt(Math.abs(d.difference))}</div>}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* General Ledger */}
+              {activeReport === "acc_general_ledger" && accReportData && (() => {
+                const d = accReportData;
+                const fmt = (n: number) => n?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? "0.00";
+                return (
+                  <div>
+                    <h3 className="report-section-title" style={{ marginBottom: 16 }}>General Ledger: {new Date(d.period_from).toLocaleDateString()} — {new Date(d.period_to).toLocaleDateString()}</h3>
+                    <div className="report-card" style={{ padding: 16 }}>
+                      <table className="report-table" style={{ width: "100%" }}>
+                        <thead><tr><th style={{ padding: "10px 14px", textAlign: "left" }}>Date</th><th style={{ padding: "10px 14px", textAlign: "left" }}>Reference</th><th style={{ padding: "10px 14px", textAlign: "left" }}>Type</th><th style={{ padding: "10px 14px", textAlign: "left" }}>Party</th><th style={{ padding: "10px 14px", textAlign: "right" }}>Debit</th><th style={{ padding: "10px 14px", textAlign: "right" }}>Credit</th><th style={{ padding: "10px 14px", textAlign: "right" }}>Balance</th></tr></thead>
+                        <tbody>
+                          {d.entries?.length === 0 && <tr><td colSpan={7} style={{ textAlign: "center", padding: 20, color: "var(--gray-500)" }}>No entries for this period</td></tr>}
+                          {d.entries?.map((e: any, i: number) => (
+                            <tr key={i}>
+                              <td style={{ padding: "8px 14px" }}>{e.date ? new Date(e.date).toLocaleDateString() : "—"}</td>
+                              <td style={{ fontWeight: 600, padding: "8px 14px" }}>{e.reference}</td>
+                              <td style={{ padding: "8px 14px" }}><span className={`badge badge-${e.type === "invoice" ? "success" : e.type === "payment" ? "info" : e.type === "expense" ? "danger" : "warning"}`}>{e.type}</span></td>
+                              <td style={{ padding: "8px 14px" }}>{e.party}</td>
+                              <td style={{ textAlign: "right", padding: "8px 14px" }}>{e.debit ? fmt(e.debit) : "—"}</td>
+                              <td style={{ textAlign: "right", padding: "8px 14px" }}>{e.credit ? fmt(e.credit) : "—"}</td>
+                              <td style={{ textAlign: "right", padding: "8px 14px", fontWeight: 600, color: e.running_balance >= 0 ? "var(--emerald-600)" : "var(--red-500)" }}>{fmt(e.running_balance)}</td>
+                            </tr>
+                          ))}
+                          {d.entries?.length > 0 && (
+                            <tr style={{ fontWeight: 700, background: "var(--gray-50)" }}>
+                              <td colSpan={4} style={{ padding: "10px 14px" }}>Totals</td>
+                              <td style={{ textAlign: "right", padding: "10px 14px" }}>{fmt(d.total_debit)}</td>
+                              <td style={{ textAlign: "right", padding: "10px 14px" }}>{fmt(d.total_credit)}</td>
+                              <td></td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Aged Receivable */}
+              {activeReport === "acc_aged_receivable" && accReportData && (() => {
+                const d = accReportData;
+                const fmt = (n: number) => n?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? "0.00";
+                return (
+                  <div>
+                    <h3 className="report-section-title" style={{ marginBottom: 16 }}>Aged Receivable as of {new Date(d.as_of).toLocaleDateString()}</h3>
+                    <div className="report-card" style={{ padding: 16 }}>
+                      <table className="report-table" style={{ width: "100%" }}>
+                        <thead><tr><th style={{ padding: "10px 14px", textAlign: "left" }}>Customer</th><th style={{ padding: "10px 14px", textAlign: "right" }}>Current</th><th style={{ padding: "10px 14px", textAlign: "right" }}>1-30</th><th style={{ padding: "10px 14px", textAlign: "right" }}>31-60</th><th style={{ padding: "10px 14px", textAlign: "right" }}>61-90</th><th style={{ padding: "10px 14px", textAlign: "right" }}>90+</th><th style={{ padding: "10px 14px", textAlign: "right" }}>Total</th></tr></thead>
+                        <tbody>
+                          {d.rows?.length === 0 && <tr><td colSpan={7} style={{ textAlign: "center", padding: 20, color: "var(--gray-500)" }}>No outstanding amounts</td></tr>}
+                          {d.rows?.map((r: any, i: number) => (
+                            <tr key={i}>
+                              <td style={{ fontWeight: 600, padding: "8px 14px" }}>{r.customer_name}</td>
+                              <td style={{ textAlign: "right", padding: "8px 14px" }}>{r.current ? fmt(r.current) : "—"}</td>
+                              <td style={{ textAlign: "right", padding: "8px 14px" }}>{r["1_30"] ? fmt(r["1_30"]) : "—"}</td>
+                              <td style={{ textAlign: "right", padding: "8px 14px", color: r["31_60"] ? "var(--orange-500)" : undefined }}>{r["31_60"] ? fmt(r["31_60"]) : "—"}</td>
+                              <td style={{ textAlign: "right", padding: "8px 14px", color: r["61_90"] ? "var(--red-500)" : undefined }}>{r["61_90"] ? fmt(r["61_90"]) : "—"}</td>
+                              <td style={{ textAlign: "right", padding: "8px 14px", color: r.over_90 ? "var(--red-600)" : undefined, fontWeight: r.over_90 ? 700 : 400 }}>{r.over_90 ? fmt(r.over_90) : "—"}</td>
+                              <td style={{ textAlign: "right", padding: "8px 14px", fontWeight: 700 }}>{fmt(r.total)}</td>
+                            </tr>
+                          ))}
+                          {d.totals && (
+                            <tr style={{ fontWeight: 700, background: "var(--gray-50)" }}>
+                              <td style={{ padding: "10px 14px" }}>Totals</td>
+                              <td style={{ textAlign: "right", padding: "10px 14px" }}>{fmt(d.totals.current)}</td>
+                              <td style={{ textAlign: "right", padding: "10px 14px" }}>{fmt(d.totals["1_30"])}</td>
+                              <td style={{ textAlign: "right", padding: "10px 14px" }}>{fmt(d.totals["31_60"])}</td>
+                              <td style={{ textAlign: "right", padding: "10px 14px" }}>{fmt(d.totals["61_90"])}</td>
+                              <td style={{ textAlign: "right", padding: "10px 14px" }}>{fmt(d.totals.over_90)}</td>
+                              <td style={{ textAlign: "right", padding: "10px 14px" }}>{fmt(d.totals.total)}</td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Aged Payable */}
+              {activeReport === "acc_aged_payable" && accReportData && (() => {
+                const d = accReportData;
+                const fmt = (n: number) => n?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? "0.00";
+                return (
+                  <div>
+                    <h3 className="report-section-title" style={{ marginBottom: 16 }}>Aged Payable as of {new Date(d.as_of).toLocaleDateString()}</h3>
+                    <div className="report-card" style={{ padding: 16 }}>
+                      <table className="report-table" style={{ width: "100%" }}>
+                        <thead><tr><th style={{ padding: "10px 14px", textAlign: "left" }}>Supplier</th><th style={{ padding: "10px 14px", textAlign: "right" }}>Current</th><th style={{ padding: "10px 14px", textAlign: "right" }}>1-30</th><th style={{ padding: "10px 14px", textAlign: "right" }}>31-60</th><th style={{ padding: "10px 14px", textAlign: "right" }}>61-90</th><th style={{ padding: "10px 14px", textAlign: "right" }}>90+</th><th style={{ padding: "10px 14px", textAlign: "right" }}>Total</th></tr></thead>
+                        <tbody>
+                          {d.rows?.length === 0 && <tr><td colSpan={7} style={{ textAlign: "center", padding: 20, color: "var(--gray-500)" }}>No outstanding amounts</td></tr>}
+                          {d.rows?.map((r: any, i: number) => (
+                            <tr key={i}>
+                              <td style={{ fontWeight: 600, padding: "8px 14px" }}>{r.supplier_name}</td>
+                              <td style={{ textAlign: "right", padding: "8px 14px" }}>{r.current ? fmt(r.current) : "—"}</td>
+                              <td style={{ textAlign: "right", padding: "8px 14px" }}>{r["1_30"] ? fmt(r["1_30"]) : "—"}</td>
+                              <td style={{ textAlign: "right", padding: "8px 14px", color: r["31_60"] ? "var(--orange-500)" : undefined }}>{r["31_60"] ? fmt(r["31_60"]) : "—"}</td>
+                              <td style={{ textAlign: "right", padding: "8px 14px", color: r["61_90"] ? "var(--red-500)" : undefined }}>{r["61_90"] ? fmt(r["61_90"]) : "—"}</td>
+                              <td style={{ textAlign: "right", padding: "8px 14px", color: r.over_90 ? "var(--red-600)" : undefined, fontWeight: r.over_90 ? 700 : 400 }}>{r.over_90 ? fmt(r.over_90) : "—"}</td>
+                              <td style={{ textAlign: "right", padding: "8px 14px", fontWeight: 700 }}>{fmt(r.total)}</td>
+                            </tr>
+                          ))}
+                          {d.totals && (
+                            <tr style={{ fontWeight: 700, background: "var(--gray-50)" }}>
+                              <td style={{ padding: "10px 14px" }}>Totals</td>
+                              <td style={{ textAlign: "right", padding: "10px 14px" }}>{fmt(d.totals.current)}</td>
+                              <td style={{ textAlign: "right", padding: "10px 14px" }}>{fmt(d.totals["1_30"])}</td>
+                              <td style={{ textAlign: "right", padding: "10px 14px" }}>{fmt(d.totals["31_60"])}</td>
+                              <td style={{ textAlign: "right", padding: "10px 14px" }}>{fmt(d.totals["61_90"])}</td>
+                              <td style={{ textAlign: "right", padding: "10px 14px" }}>{fmt(d.totals.over_90)}</td>
+                              <td style={{ textAlign: "right", padding: "10px 14px" }}>{fmt(d.totals.total)}</td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Accounting report empty state */}
+              {!accReportLoading && !accReportError && !accReportData && (
+                <div style={{ textAlign: "center", padding: "60px 20px", color: "var(--gray-500)" }}>
+                  <p>Select a date range and click <strong>Refresh</strong> to load report data.</p>
+                </div>
+              )}
             </div>
           )}
 
