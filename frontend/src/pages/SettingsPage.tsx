@@ -8,8 +8,12 @@ import {
   Search,
   Store,
   Trash2,
+  Upload,
   UserPlus,
   Users,
+  X,
+  Download,
+  FileSpreadsheet,
 } from "lucide-react";
 import { apiFetch } from "../api";
 import { useCompanies, Company } from "../hooks/useCompanies";
@@ -30,7 +34,6 @@ type DeviceBasic = {
 type AccAccount = { id: number; company_id: number; code: string; name: string; account_type: string; parent_id: number | null; is_reconcilable: boolean; is_active: boolean; currency_code: string; notes: string };
 type AccJournal = { id: number; company_id: number; name: string; code: string; journal_type: string; default_account_id: number | null; currency_code: string; is_active: boolean };
 type AccPaymentTerm = { id: number; company_id: number; name: string; description: string; due_days: number; discount_percentage: number; discount_days: number; is_active: boolean };
-type AccFiscalPosition = { id: number; company_id: number; name: string; description: string; auto_apply: boolean; is_active: boolean; tax_mappings: { id: number; source_tax_id: number | null; destination_tax_id: number | null }[] };
 type AccBudget = { id: number; company_id: number; name: string; date_from: string; date_to: string; status: string; notes: string; lines: { id: number; account_id: number | null; planned_amount: number; practical_amount: number }[] };
 
 const ACC_ACCOUNT_TYPES = [
@@ -347,13 +350,16 @@ export default function SettingsPage() {
   const [accAccounts, setAccAccounts] = useState<AccAccount[]>([]);
   const [accJournals, setAccJournals] = useState<AccJournal[]>([]);
   const [accPaymentTerms, setAccPaymentTerms] = useState<AccPaymentTerm[]>([]);
-  const [accFiscalPositions, setAccFiscalPositions] = useState<AccFiscalPosition[]>([]);
   const [accBudgets, setAccBudgets] = useState<AccBudget[]>([]);
   const [accShowForm, setAccShowForm] = useState(false);
   const [accEditingId, setAccEditingId] = useState<number | null>(null);
   const [accFormData, setAccFormData] = useState<Record<string, any>>({});
   const [accSaving, setAccSaving] = useState(false);
   const [accError, setAccError] = useState<string | null>(null);
+  const [accImportOpen, setAccImportOpen] = useState(false);
+  const [accImportRows, setAccImportRows] = useState<Record<string, any>[]>([]);
+  const [accImporting, setAccImporting] = useState(false);
+  const accFileRef = useRef<HTMLInputElement>(null);
 
   const [settingsForm, setSettingsForm] = useState({
     currency_code: "USD",
@@ -706,7 +712,6 @@ const [currencyRates, setCurrencyRates] = useState<CurrencyRateRead[]>([]);
       "acc-accounts",
       "acc-journals",
       "acc-payment-terms",
-      "acc-fiscal-positions",
       "acc-budgets",
       ...(showDocumentSettings ? ["document-layout"] : []),
       ...(showInvoiceSettings ? ["sequences"] : []),
@@ -733,13 +738,80 @@ const [currencyRates, setCurrencyRates] = useState<CurrencyRateRead[]>([]);
       "acc-accounts": () => apiFetch<AccAccount[]>(`/accounting/accounts?company_id=${companyId}`).then(setAccAccounts).catch(() => setAccAccounts([])),
       "acc-journals": () => apiFetch<AccJournal[]>(`/accounting/journals?company_id=${companyId}`).then(setAccJournals).catch(() => setAccJournals([])),
       "acc-payment-terms": () => apiFetch<AccPaymentTerm[]>(`/accounting/payment-terms?company_id=${companyId}`).then(setAccPaymentTerms).catch(() => setAccPaymentTerms([])),
-      "acc-fiscal-positions": () => apiFetch<AccFiscalPosition[]>(`/accounting/fiscal-positions?company_id=${companyId}`).then(setAccFiscalPositions).catch(() => setAccFiscalPositions([])),
       "acc-budgets": () => apiFetch<AccBudget[]>(`/accounting/budgets?company_id=${companyId}`).then(setAccBudgets).catch(() => setAccBudgets([])),
     };
     if (accSections[activeSection]) accSections[activeSection]();
   }, [activeSection, companyId]);
 
   const accResetForm = () => { setAccShowForm(false); setAccEditingId(null); setAccFormData({}); setAccError(null); };
+
+  const accParseCSV = (text: string): Record<string, string>[] => {
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    if (lines.length < 2) return [];
+    const headers = lines[0].split(",").map(h => h.trim().toLowerCase().replace(/[^a-z0-9_]/g, "_"));
+    return lines.slice(1).map(line => {
+      const vals = line.split(",").map(v => v.trim().replace(/^"|"$/g, ""));
+      const row: Record<string, string> = {};
+      headers.forEach((h, i) => { row[h] = vals[i] ?? ""; });
+      return row;
+    });
+  };
+
+  const accHandleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const rows = accParseCSV(reader.result as string);
+      setAccImportRows(rows);
+      setAccImportOpen(true);
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
+  const accHandleImport = async () => {
+    if (!companyId || accImportRows.length === 0) return;
+    setAccImporting(true); setAccError(null);
+    let created = 0;
+    const validTypes = ACC_ACCOUNT_TYPES.map(t => t.value);
+    for (const row of accImportRows) {
+      const acctType = (row.account_type || row.type || "").toLowerCase();
+      const payload = {
+        company_id: companyId,
+        code: row.code || "",
+        name: row.name || "",
+        account_type: validTypes.includes(acctType) ? acctType : "asset",
+        currency_code: row.currency_code || row.currency || "",
+        is_reconcilable: ["true", "yes", "1"].includes((row.is_reconcilable || row.reconcilable || "").toLowerCase()),
+        notes: row.notes || "",
+      };
+      if (!payload.code || !payload.name) continue;
+      try {
+        await apiFetch("/accounting/accounts", { method: "POST", body: JSON.stringify(payload) });
+        created++;
+      } catch { /* skip duplicates / errors */ }
+    }
+    setAccImporting(false);
+    setAccImportOpen(false);
+    setAccImportRows([]);
+    if (created > 0) {
+      setActiveSection(prev => { const tmp = prev; setActiveSection(""); setTimeout(() => setActiveSection(tmp), 20); return prev; });
+    }
+    if (created < accImportRows.length) {
+      setAccError(`Imported ${created} of ${accImportRows.length} accounts (${accImportRows.length - created} skipped — missing code/name or duplicate).`);
+    }
+  };
+
+  const accDownloadTemplate = () => {
+    const header = "code,name,account_type,currency_code,is_reconcilable,notes";
+    const sample = "1000,Cash,asset,USD,true,Main cash account";
+    const blob = new Blob([header + "\n" + sample + "\n"], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "chart_of_accounts_template.csv"; a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const accHandleSave = async (endpoint: string) => {
     if (!companyId) return;
@@ -2392,12 +2464,7 @@ const [currencyRates, setCurrencyRates] = useState<CurrencyRateRead[]>([]);
           >
             Payment Terms
           </button>
-          <button
-            className={`settings-sidebar-item ${activeSection === "acc-fiscal-positions" ? "active" : ""}`}
-            onClick={() => { setActiveTopTab("general"); setActiveSection("acc-fiscal-positions"); accResetForm(); }}
-          >
-            Fiscal Positions
-          </button>
+
           <button
             className={`settings-sidebar-item ${activeSection === "acc-budgets" ? "active" : ""}`}
             onClick={() => { setActiveTopTab("general"); setActiveSection("acc-budgets"); accResetForm(); }}
@@ -5946,10 +6013,62 @@ const [currencyRates, setCurrencyRates] = useState<CurrencyRateRead[]>([]);
                 <section className="settings-section">
                   <div className="settings-section-header">
                     <h4>Chart of Accounts</h4>
-                    <button className="primary" style={{ display: "flex", alignItems: "center", gap: 6 }} onClick={() => { accResetForm(); setAccShowForm(true); }}>
-                      <Plus size={14} /> New Account
-                    </button>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <input type="file" accept=".csv" ref={accFileRef} style={{ display: "none" }} onChange={accHandleFileSelect} />
+                      <button className="settings-btn-sm" style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", border: "1px solid var(--color-border-soft)", borderRadius: 8, fontWeight: 600, fontSize: 13 }} onClick={() => accFileRef.current?.click()}>
+                        <Upload size={14} /> Import CSV
+                      </button>
+                      <button className="primary" style={{ display: "flex", alignItems: "center", gap: 6 }} onClick={() => { accResetForm(); setAccShowForm(true); }}>
+                        <Plus size={14} /> New Account
+                      </button>
+                    </div>
                   </div>
+                  {/* Import preview modal */}
+                  {accImportOpen && (
+                    <div className="settings-card" style={{ marginBottom: 16, padding: 16 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                        <h5 style={{ margin: 0, display: "flex", alignItems: "center", gap: 8 }}><FileSpreadsheet size={16} /> Import Preview — {accImportRows.length} rows</h5>
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <button className="settings-btn-sm" style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 4 }} onClick={accDownloadTemplate}>
+                            <Download size={12} /> Template
+                          </button>
+                          <button className="settings-btn-sm" onClick={() => { setAccImportOpen(false); setAccImportRows([]); }}>
+                            <X size={14} />
+                          </button>
+                        </div>
+                      </div>
+                      {accImportRows.length === 0 ? (
+                        <p style={{ color: "var(--muted)", fontSize: 13 }}>No valid rows found. Expected CSV headers: <code>code, name, account_type, currency_code, is_reconcilable, notes</code></p>
+                      ) : (
+                        <>
+                          <div style={{ maxHeight: 280, overflowY: "auto", marginBottom: 12 }}>
+                            <table className="settings-table" style={{ width: "100%" }}>
+                              <thead><tr><th>#</th><th>Code</th><th>Name</th><th>Type</th><th>Currency</th><th>Reconcilable</th></tr></thead>
+                              <tbody>
+                                {accImportRows.slice(0, 50).map((r, i) => (
+                                  <tr key={i}>
+                                    <td style={{ color: "var(--muted)" }}>{i + 1}</td>
+                                    <td style={{ fontWeight: 600 }}>{r.code || <span style={{ color: "var(--danger)" }}>—</span>}</td>
+                                    <td>{r.name || <span style={{ color: "var(--danger)" }}>—</span>}</td>
+                                    <td>{r.account_type || r.type || "asset"}</td>
+                                    <td>{r.currency_code || r.currency || "—"}</td>
+                                    <td>{r.is_reconcilable || r.reconcilable || "false"}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                          {accImportRows.length > 50 && <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 8 }}>Showing first 50 of {accImportRows.length} rows</p>}
+                          <div style={{ display: "flex", gap: 8 }}>
+                            <button className="primary" style={{ display: "flex", alignItems: "center", gap: 6 }} disabled={accImporting} onClick={accHandleImport}>
+                              {accImporting ? "Importing..." : <><Upload size={14} /> Import {accImportRows.length} Accounts</>}
+                            </button>
+                            <button className="settings-btn-sm" onClick={() => { setAccImportOpen(false); setAccImportRows([]); }}>Cancel</button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
                   {accError && <div className="alert alert-danger" style={{ marginBottom: 12 }}>{accError}</div>}
                   {accShowForm && (
                     <div className="settings-card" style={{ marginBottom: 16, padding: 16 }}>
@@ -6091,52 +6210,6 @@ const [currencyRates, setCurrencyRates] = useState<CurrencyRateRead[]>([]);
                 </section>
               )}
 
-              {/* ── Fiscal Positions ── */}
-              {activeSection === "acc-fiscal-positions" && (
-                <section className="settings-section">
-                  <div className="settings-section-header">
-                    <h4>Fiscal Positions</h4>
-                    <button className="primary" style={{ display: "flex", alignItems: "center", gap: 6 }} onClick={() => { accResetForm(); setAccShowForm(true); }}>
-                      <Plus size={14} /> New Fiscal Position
-                    </button>
-                  </div>
-                  {accError && <div className="alert alert-danger" style={{ marginBottom: 12 }}>{accError}</div>}
-                  {accShowForm && (
-                    <div className="settings-card" style={{ marginBottom: 16, padding: 16 }}>
-                      <h5 style={{ margin: "0 0 12px" }}>{accEditingId ? "Edit" : "New"} Fiscal Position</h5>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                        <div><label className="settings-label">Name</label><input className="settings-input" value={accFormData.name ?? ""} onChange={e => setAccFormData({ ...accFormData, name: e.target.value })} /></div>
-                        <div><label className="settings-label">Auto Apply</label><br/><input type="checkbox" checked={!!accFormData.auto_apply} onChange={e => setAccFormData({ ...accFormData, auto_apply: e.target.checked })} /></div>
-                        <div style={{ gridColumn: "1 / -1" }}><label className="settings-label">Description</label><input className="settings-input" value={accFormData.description ?? ""} onChange={e => setAccFormData({ ...accFormData, description: e.target.value })} /></div>
-                      </div>
-                      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                        <button className="primary" onClick={() => accHandleSave("/accounting/fiscal-positions")} disabled={accSaving}>{accSaving ? "Saving..." : "Save"}</button>
-                        <button className="settings-btn-sm" onClick={accResetForm}>Cancel</button>
-                      </div>
-                    </div>
-                  )}
-                  <table className="settings-table" style={{ width: "100%" }}>
-                    <thead><tr><th>Name</th><th>Description</th><th>Auto Apply</th><th>Tax Mappings</th><th>Actions</th></tr></thead>
-                    <tbody>
-                      {accFiscalPositions.length === 0 && <tr><td colSpan={5} style={{ textAlign: "center", color: "var(--muted)" }}>No fiscal positions yet</td></tr>}
-                      {accFiscalPositions.map(fp => (
-                        <tr key={fp.id}>
-                          <td style={{ fontWeight: 600 }}>{fp.name}</td>
-                          <td>{fp.description || "—"}</td>
-                          <td>{fp.auto_apply ? "Yes" : "No"}</td>
-                          <td>{fp.tax_mappings?.length || 0}</td>
-                          <td>
-                            <div style={{ display: "flex", gap: 4 }}>
-                              <button className="settings-btn-sm" onClick={() => accHandleEdit(fp)}><PencilLine size={12} /> Edit</button>
-                              <button className="settings-btn-sm" style={{ color: "var(--danger)" }} onClick={() => accHandleDelete("/accounting/fiscal-positions", fp.id)}><Trash2 size={12} /></button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </section>
-              )}
 
               {/* ── Financial Budgets ── */}
               {activeSection === "acc-budgets" && (
