@@ -6068,7 +6068,10 @@ button.danger:hover {
 
 .settings-sidebar {
   position: sticky;
+  top: 1rem;
   align-self: start;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
   background: var(--color-base-white);
   border: 1px solid var(--color-border-soft);
   border-radius: 12px;
