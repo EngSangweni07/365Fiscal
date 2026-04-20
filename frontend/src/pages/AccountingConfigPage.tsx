@@ -2,14 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   BookOpen,
-  Briefcase,
   Calculator,
   ChevronDown,
   Clock,
-  DollarSign,
   Download,
   FileText,
-  Globe,
   Layers,
   PencilLine,
   Plus,
@@ -59,33 +56,10 @@ type PaymentTermItem = {
   is_active: boolean;
 };
 
-type FiscalPosition = {
-  id: number;
-  company_id: number;
-  name: string;
-  description: string;
-  auto_apply: boolean;
-  is_active: boolean;
-  tax_mappings: { id: number; source_tax_id: number | null; destination_tax_id: number | null }[];
-};
-
-type BudgetItem = {
-  id: number;
-  company_id: number;
-  name: string;
-  date_from: string;
-  date_to: string;
-  status: string;
-  notes: string;
-  lines: { id: number; account_id: number | null; planned_amount: number; practical_amount: number }[];
-};
-
 type SectionKey =
   | "chart_of_accounts"
   | "journals"
-  | "payment_terms"
-  | "fiscal_positions"
-  | "budgets";
+  | "payment_terms";
 
 const ACCOUNT_TYPES = [
   { value: "asset", label: "Asset" },
@@ -170,8 +144,6 @@ export default function AccountingConfigPage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [journals, setJournals] = useState<Journal[]>([]);
   const [paymentTerms, setPaymentTerms] = useState<PaymentTermItem[]>([]);
-  const [fiscalPositions, setFiscalPositions] = useState<FiscalPosition[]>([]);
-  const [budgets, setBudgets] = useState<BudgetItem[]>([]);
 
   // Forms
   const [showForm, setShowForm] = useState(false);
@@ -215,14 +187,6 @@ export default function AccountingConfigPage() {
         apiFetch<PaymentTermItem[]>(`/accounting/payment-terms?company_id=${companyId}`)
           .then(setPaymentTerms)
           .catch(() => setPaymentTerms([])),
-      fiscal_positions: () =>
-        apiFetch<FiscalPosition[]>(`/accounting/fiscal-positions?company_id=${companyId}`)
-          .then(setFiscalPositions)
-          .catch(() => setFiscalPositions([])),
-      budgets: () =>
-        apiFetch<BudgetItem[]>(`/accounting/budgets?company_id=${companyId}`)
-          .then(setBudgets)
-          .catch(() => setBudgets([])),
     };
     fetchMap[activeSection]();
   }, [companyId, activeSection]);
@@ -232,8 +196,6 @@ export default function AccountingConfigPage() {
     { key: "chart_of_accounts", label: "CHART OF ACCOUNTS", icon: BookOpen, color: "#4a7de6" },
     { key: "journals", label: "JOURNALS", icon: FileText, color: "#4a7de6" },
     { key: "payment_terms", label: "PAYMENT TERMS", icon: Clock, color: "#4a7de6" },
-    { key: "fiscal_positions", label: "FISCAL POSITIONS", icon: Globe, color: "#4a7de6" },
-    { key: "budgets", label: "FINANCIAL BUDGETS", icon: DollarSign, color: "#4a7de6" },
   ];
 
   // CRUD helpers
@@ -253,8 +215,6 @@ export default function AccountingConfigPage() {
         chart_of_accounts: "/accounting/accounts",
         journals: "/accounting/journals",
         payment_terms: "/accounting/payment-terms",
-        fiscal_positions: "/accounting/fiscal-positions",
-        budgets: "/accounting/budgets",
       };
       const endpoint = endpointMap[activeSection];
       if (editingId) {
@@ -400,8 +360,6 @@ export default function AccountingConfigPage() {
       chart_of_accounts: "Account",
       journals: "Journal",
       payment_terms: "Payment Term",
-      fiscal_positions: "Fiscal Position",
-      budgets: "Budget",
     };
     return m[activeSection];
   };
@@ -440,19 +398,6 @@ export default function AccountingConfigPage() {
           { key: "discount_percentage", label: "Discount (%)", type: "number" },
           { key: "discount_days", label: "Discount Days", type: "number" },
         ];
-      case "fiscal_positions":
-        return [
-          { key: "name", label: "Name", type: "text" },
-          { key: "description", label: "Description", type: "text", fullWidth: true },
-          { key: "auto_apply", label: "Auto Apply", type: "checkbox" },
-        ];
-      case "budgets":
-        return [
-          { key: "name", label: "Name", type: "text" },
-          { key: "date_from", label: "From", type: "date" },
-          { key: "date_to", label: "To", type: "date" },
-          { key: "notes", label: "Notes", type: "text", fullWidth: true },
-        ];
       default:
         return [];
     }
@@ -467,10 +412,6 @@ export default function AccountingConfigPage() {
         return renderJournalsTable();
       case "payment_terms":
         return renderPaymentTermsTable();
-      case "fiscal_positions":
-        return renderFiscalPositionsTable();
-      case "budgets":
-        return renderBudgetsTable();
       default:
         return null;
     }
@@ -674,115 +615,6 @@ export default function AccountingConfigPage() {
                 <button
                   style={{ ...btnSecondary, padding: "4px 8px", fontSize: 11, color: "#ef4444" }}
                   onClick={() => handleDelete("/accounting/payment-terms", pt.id)}
-                >
-                  <Trash2 size={12} />
-                </button>
-              </div>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-
-  const renderFiscalPositionsTable = () => (
-    <table style={{ width: "100%", borderCollapse: "collapse" }}>
-      <thead>
-        <tr>
-          <th style={thStyle}>Name</th>
-          <th style={thStyle}>Description</th>
-          <th style={thStyle}>Auto Apply</th>
-          <th style={thStyle}>Tax Mappings</th>
-          <th style={thStyle}>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {fiscalPositions.length === 0 && (
-          <tr>
-            <td colSpan={5} style={{ ...tdStyle, textAlign: "center", color: "#9ca3af" }}>
-              No fiscal positions yet. Click "New" to create one.
-            </td>
-          </tr>
-        )}
-        {fiscalPositions.map((fp) => (
-          <tr key={fp.id}>
-            <td style={{ ...tdStyle, fontWeight: 600 }}>{fp.name}</td>
-            <td style={tdStyle}>{fp.description || "—"}</td>
-            <td style={tdStyle}>{fp.auto_apply ? "Yes" : "No"}</td>
-            <td style={tdStyle}>{fp.tax_mappings?.length || 0}</td>
-            <td style={tdStyle}>
-              <div style={{ display: "flex", gap: 6 }}>
-                <button
-                  style={{ ...btnSecondary, padding: "4px 8px", fontSize: 11 }}
-                  onClick={() => handleEdit(fp)}
-                >
-                  <PencilLine size={12} /> Edit
-                </button>
-                <button
-                  style={{ ...btnSecondary, padding: "4px 8px", fontSize: 11, color: "#ef4444" }}
-                  onClick={() => handleDelete("/accounting/fiscal-positions", fp.id)}
-                >
-                  <Trash2 size={12} />
-                </button>
-              </div>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-
-  const renderBudgetsTable = () => (
-    <table style={{ width: "100%", borderCollapse: "collapse" }}>
-      <thead>
-        <tr>
-          <th style={thStyle}>Name</th>
-          <th style={thStyle}>Period</th>
-          <th style={thStyle}>Status</th>
-          <th style={thStyle}>Lines</th>
-          <th style={thStyle}>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {budgets.length === 0 && (
-          <tr>
-            <td colSpan={5} style={{ ...tdStyle, textAlign: "center", color: "#9ca3af" }}>
-              No budgets yet. Click "New" to create one.
-            </td>
-          </tr>
-        )}
-        {budgets.map((b) => (
-          <tr key={b.id}>
-            <td style={{ ...tdStyle, fontWeight: 600 }}>{b.name}</td>
-            <td style={tdStyle}>
-              {new Date(b.date_from).toLocaleDateString()} — {new Date(b.date_to).toLocaleDateString()}
-            </td>
-            <td style={tdStyle}>
-              <span
-                style={{
-                  padding: "2px 8px",
-                  borderRadius: 4,
-                  fontSize: 11,
-                  fontWeight: 600,
-                  background: b.status === "confirmed" ? "#d1fae5" : b.status === "done" ? "#dbeafe" : "#fef3c7",
-                  color: b.status === "confirmed" ? "#065f46" : b.status === "done" ? "#1e40af" : "#92400e",
-                }}
-              >
-                {b.status}
-              </span>
-            </td>
-            <td style={tdStyle}>{b.lines?.length || 0}</td>
-            <td style={tdStyle}>
-              <div style={{ display: "flex", gap: 6 }}>
-                <button
-                  style={{ ...btnSecondary, padding: "4px 8px", fontSize: 11 }}
-                  onClick={() => handleEdit(b)}
-                >
-                  <PencilLine size={12} /> Edit
-                </button>
-                <button
-                  style={{ ...btnSecondary, padding: "4px 8px", fontSize: 11, color: "#ef4444" }}
-                  onClick={() => handleDelete("/accounting/budgets", b.id)}
                 >
                   <Trash2 size={12} />
                 </button>

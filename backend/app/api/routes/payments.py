@@ -2,6 +2,7 @@
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import List, Optional
 
 from app.api.deps import (
@@ -10,6 +11,7 @@ from app.api.deps import (
 )
 from app.models.payment import Payment, PaymentMethod
 from app.models.invoice import Invoice
+from app.models.user import User
 from app.models.audit_log import AuditAction, ResourceType
 from app.schemas.payment import (
     PaymentCreate, PaymentUpdate, PaymentRead, PaymentReconcile,
@@ -27,13 +29,15 @@ def next_payment_reference(db: Session, prefix: str = "PAY") -> str:
     return f"{full_prefix}{count + 1:04d}"
 
 
-@router.get("", response_model=List[PaymentRead])
+@router.get("")
 def list_payments(
     company_id: int,
     invoice_id: Optional[int] = None,
     contact_id: Optional[int] = None,
     status: Optional[str] = None,
     payment_method: Optional[str] = None,
+    is_reconciled: Optional[str] = None,
+    search: Optional[str] = None,
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
     limit: int = Query(100, le=500),
@@ -54,6 +58,12 @@ def list_payments(
         query = query.filter(Payment.status == status)
     if payment_method:
         query = query.filter(Payment.payment_method == payment_method)
+    if is_reconciled == "true":
+        query = query.filter(Payment.status == "reconciled")
+    elif is_reconciled == "false":
+        query = query.filter(Payment.status != "reconciled")
+    if search:
+        query = query.filter(Payment.reference.ilike(f"%{search}%"))
     if start_date:
         query = query.filter(Payment.payment_date >= start_date)
     if end_date:
@@ -62,7 +72,28 @@ def list_payments(
     query = query.order_by(Payment.payment_date.desc())
     query = query.offset(offset).limit(limit)
     
-    return query.all()
+    payments = query.all()
+    
+    # Enrich with invoice_reference and created_by_email
+    result = []
+    for p in payments:
+        data = PaymentRead.model_validate(p).model_dump()
+        # Get invoice reference
+        if p.invoice_id:
+            inv = db.query(Invoice).filter(Invoice.id == p.invoice_id).first()
+            data["invoice_reference"] = inv.reference if inv else ""
+        else:
+            data["invoice_reference"] = ""
+        # Get created_by_email
+        if p.created_by_id:
+            u = db.query(User).filter(User.id == p.created_by_id).first()
+            data["created_by_email"] = u.email if u else ""
+        else:
+            data["created_by_email"] = ""
+        data["is_reconciled"] = p.status == "reconciled"
+        result.append(data)
+    
+    return result
 
 
 @router.post("", response_model=PaymentRead)
@@ -130,6 +161,83 @@ def create_payment(
     db.commit()
     db.refresh(payment)
     return payment
+
+
+@router.get("/summary")
+def payment_summary(
+    company_id: int,
+    db: Session = Depends(get_db),
+    user=Depends(require_portal_user),
+):
+    """Get payment summary for a company."""
+    ensure_company_access(db, user, company_id)
+    
+    base = db.query(Payment).filter(
+        Payment.company_id == company_id,
+        Payment.status != "cancelled",
+    )
+    
+    total_payments = base.count()
+    total_amount = db.query(func.coalesce(func.sum(Payment.amount), 0)).filter(
+        Payment.company_id == company_id,
+        Payment.status != "cancelled",
+    ).scalar()
+    reconciled_count = base.filter(Payment.status == "reconciled").count()
+    pending_count = total_payments - reconciled_count
+    
+    # By method breakdown
+    by_method_rows = (
+        db.query(
+            Payment.payment_method,
+            func.count(Payment.id),
+            func.coalesce(func.sum(Payment.amount), 0),
+        )
+        .filter(Payment.company_id == company_id, Payment.status != "cancelled")
+        .group_by(Payment.payment_method)
+        .all()
+    )
+    by_method = {
+        row[0]: {"count": row[1], "amount": float(row[2])}
+        for row in by_method_rows
+    }
+    
+    return {
+        "total_payments": total_payments,
+        "total_amount": float(total_amount),
+        "reconciled_count": reconciled_count,
+        "pending_count": pending_count,
+        "by_method": by_method,
+    }
+
+
+@router.post("/{payment_id}/reconcile")
+def reconcile_payment(
+    payment_id: int,
+    db: Session = Depends(get_db),
+    user=Depends(require_portal_user),
+):
+    """Reconcile a payment."""
+    payment = db.query(Payment).filter(Payment.id == payment_id).first()
+    if not payment:
+        raise HTTPException(status_code=404, detail="Payment not found")
+    
+    ensure_company_access(db, user, payment.company_id)
+    
+    if not can_record_payment(db, user, payment.company_id):
+        raise HTTPException(status_code=403, detail="Permission denied")
+    
+    if payment.status == "reconciled":
+        raise HTTPException(status_code=400, detail="Payment is already reconciled")
+    
+    if payment.status == "cancelled":
+        raise HTTPException(status_code=400, detail="Cancelled payments cannot be reconciled")
+    
+    payment.status = "reconciled"
+    payment.reconciled_at = datetime.utcnow()
+    
+    db.commit()
+    db.refresh(payment)
+    return {"message": "Payment reconciled", "id": payment.id}
 
 
 @router.get("/{payment_id}", response_model=PaymentRead)

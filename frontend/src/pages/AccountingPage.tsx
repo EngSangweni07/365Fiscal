@@ -52,7 +52,6 @@ interface AccountingOverview {
 
 type SectionKey =
   | "overview"
-  | "invoices"
   | "payments"
   | "reports"
   | "configuration";
@@ -184,10 +183,6 @@ export default function AccountingPage() {
 
   // Navigate to sub-pages
   const handleSectionSelect = (key: string) => {
-    if (key === "invoices") {
-      navigate("/invoices");
-      return;
-    }
     if (key === "payments") {
       navigate("/payments");
       return;
@@ -205,7 +200,6 @@ export default function AccountingPage() {
 
   const sidebarItems: SidebarMenuItem[] = [
     { key: "overview", label: "OVERVIEW", icon: Layers, color: "#4a7de6" },
-    { key: "invoices", label: "INVOICES", icon: FileText, color: "#4a7de6" },
     { key: "payments", label: "PAYMENTS", icon: CreditCard, color: "#4a7de6" },
     { key: "reports", label: "REPORTS", icon: BarChart3, color: "#4a7de6" },
     { key: "configuration", label: "CONFIGURATION", icon: Settings, color: "#4a7de6" },
