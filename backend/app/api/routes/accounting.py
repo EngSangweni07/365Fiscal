@@ -1,12 +1,19 @@
-"""API routes for accounting configuration: Chart of Accounts, Journals, Payment Terms, Fiscal Positions, Budgets."""
+"""API routes for accounting configuration: Chart of Accounts, Journals, Payment Terms, Fiscal Positions, Budgets, Overview."""
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, get_current_user, ensure_company_access, require_company_access
 from app.models.account import (
-    Account, Journal, PaymentTerm, FiscalPosition, FiscalPositionTax,
+    Account, Journal, JournalEntry, JournalEntryLine,
+    PaymentTerm, FiscalPosition, FiscalPositionTax,
     Budget, BudgetLine,
 )
+from app.models.invoice import Invoice
+from app.models.payment import Payment
+from app.models.expense import Expense
+from app.models.purchase_order import PurchaseOrder
 from app.schemas.account import (
     AccountCreate, AccountRead, AccountUpdate,
     JournalCreate, JournalRead, JournalUpdate,
@@ -86,6 +93,272 @@ def delete_account(
     db.delete(account)
     db.commit()
     return {"ok": True}
+
+
+# ─── Generic Chart of Accounts ────────────────────────
+GENERIC_CHART_OF_ACCOUNTS = [
+    # ── Assets ──
+    {"code": "1000", "name": "Assets", "account_type": "asset", "reconcilable": False},
+    # Current Assets
+    {"code": "1100", "name": "Current Assets", "account_type": "asset", "reconcilable": False, "parent": "1000"},
+    {"code": "1110", "name": "Cash on Hand", "account_type": "asset", "reconcilable": True, "parent": "1100"},
+    {"code": "1120", "name": "Bank Account", "account_type": "asset", "reconcilable": True, "parent": "1100"},
+    {"code": "1130", "name": "Petty Cash", "account_type": "asset", "reconcilable": True, "parent": "1100"},
+    {"code": "1200", "name": "Accounts Receivable", "account_type": "asset", "reconcilable": True, "parent": "1100"},
+    {"code": "1210", "name": "Trade Receivables", "account_type": "asset", "reconcilable": True, "parent": "1200"},
+    {"code": "1220", "name": "Employee Advances", "account_type": "asset", "reconcilable": True, "parent": "1200"},
+    {"code": "1230", "name": "Other Receivables", "account_type": "asset", "reconcilable": True, "parent": "1200"},
+    {"code": "1300", "name": "Inventory", "account_type": "asset", "reconcilable": False, "parent": "1100"},
+    {"code": "1310", "name": "Raw Materials", "account_type": "asset", "reconcilable": False, "parent": "1300"},
+    {"code": "1320", "name": "Finished Goods", "account_type": "asset", "reconcilable": False, "parent": "1300"},
+    {"code": "1330", "name": "Work in Progress", "account_type": "asset", "reconcilable": False, "parent": "1300"},
+    {"code": "1400", "name": "Prepaid Expenses", "account_type": "asset", "reconcilable": False, "parent": "1100"},
+    {"code": "1410", "name": "Prepaid Insurance", "account_type": "asset", "reconcilable": False, "parent": "1400"},
+    {"code": "1420", "name": "Prepaid Rent", "account_type": "asset", "reconcilable": False, "parent": "1400"},
+    {"code": "1500", "name": "VAT Input (Receivable)", "account_type": "asset", "reconcilable": True, "parent": "1100"},
+    # Non-Current Assets
+    {"code": "1600", "name": "Non-Current Assets", "account_type": "asset", "reconcilable": False, "parent": "1000"},
+    {"code": "1610", "name": "Property, Plant & Equipment", "account_type": "asset", "reconcilable": False, "parent": "1600"},
+    {"code": "1611", "name": "Land", "account_type": "asset", "reconcilable": False, "parent": "1610"},
+    {"code": "1612", "name": "Buildings", "account_type": "asset", "reconcilable": False, "parent": "1610"},
+    {"code": "1613", "name": "Machinery & Equipment", "account_type": "asset", "reconcilable": False, "parent": "1610"},
+    {"code": "1614", "name": "Vehicles", "account_type": "asset", "reconcilable": False, "parent": "1610"},
+    {"code": "1615", "name": "Office Furniture & Fixtures", "account_type": "asset", "reconcilable": False, "parent": "1610"},
+    {"code": "1616", "name": "Computer Equipment", "account_type": "asset", "reconcilable": False, "parent": "1610"},
+    {"code": "1700", "name": "Accumulated Depreciation", "account_type": "asset", "reconcilable": False, "parent": "1600"},
+    {"code": "1710", "name": "Accum. Depr. – Buildings", "account_type": "asset", "reconcilable": False, "parent": "1700"},
+    {"code": "1711", "name": "Accum. Depr. – Machinery", "account_type": "asset", "reconcilable": False, "parent": "1700"},
+    {"code": "1712", "name": "Accum. Depr. – Vehicles", "account_type": "asset", "reconcilable": False, "parent": "1700"},
+    {"code": "1713", "name": "Accum. Depr. – Furniture", "account_type": "asset", "reconcilable": False, "parent": "1700"},
+    {"code": "1714", "name": "Accum. Depr. – Computers", "account_type": "asset", "reconcilable": False, "parent": "1700"},
+    {"code": "1800", "name": "Intangible Assets", "account_type": "asset", "reconcilable": False, "parent": "1600"},
+    {"code": "1810", "name": "Goodwill", "account_type": "asset", "reconcilable": False, "parent": "1800"},
+    {"code": "1820", "name": "Software & Licences", "account_type": "asset", "reconcilable": False, "parent": "1800"},
+    {"code": "1830", "name": "Patents & Trademarks", "account_type": "asset", "reconcilable": False, "parent": "1800"},
+
+    # ── Liabilities ──
+    {"code": "2000", "name": "Liabilities", "account_type": "liability", "reconcilable": False},
+    # Current Liabilities
+    {"code": "2100", "name": "Current Liabilities", "account_type": "liability", "reconcilable": False, "parent": "2000"},
+    {"code": "2110", "name": "Accounts Payable", "account_type": "liability", "reconcilable": True, "parent": "2100"},
+    {"code": "2120", "name": "Trade Payables", "account_type": "liability", "reconcilable": True, "parent": "2100"},
+    {"code": "2130", "name": "Accrued Expenses", "account_type": "liability", "reconcilable": False, "parent": "2100"},
+    {"code": "2140", "name": "Wages & Salaries Payable", "account_type": "liability", "reconcilable": False, "parent": "2100"},
+    {"code": "2150", "name": "PAYE Payable", "account_type": "liability", "reconcilable": False, "parent": "2100"},
+    {"code": "2160", "name": "VAT Output (Payable)", "account_type": "liability", "reconcilable": True, "parent": "2100"},
+    {"code": "2170", "name": "Withholding Tax Payable", "account_type": "liability", "reconcilable": False, "parent": "2100"},
+    {"code": "2180", "name": "Social Security Payable (NSSA)", "account_type": "liability", "reconcilable": False, "parent": "2100"},
+    {"code": "2190", "name": "Short-Term Loans", "account_type": "liability", "reconcilable": True, "parent": "2100"},
+    {"code": "2200", "name": "Customer Deposits / Deferred Revenue", "account_type": "liability", "reconcilable": False, "parent": "2100"},
+    {"code": "2210", "name": "Unearned Revenue", "account_type": "liability", "reconcilable": False, "parent": "2100"},
+    # Non-Current Liabilities
+    {"code": "2500", "name": "Non-Current Liabilities", "account_type": "liability", "reconcilable": False, "parent": "2000"},
+    {"code": "2510", "name": "Long-Term Loans", "account_type": "liability", "reconcilable": True, "parent": "2500"},
+    {"code": "2520", "name": "Mortgage Payable", "account_type": "liability", "reconcilable": True, "parent": "2500"},
+    {"code": "2530", "name": "Finance Lease Obligations", "account_type": "liability", "reconcilable": False, "parent": "2500"},
+
+    # ── Equity ──
+    {"code": "3000", "name": "Equity", "account_type": "equity", "reconcilable": False},
+    {"code": "3100", "name": "Share Capital", "account_type": "equity", "reconcilable": False, "parent": "3000"},
+    {"code": "3200", "name": "Retained Earnings", "account_type": "equity", "reconcilable": False, "parent": "3000"},
+    {"code": "3300", "name": "Current Year Earnings", "account_type": "equity", "reconcilable": False, "parent": "3000"},
+    {"code": "3400", "name": "Dividends Distributed", "account_type": "equity", "reconcilable": False, "parent": "3000"},
+    {"code": "3500", "name": "Owner's Equity / Drawings", "account_type": "equity", "reconcilable": False, "parent": "3000"},
+    {"code": "3600", "name": "Revaluation Reserve", "account_type": "equity", "reconcilable": False, "parent": "3000"},
+
+    # ── Income / Revenue ──
+    {"code": "4000", "name": "Revenue", "account_type": "income", "reconcilable": False},
+    {"code": "4100", "name": "Sales Revenue", "account_type": "income", "reconcilable": False, "parent": "4000"},
+    {"code": "4110", "name": "Product Sales", "account_type": "income", "reconcilable": False, "parent": "4100"},
+    {"code": "4120", "name": "Service Revenue", "account_type": "income", "reconcilable": False, "parent": "4100"},
+    {"code": "4130", "name": "Export Sales", "account_type": "income", "reconcilable": False, "parent": "4100"},
+    {"code": "4200", "name": "Sales Returns & Allowances", "account_type": "income", "reconcilable": False, "parent": "4000"},
+    {"code": "4300", "name": "Sales Discounts", "account_type": "income", "reconcilable": False, "parent": "4000"},
+    {"code": "4400", "name": "Other Operating Income", "account_type": "income", "reconcilable": False, "parent": "4000"},
+    {"code": "4500", "name": "Interest Income", "account_type": "income", "reconcilable": False, "parent": "4000"},
+    {"code": "4600", "name": "Rental Income", "account_type": "income", "reconcilable": False, "parent": "4000"},
+    {"code": "4700", "name": "Foreign Exchange Gains", "account_type": "income", "reconcilable": False, "parent": "4000"},
+    {"code": "4800", "name": "Gain on Disposal of Assets", "account_type": "income", "reconcilable": False, "parent": "4000"},
+    {"code": "4900", "name": "Miscellaneous Income", "account_type": "income", "reconcilable": False, "parent": "4000"},
+
+    # ── Cost of Goods Sold ──
+    {"code": "5000", "name": "Cost of Goods Sold", "account_type": "expense", "reconcilable": False},
+    {"code": "5100", "name": "Direct Materials", "account_type": "expense", "reconcilable": False, "parent": "5000"},
+    {"code": "5200", "name": "Direct Labour", "account_type": "expense", "reconcilable": False, "parent": "5000"},
+    {"code": "5300", "name": "Manufacturing Overhead", "account_type": "expense", "reconcilable": False, "parent": "5000"},
+    {"code": "5400", "name": "Purchases", "account_type": "expense", "reconcilable": False, "parent": "5000"},
+    {"code": "5500", "name": "Purchase Returns & Allowances", "account_type": "expense", "reconcilable": False, "parent": "5000"},
+    {"code": "5600", "name": "Freight & Shipping Inward", "account_type": "expense", "reconcilable": False, "parent": "5000"},
+    {"code": "5700", "name": "Import Duties & Customs", "account_type": "expense", "reconcilable": False, "parent": "5000"},
+
+    # ── Operating Expenses ──
+    {"code": "6000", "name": "Operating Expenses", "account_type": "expense", "reconcilable": False},
+    # Personnel
+    {"code": "6100", "name": "Personnel Expenses", "account_type": "expense", "reconcilable": False, "parent": "6000"},
+    {"code": "6110", "name": "Salaries & Wages", "account_type": "expense", "reconcilable": False, "parent": "6100"},
+    {"code": "6120", "name": "Employee Benefits", "account_type": "expense", "reconcilable": False, "parent": "6100"},
+    {"code": "6130", "name": "Employer NSSA Contributions", "account_type": "expense", "reconcilable": False, "parent": "6100"},
+    {"code": "6140", "name": "Training & Development", "account_type": "expense", "reconcilable": False, "parent": "6100"},
+    {"code": "6150", "name": "Recruitment Costs", "account_type": "expense", "reconcilable": False, "parent": "6100"},
+    # Premises
+    {"code": "6200", "name": "Premises Expenses", "account_type": "expense", "reconcilable": False, "parent": "6000"},
+    {"code": "6210", "name": "Rent", "account_type": "expense", "reconcilable": False, "parent": "6200"},
+    {"code": "6220", "name": "Rates & Property Taxes", "account_type": "expense", "reconcilable": False, "parent": "6200"},
+    {"code": "6230", "name": "Repairs & Maintenance", "account_type": "expense", "reconcilable": False, "parent": "6200"},
+    {"code": "6240", "name": "Security", "account_type": "expense", "reconcilable": False, "parent": "6200"},
+    {"code": "6250", "name": "Cleaning", "account_type": "expense", "reconcilable": False, "parent": "6200"},
+    # Admin & Office
+    {"code": "6300", "name": "Administrative Expenses", "account_type": "expense", "reconcilable": False, "parent": "6000"},
+    {"code": "6310", "name": "Office Supplies & Stationery", "account_type": "expense", "reconcilable": False, "parent": "6300"},
+    {"code": "6320", "name": "Telephone & Internet", "account_type": "expense", "reconcilable": False, "parent": "6300"},
+    {"code": "6330", "name": "Postage & Courier", "account_type": "expense", "reconcilable": False, "parent": "6300"},
+    {"code": "6340", "name": "Printing & Reproduction", "account_type": "expense", "reconcilable": False, "parent": "6300"},
+    {"code": "6350", "name": "Software & IT Services", "account_type": "expense", "reconcilable": False, "parent": "6300"},
+    {"code": "6360", "name": "Subscriptions & Memberships", "account_type": "expense", "reconcilable": False, "parent": "6300"},
+    # Motor Vehicle
+    {"code": "6400", "name": "Motor Vehicle Expenses", "account_type": "expense", "reconcilable": False, "parent": "6000"},
+    {"code": "6410", "name": "Fuel & Oil", "account_type": "expense", "reconcilable": False, "parent": "6400"},
+    {"code": "6420", "name": "Vehicle Repairs & Servicing", "account_type": "expense", "reconcilable": False, "parent": "6400"},
+    {"code": "6430", "name": "Vehicle Insurance", "account_type": "expense", "reconcilable": False, "parent": "6400"},
+    {"code": "6440", "name": "Vehicle Licences & Tolls", "account_type": "expense", "reconcilable": False, "parent": "6400"},
+    # Professional
+    {"code": "6500", "name": "Professional Fees", "account_type": "expense", "reconcilable": False, "parent": "6000"},
+    {"code": "6510", "name": "Accounting & Audit Fees", "account_type": "expense", "reconcilable": False, "parent": "6500"},
+    {"code": "6520", "name": "Legal Fees", "account_type": "expense", "reconcilable": False, "parent": "6500"},
+    {"code": "6530", "name": "Consulting Fees", "account_type": "expense", "reconcilable": False, "parent": "6500"},
+    # Marketing & Sales
+    {"code": "6600", "name": "Marketing & Sales Expenses", "account_type": "expense", "reconcilable": False, "parent": "6000"},
+    {"code": "6610", "name": "Advertising", "account_type": "expense", "reconcilable": False, "parent": "6600"},
+    {"code": "6620", "name": "Promotions & Events", "account_type": "expense", "reconcilable": False, "parent": "6600"},
+    {"code": "6630", "name": "Commissions Paid", "account_type": "expense", "reconcilable": False, "parent": "6600"},
+    {"code": "6640", "name": "Travel & Entertainment", "account_type": "expense", "reconcilable": False, "parent": "6600"},
+    # Financial
+    {"code": "6700", "name": "Financial Expenses", "account_type": "expense", "reconcilable": False, "parent": "6000"},
+    {"code": "6710", "name": "Bank Charges & Fees", "account_type": "expense", "reconcilable": False, "parent": "6700"},
+    {"code": "6720", "name": "Interest Expense", "account_type": "expense", "reconcilable": False, "parent": "6700"},
+    {"code": "6730", "name": "Foreign Exchange Losses", "account_type": "expense", "reconcilable": False, "parent": "6700"},
+    {"code": "6740", "name": "Payment Processing Fees", "account_type": "expense", "reconcilable": False, "parent": "6700"},
+    # Insurance & Utilities
+    {"code": "6800", "name": "Insurance", "account_type": "expense", "reconcilable": False, "parent": "6000"},
+    {"code": "6810", "name": "General Insurance", "account_type": "expense", "reconcilable": False, "parent": "6800"},
+    {"code": "6820", "name": "Workers' Compensation Insurance", "account_type": "expense", "reconcilable": False, "parent": "6800"},
+    {"code": "6900", "name": "Utilities", "account_type": "expense", "reconcilable": False, "parent": "6000"},
+    {"code": "6910", "name": "Electricity", "account_type": "expense", "reconcilable": False, "parent": "6900"},
+    {"code": "6920", "name": "Water & Sewerage", "account_type": "expense", "reconcilable": False, "parent": "6900"},
+    # Depreciation & Amortisation
+    {"code": "7000", "name": "Depreciation & Amortisation", "account_type": "expense", "reconcilable": False},
+    {"code": "7100", "name": "Depreciation Expense", "account_type": "expense", "reconcilable": False, "parent": "7000"},
+    {"code": "7200", "name": "Amortisation Expense", "account_type": "expense", "reconcilable": False, "parent": "7000"},
+
+    # ── Other Income / Expenses ──
+    {"code": "8000", "name": "Other Income & Expenses", "account_type": "expense", "reconcilable": False},
+    {"code": "8100", "name": "Loss on Disposal of Assets", "account_type": "expense", "reconcilable": False, "parent": "8000"},
+    {"code": "8200", "name": "Bad Debts Written Off", "account_type": "expense", "reconcilable": False, "parent": "8000"},
+    {"code": "8300", "name": "Donations & Charitable Contributions", "account_type": "expense", "reconcilable": False, "parent": "8000"},
+    {"code": "8400", "name": "Penalties & Fines", "account_type": "expense", "reconcilable": False, "parent": "8000"},
+
+    # ── Tax ──
+    {"code": "9000", "name": "Tax Expense", "account_type": "expense", "reconcilable": False},
+    {"code": "9100", "name": "Income Tax Expense", "account_type": "expense", "reconcilable": False, "parent": "9000"},
+    {"code": "9200", "name": "Deferred Tax", "account_type": "expense", "reconcilable": False, "parent": "9000"},
+]
+
+
+@router.post("/install-chart")
+def install_generic_chart(
+    company_id: int,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    """Install the generic chart of accounts for a company.
+    Skips any account codes that already exist for the company.
+    """
+    ensure_company_access(db, user, company_id)
+
+    existing_codes = {
+        code
+        for (code,) in db.query(Account.code)
+        .filter(Account.company_id == company_id)
+        .all()
+    }
+
+    # First pass: create accounts without parent links so we can resolve parent_id
+    code_to_id: dict[str, int] = {}
+    created = 0
+
+    for entry in GENERIC_CHART_OF_ACCOUNTS:
+        if entry["code"] in existing_codes:
+            existing_acct = (
+                db.query(Account)
+                .filter(Account.company_id == company_id, Account.code == entry["code"])
+                .first()
+            )
+            if existing_acct:
+                code_to_id[entry["code"]] = existing_acct.id
+            continue
+
+        acct = Account(
+            company_id=company_id,
+            code=entry["code"],
+            name=entry["name"],
+            account_type=entry["account_type"],
+            is_reconcilable=entry.get("reconcilable", False),
+            is_active=True,
+            currency_code="USD",
+        )
+        db.add(acct)
+        db.flush()
+        code_to_id[entry["code"]] = acct.id
+        created += 1
+
+    # Second pass: set parent_id links
+    for entry in GENERIC_CHART_OF_ACCOUNTS:
+        parent_code = entry.get("parent")
+        if not parent_code:
+            continue
+        acct_id = code_to_id.get(entry["code"])
+        parent_id = code_to_id.get(parent_code)
+        if acct_id and parent_id:
+            db.query(Account).filter(Account.id == acct_id).update(
+                {"parent_id": parent_id}
+            )
+
+    # Also seed default journals if none exist
+    journal_count = (
+        db.query(Journal)
+        .filter(Journal.company_id == company_id)
+        .count()
+    )
+    journals_created = 0
+    if journal_count == 0:
+        default_journals = [
+            {"name": "Sales Journal", "code": "SAL", "journal_type": "sale", "default_code": "4100"},
+            {"name": "Purchase Journal", "code": "PUR", "journal_type": "purchase", "default_code": "5400"},
+            {"name": "Bank Journal", "code": "BNK", "journal_type": "bank", "default_code": "1120"},
+            {"name": "Cash Journal", "code": "CSH", "journal_type": "cash", "default_code": "1110"},
+            {"name": "Miscellaneous Journal", "code": "MISC", "journal_type": "general", "default_code": None},
+        ]
+        for jd in default_journals:
+            default_acct_id = code_to_id.get(jd["default_code"]) if jd["default_code"] else None
+            journal = Journal(
+                company_id=company_id,
+                name=jd["name"],
+                code=jd["code"],
+                journal_type=jd["journal_type"],
+                default_account_id=default_acct_id,
+                currency_code="USD",
+                is_active=True,
+            )
+            db.add(journal)
+            journals_created += 1
+
+    db.commit()
+    return {
+        "ok": True,
+        "accounts_created": created,
+        "accounts_skipped": len(GENERIC_CHART_OF_ACCOUNTS) - created,
+        "journals_created": journals_created,
+    }
 
 
 # ─── Journals ─────────────────────────────────────────
@@ -343,3 +616,250 @@ def delete_budget(
     db.delete(budget)
     db.commit()
     return {"ok": True}
+
+
+# ─── Accounting Overview (Dashboard) ─────────────────
+@router.get("/overview")
+def accounting_overview(
+    company_id: int,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+    _=Depends(require_company_access),
+):
+    """Aggregated accounting overview for the company dashboard."""
+    now = datetime.utcnow()
+    year_start = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    # YTD Revenue
+    ytd_revenue = float(
+        db.query(func.coalesce(func.sum(Invoice.total_amount), 0))
+        .filter(
+            Invoice.company_id == company_id,
+            Invoice.status.in_(["posted", "paid", "partial"]),
+            Invoice.invoice_type == "invoice",
+            Invoice.invoice_date >= year_start,
+        )
+        .scalar() or 0
+    )
+
+    # YTD Expenses
+    ytd_expenses = float(
+        db.query(func.coalesce(func.sum(Expense.total_amount), 0))
+        .filter(
+            Expense.company_id == company_id,
+            Expense.status == "posted",
+            Expense.expense_date >= year_start,
+        )
+        .scalar() or 0
+    )
+
+    ytd_net_profit = ytd_revenue - ytd_expenses
+
+    # Outstanding receivables
+    outstanding_receivables = float(
+        db.query(func.coalesce(func.sum(Invoice.amount_due), 0))
+        .filter(
+            Invoice.company_id == company_id,
+            Invoice.status.in_(["posted", "partial"]),
+            Invoice.invoice_type == "invoice",
+        )
+        .scalar() or 0
+    )
+
+    # Overdue receivables
+    overdue_receivables = float(
+        db.query(func.coalesce(func.sum(Invoice.amount_due), 0))
+        .filter(
+            Invoice.company_id == company_id,
+            Invoice.status.in_(["posted", "partial"]),
+            Invoice.invoice_type == "invoice",
+            Invoice.due_date < now,
+        )
+        .scalar() or 0
+    )
+
+    # Total payables
+    total_payables = float(
+        db.query(func.coalesce(func.sum(PurchaseOrder.total_amount), 0))
+        .filter(
+            PurchaseOrder.company_id == company_id,
+            PurchaseOrder.status.in_(["confirmed", "received"]),
+        )
+        .scalar() or 0
+    )
+
+    # Cash balance (all payments in minus expenses)
+    cash_in = float(
+        db.query(func.coalesce(func.sum(Payment.amount), 0))
+        .filter(
+            Payment.company_id == company_id,
+            Payment.status.in_(["posted", "reconciled"]),
+        )
+        .scalar() or 0
+    )
+    cash_out = float(
+        db.query(func.coalesce(func.sum(Expense.total_amount), 0))
+        .filter(
+            Expense.company_id == company_id,
+            Expense.status == "posted",
+        )
+        .scalar() or 0
+    )
+    cash_balance = cash_in - cash_out
+
+    # Counts
+    invoice_count = (
+        db.query(func.count(Invoice.id))
+        .filter(
+            Invoice.company_id == company_id,
+            Invoice.status.in_(["posted", "paid", "partial"]),
+            Invoice.invoice_type == "invoice",
+            Invoice.invoice_date >= year_start,
+        )
+        .scalar() or 0
+    )
+
+    unpaid_invoice_count = (
+        db.query(func.count(Invoice.id))
+        .filter(
+            Invoice.company_id == company_id,
+            Invoice.status.in_(["posted", "partial"]),
+            Invoice.invoice_type == "invoice",
+            Invoice.amount_due > 0,
+        )
+        .scalar() or 0
+    )
+
+    expense_count = (
+        db.query(func.count(Expense.id))
+        .filter(
+            Expense.company_id == company_id,
+            Expense.status == "posted",
+            Expense.expense_date >= year_start,
+        )
+        .scalar() or 0
+    )
+
+    payment_count = (
+        db.query(func.count(Payment.id))
+        .filter(
+            Payment.company_id == company_id,
+            Payment.status.in_(["posted", "reconciled"]),
+            Payment.payment_date >= year_start,
+        )
+        .scalar() or 0
+    )
+
+    # Recent journal entries (last 10)
+    recent_entries = (
+        db.query(JournalEntry)
+        .filter(JournalEntry.company_id == company_id)
+        .order_by(JournalEntry.entry_date.desc())
+        .limit(10)
+        .all()
+    )
+    recent_journal_entries = []
+    for je in recent_entries:
+        journal = db.query(Journal).filter(Journal.id == je.journal_id).first()
+        total_debit = float(
+            db.query(func.coalesce(func.sum(JournalEntryLine.debit), 0))
+            .filter(JournalEntryLine.entry_id == je.id)
+            .scalar() or 0
+        )
+        recent_journal_entries.append({
+            "id": je.id,
+            "reference": je.reference,
+            "entry_date": je.entry_date.isoformat() if je.entry_date else "",
+            "journal_name": journal.name if journal else "—",
+            "total_debit": round(total_debit, 2),
+            "status": je.status,
+        })
+
+    # Monthly revenue vs expenses (last 6 months)
+    monthly_revenue = []
+    for i in range(5, -1, -1):
+        m = now.month - i
+        y = now.year
+        while m <= 0:
+            m += 12
+            y -= 1
+        m_start = datetime(y, m, 1)
+        if m == 12:
+            m_end = datetime(y + 1, 1, 1)
+        else:
+            m_end = datetime(y, m + 1, 1)
+
+        rev = float(
+            db.query(func.coalesce(func.sum(Invoice.total_amount), 0))
+            .filter(
+                Invoice.company_id == company_id,
+                Invoice.status.in_(["posted", "paid", "partial"]),
+                Invoice.invoice_type == "invoice",
+                Invoice.invoice_date >= m_start,
+                Invoice.invoice_date < m_end,
+            )
+            .scalar() or 0
+        )
+        exp = float(
+            db.query(func.coalesce(func.sum(Expense.total_amount), 0))
+            .filter(
+                Expense.company_id == company_id,
+                Expense.status == "posted",
+                Expense.expense_date >= m_start,
+                Expense.expense_date < m_end,
+            )
+            .scalar() or 0
+        )
+        monthly_revenue.append({
+            "month": m_start.strftime("%b"),
+            "revenue": round(rev, 2),
+            "expenses": round(exp, 2),
+        })
+
+    # Bank & Cash journals with balance
+    bank_journals_raw = (
+        db.query(Journal)
+        .filter(
+            Journal.company_id == company_id,
+            Journal.journal_type.in_(["bank", "cash"]),
+            Journal.is_active == True,
+        )
+        .all()
+    )
+    bank_journals = []
+    for j in bank_journals_raw:
+        balance = float(
+            db.query(
+                func.coalesce(func.sum(JournalEntryLine.debit - JournalEntryLine.credit), 0)
+            )
+            .join(JournalEntry, JournalEntry.id == JournalEntryLine.entry_id)
+            .filter(
+                JournalEntry.journal_id == j.id,
+                JournalEntry.status == "posted",
+            )
+            .scalar() or 0
+        )
+        bank_journals.append({
+            "id": j.id,
+            "name": j.name,
+            "code": j.code,
+            "balance": round(balance, 2),
+        })
+
+    return {
+        "year": now.year,
+        "ytd_revenue": round(ytd_revenue, 2),
+        "ytd_expenses": round(ytd_expenses, 2),
+        "ytd_net_profit": round(ytd_net_profit, 2),
+        "outstanding_receivables": round(outstanding_receivables, 2),
+        "overdue_receivables": round(overdue_receivables, 2),
+        "total_payables": round(total_payables, 2),
+        "cash_balance": round(cash_balance, 2),
+        "invoice_count": invoice_count,
+        "unpaid_invoice_count": unpaid_invoice_count,
+        "expense_count": expense_count,
+        "payment_count": payment_count,
+        "recent_journal_entries": recent_journal_entries,
+        "monthly_revenue": monthly_revenue,
+        "bank_journals": bank_journals,
+    }

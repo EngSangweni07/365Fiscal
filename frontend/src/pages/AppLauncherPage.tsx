@@ -267,6 +267,15 @@ const adminApps: AppItem[] = [
     glowColor: "rgba(20, 184, 166, 0.18)",
   },
   {
+    to: "/accounting",
+    key: "accounting",
+    label: "Accounting",
+    icon: Calculator,
+    color: "var(--white-500)",
+    background: "linear-gradient(145deg, #714b67 0%, #8e6d83 100%)",
+    glowColor: "rgba(113, 75, 103, 0.22)",
+  },
+  {
     to: "/expenses",
     key: "expenses",
     label: "Expenses",
@@ -385,6 +394,15 @@ const portalApps: AppItem[] = [
     color: "var(--white-500)",
     background: "linear-gradient(145deg, #58c8bc 0%, #37b9ab 100%)",
     glowColor: "rgba(20, 184, 166, 0.18)",
+  },
+  {
+    to: "/accounting",
+    key: "accounting",
+    label: "Accounting",
+    icon: Calculator,
+    color: "var(--white-500)",
+    background: "linear-gradient(145deg, #714b67 0%, #8e6d83 100%)",
+    glowColor: "rgba(113, 75, 103, 0.22)",
   },
   {
     to: "/expenses",

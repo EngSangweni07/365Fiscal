@@ -7,6 +7,7 @@ import {
   ChevronDown,
   Clock,
   DollarSign,
+  Download,
   FileText,
   Globe,
   Layers,
@@ -178,6 +179,7 @@ export default function AccountingConfigPage() {
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [installing, setInstalling] = useState(false);
 
   // Company selection
   useEffect(() => {
@@ -290,6 +292,29 @@ export default function AccountingConfigPage() {
       setCompanyId(null);
     } catch {
       // ignore
+    }
+  };
+
+  const handleInstallChart = async () => {
+    if (!companyId) return;
+    setInstalling(true);
+    setError(null);
+    try {
+      const res = await apiFetch<{ ok: boolean; accounts_created: number; journals_created: number }>(
+        `/accounting/install-chart?company_id=${companyId}`,
+        { method: "POST" },
+      );
+      // Refresh accounts list
+      apiFetch<Account[]>(`/accounting/accounts?company_id=${companyId}`)
+        .then(setAccounts)
+        .catch(() => setAccounts([]));
+      apiFetch<Journal[]>(`/accounting/journals?company_id=${companyId}`)
+        .then(setJournals)
+        .catch(() => setJournals([]));
+    } catch (err: any) {
+      setError(err?.detail || err?.message || "Failed to install chart of accounts");
+    } finally {
+      setInstalling(false);
     }
   };
 
@@ -850,15 +875,26 @@ export default function AccountingConfigPage() {
                 <Calculator size={20} style={{ marginRight: 8, verticalAlign: "text-bottom" }} />
                 {getSectionTitle()}s
               </h2>
-              <button
-                style={btnPrimary}
-                onClick={() => {
-                  resetForm();
-                  setShowForm(true);
-                }}
-              >
-                <Plus size={14} /> New
-              </button>
+              <div style={{ display: "flex", gap: 8 }}>
+                {activeSection === "chart_of_accounts" && (
+                  <button
+                    style={{ ...btnSecondary, background: "#f0fdf4", borderColor: "#86efac", color: "#166534" }}
+                    onClick={handleInstallChart}
+                    disabled={installing}
+                  >
+                    <Download size={14} /> {installing ? "Installing..." : "Install Generic Chart"}
+                  </button>
+                )}
+                <button
+                  style={btnPrimary}
+                  onClick={() => {
+                    resetForm();
+                    setShowForm(true);
+                  }}
+                >
+                  <Plus size={14} /> New
+                </button>
+              </div>
             </div>
 
             {/* Form */}

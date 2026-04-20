@@ -56,6 +56,9 @@ import CustomerDisplayPage from "./pages/CustomerDisplayPage";
 import DemoSignupPage from "./pages/DemoSignupPage";
 import DemoPaymentSuccessPage from "./pages/DemoPaymentSuccessPage";
 import LeadsPage from "./pages/LeadsPage";
+import AccountingPage from "./pages/AccountingPage";
+import AccountingReportsPage from "./pages/AccountingReportsPage";
+import AccountingConfigPage from "./pages/AccountingConfigPage";
 import { apiFetch } from "./api";
 import { useMe } from "./hooks/useMe";
 import BackIcon from "./assets/back.svg?react";
@@ -81,6 +84,7 @@ const adminNav = [
   { to: "/pos", label: "Point of Sale", icon: POSIcon },
   { to: "/payments", label: "Payments", icon: PaymentIcon },
   { to: "/expenses", label: "Expenses", icon: ExpenseIcon },
+  { to: "/accounting", label: "Accounting", icon: ReportsIcon },
   { to: "/reports", label: "Financial Reports", icon: ReportsIcon },
   { to: "/users-roles", label: "Users & Roles", icon: UsersIcon },
   { to: "/audit-logs", label: "Audit Logs", icon: AuditIcon },
@@ -100,6 +104,7 @@ const portalNav = [
   { to: "/inventory", label: "Inventory", icon: InventoryIcon },
   { to: "/my-devices", label: "Devices", icon: DeviceIcon },
   { to: "/expenses", label: "Expenses", icon: ExpenseIcon },
+  { to: "/accounting", label: "Accounting", icon: ReportsIcon },
   { to: "/reports", label: "Financial Reports", icon: ReportsIcon },
   { to: "/settings", label: "Settings", icon: SettingsIcon },
 ];
@@ -115,6 +120,9 @@ const PORTAL_NAV_APP_KEYS: Record<string, string> = {
   "/inventory": "inventory",
   "/my-devices": "devices",
   "/expenses": "expenses",
+  "/accounting": "accounting",
+  "/accounting/reports": "accounting",
+  "/accounting/configuration": "accounting",
   "/reports": "reports",
   "/settings": "settings",
 };
@@ -129,6 +137,7 @@ const PORTAL_APP_ROUTES: Record<string, string> = {
   inventory: "/inventory",
   devices: "/my-devices",
   expenses: "/expenses",
+  accounting: "/accounting",
   reports: "/reports",
   settings: "/settings",
 };
@@ -745,6 +754,9 @@ function AppContent() {
               <Route path="/inventory" element={<InventoryPage />} />
               <Route path="/expenses" element={<ExpensesPage />} />
               <Route path="/reports" element={<ReportsPage />} />
+              <Route path="/accounting" element={<AccountingPage />} />
+              <Route path="/accounting/reports" element={<AccountingReportsPage />} />
+              <Route path="/accounting/configuration" element={<AccountingConfigPage />} />
               <Route
                 path="/settings"
                 element={
