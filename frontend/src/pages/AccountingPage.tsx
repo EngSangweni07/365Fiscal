@@ -204,11 +204,11 @@ export default function AccountingPage() {
   };
 
   const sidebarItems: SidebarMenuItem[] = [
-    { key: "overview", label: "OVERVIEW", icon: Layers, color: "#714b67" },
-    { key: "invoices", label: "INVOICES", icon: FileText, color: "#714b67" },
-    { key: "payments", label: "PAYMENTS", icon: CreditCard, color: "#714b67" },
-    { key: "reports", label: "REPORTS", icon: BarChart3, color: "#714b67" },
-    { key: "configuration", label: "CONFIGURATION", icon: Settings, color: "#714b67" },
+    { key: "overview", label: "OVERVIEW", icon: Layers, color: "#4a7de6" },
+    { key: "invoices", label: "INVOICES", icon: FileText, color: "#4a7de6" },
+    { key: "payments", label: "PAYMENTS", icon: CreditCard, color: "#4a7de6" },
+    { key: "reports", label: "REPORTS", icon: BarChart3, color: "#4a7de6" },
+    { key: "configuration", label: "CONFIGURATION", icon: Settings, color: "#4a7de6" },
   ];
 
   /* ── Company Selector ── */
@@ -371,7 +371,7 @@ export default function AccountingPage() {
                       width: 40,
                       height: 40,
                       borderRadius: 10,
-                      background: "linear-gradient(135deg, #714b67, #8e6d83)",
+                      background: "linear-gradient(135deg, #4a7de6, #5b8def)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -518,7 +518,7 @@ export default function AccountingPage() {
               fontSize: 13,
               fontWeight: 600,
               color: "#fff",
-              background: "var(--primary, #714b67)",
+              background: "var(--primary, #4a7de6)",
               border: "none",
               borderRadius: 6,
               cursor: "pointer",

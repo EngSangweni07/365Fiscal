@@ -131,7 +131,7 @@ const btnPrimary: React.CSSProperties = {
   fontSize: 13,
   fontWeight: 600,
   color: "#fff",
-  background: "var(--primary, #714b67)",
+  background: "var(--primary, #4a7de6)",
   border: "none",
   borderRadius: 6,
   cursor: "pointer",
@@ -229,11 +229,11 @@ export default function AccountingConfigPage() {
 
   // Sidebar
   const sidebarItems: SidebarMenuItem[] = [
-    { key: "chart_of_accounts", label: "CHART OF ACCOUNTS", icon: BookOpen, color: "#714b67" },
-    { key: "journals", label: "JOURNALS", icon: FileText, color: "#714b67" },
-    { key: "payment_terms", label: "PAYMENT TERMS", icon: Clock, color: "#714b67" },
-    { key: "fiscal_positions", label: "FISCAL POSITIONS", icon: Globe, color: "#714b67" },
-    { key: "budgets", label: "FINANCIAL BUDGETS", icon: DollarSign, color: "#714b67" },
+    { key: "chart_of_accounts", label: "CHART OF ACCOUNTS", icon: BookOpen, color: "#4a7de6" },
+    { key: "journals", label: "JOURNALS", icon: FileText, color: "#4a7de6" },
+    { key: "payment_terms", label: "PAYMENT TERMS", icon: Clock, color: "#4a7de6" },
+    { key: "fiscal_positions", label: "FISCAL POSITIONS", icon: Globe, color: "#4a7de6" },
+    { key: "budgets", label: "FINANCIAL BUDGETS", icon: DollarSign, color: "#4a7de6" },
   ];
 
   // CRUD helpers
@@ -849,9 +849,9 @@ export default function AccountingConfigPage() {
                     borderRadius: 6,
                     border:
                       companyId === c.id
-                        ? "2px solid var(--primary, #714b67)"
+                        ? "2px solid var(--primary, #4a7de6)"
                         : "1px solid var(--border, #e5e7eb)",
-                    background: companyId === c.id ? "rgba(113,75,103,0.08)" : "#fff",
+                    background: companyId === c.id ? "rgba(74,125,230,0.08)" : "#fff",
                     cursor: "pointer",
                   }}
                 >

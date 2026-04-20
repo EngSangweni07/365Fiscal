@@ -293,15 +293,15 @@ export default function AccountingReportsPage() {
 
   // Sidebar items (matching Odoo menus)
   const sidebarItems: SidebarMenuItem[] = [
-    { key: "balance_sheet", label: "BALANCE SHEET", icon: Layers, color: "#714b67" },
-    { key: "profit_loss", label: "PROFIT AND LOSS", icon: TrendingUp, color: "#714b67" },
-    { key: "cash_flow", label: "CASH FLOW", icon: DollarSign, color: "#714b67" },
-    { key: "executive_summary", label: "EXECUTIVE SUMMARY", icon: PieChart, color: "#714b67" },
-    { key: "tax_return", label: "TAX RETURN", icon: Calculator, color: "#714b67" },
-    { key: "trial_balance", label: "TRIAL BALANCE", icon: BookOpen, color: "#714b67" },
-    { key: "general_ledger", label: "GENERAL LEDGER", icon: FileText, color: "#714b67" },
-    { key: "aged_receivable", label: "AGED RECEIVABLE", icon: Users, color: "#714b67" },
-    { key: "aged_payable", label: "AGED PAYABLE", icon: CreditCard, color: "#714b67" },
+    { key: "balance_sheet", label: "BALANCE SHEET", icon: Layers, color: "#4a7de6" },
+    { key: "profit_loss", label: "PROFIT AND LOSS", icon: TrendingUp, color: "#4a7de6" },
+    { key: "cash_flow", label: "CASH FLOW", icon: DollarSign, color: "#4a7de6" },
+    { key: "executive_summary", label: "EXECUTIVE SUMMARY", icon: PieChart, color: "#4a7de6" },
+    { key: "tax_return", label: "TAX RETURN", icon: Calculator, color: "#4a7de6" },
+    { key: "trial_balance", label: "TRIAL BALANCE", icon: BookOpen, color: "#4a7de6" },
+    { key: "general_ledger", label: "GENERAL LEDGER", icon: FileText, color: "#4a7de6" },
+    { key: "aged_receivable", label: "AGED RECEIVABLE", icon: Users, color: "#4a7de6" },
+    { key: "aged_payable", label: "AGED PAYABLE", icon: CreditCard, color: "#4a7de6" },
   ];
 
   const needsDateRange = ["profit_loss", "cash_flow", "general_ledger", "tax_return"].includes(activeReport);
@@ -714,7 +714,7 @@ export default function AccountingReportsPage() {
     if (loading) {
       return (
         <div style={{ ...card, textAlign: "center", padding: "3rem", color: "#9ca3af" }}>
-          <div className="spinner" style={{ width: 32, height: 32, border: "3px solid #e5e7eb", borderTopColor: "#714b67", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 12px" }} />
+          <div className="spinner" style={{ width: 32, height: 32, border: "3px solid #e5e7eb", borderTopColor: "#4a7de6", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 12px" }} />
           Loading report...
         </div>
       );
@@ -783,8 +783,8 @@ export default function AccountingReportsPage() {
                     fontSize: 12,
                     fontWeight: companyId === c.id ? 700 : 500,
                     borderRadius: 6,
-                    border: companyId === c.id ? "2px solid var(--primary, #714b67)" : "1px solid var(--border, #e5e7eb)",
-                    background: companyId === c.id ? "rgba(113,75,103,0.08)" : "#fff",
+                    border: companyId === c.id ? "2px solid var(--primary, #4a7de6)" : "1px solid var(--border, #e5e7eb)",
+                    background: companyId === c.id ? "rgba(74,125,230,0.08)" : "#fff",
                     cursor: "pointer",
                   }}
                 >
@@ -834,7 +834,7 @@ export default function AccountingReportsPage() {
                     fontSize: 13,
                     fontWeight: 600,
                     color: "#fff",
-                    background: "var(--primary, #714b67)",
+                    background: "var(--primary, #4a7de6)",
                     border: "none",
                     borderRadius: 6,
                     cursor: "pointer",
