@@ -4,6 +4,7 @@ import { NavLink } from "react-router-dom";
 import type { LucideIcon } from "lucide-react";
 
 import {
+  BookOpen,
   BoomBox,
   Boxes,
   BriefcaseBusiness,
@@ -125,6 +126,7 @@ const SettingsIcon = Settings;
 const CompanyIcon = Building2;
 const SubscriptionIcon = CreditCard;
 const POSLauncherIcon = Calculator;
+const AccountingIcon = BookOpen;
 const LeadsIcon = BriefcaseBusiness;
 const SupportIcon = Headset;
 const SUPPORT_EMAIL = "courageg@geenet.co.zw";
@@ -270,7 +272,7 @@ const adminApps: AppItem[] = [
     to: "/accounting",
     key: "accounting",
     label: "Accounting",
-    icon: Calculator,
+    icon: AccountingIcon,
     color: "var(--white-500)",
     background: "linear-gradient(145deg, #714b67 0%, #8e6d83 100%)",
     glowColor: "rgba(113, 75, 103, 0.22)",
@@ -399,7 +401,7 @@ const portalApps: AppItem[] = [
     to: "/accounting",
     key: "accounting",
     label: "Accounting",
-    icon: Calculator,
+    icon: AccountingIcon,
     color: "var(--white-500)",
     background: "linear-gradient(145deg, #714b67 0%, #8e6d83 100%)",
     glowColor: "rgba(113, 75, 103, 0.22)",

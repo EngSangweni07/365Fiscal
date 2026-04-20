@@ -208,6 +208,7 @@ const PORTAL_APP_OPTIONS = [
   { key: "contacts", label: "Contacts" },
   { key: "quotations", label: "Quotations" },
   { key: "inventory", label: "Inventory" },
+  { key: "accounting", label: "Accounting" },
   { key: "pos", label: "Point of Sale" },
   { key: "devices", label: "Devices" },
   { key: "reports", label: "Financial Reports" },
