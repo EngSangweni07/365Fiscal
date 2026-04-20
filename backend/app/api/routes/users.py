@@ -77,17 +77,13 @@ def read_me(user: User = Depends(get_current_user), db: Session = Depends(get_db
                 "phone": c.phone,
                 "address": c.address,
                 "portal_apps": parse_portal_apps(c.portal_apps),
-                "user_portal_apps": (
-                    parse_portal_apps(link_by_company[c.id].portal_apps)
-                    if link_by_company.get(c.id) and link_by_company[c.id].portal_apps
-                    else [
-                        app
-                        for app in parse_portal_apps(c.portal_apps)
-                        if link_by_company.get(c.id) is None
-                        or is_portal_super_user_link(db, c.id, link_by_company.get(c.id))
-                        or app != "settings"
-                    ]
-                ),
+                "user_portal_apps": [
+                    app
+                    for app in parse_portal_apps(c.portal_apps)
+                    if link_by_company.get(c.id) is None
+                    or is_portal_super_user_link(db, c.id, link_by_company.get(c.id))
+                    or app != "settings"
+                ],
                 "is_portal_super_user": is_portal_super_user_link(
                     db, c.id, link_by_company.get(c.id)
                 ),

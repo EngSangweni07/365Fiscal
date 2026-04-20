@@ -207,6 +207,11 @@ def update_company(company_id: int, payload: CompanyUpdate, db: Session = Depend
             company.portal_apps = serialize_portal_apps(value)
         else:
             setattr(company, field, value)
+    # Sync portal_apps to all associated CompanyUser links
+    if "portal_apps" in payload.model_dump(exclude_unset=True):
+        db.query(CompanyUser).filter(
+            CompanyUser.company_id == company_id,
+        ).update({"portal_apps": company.portal_apps})
     db.commit()
     db.refresh(company)
     return serialize_company(company)
