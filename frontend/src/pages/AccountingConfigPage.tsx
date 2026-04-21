@@ -56,10 +56,60 @@ type PaymentTermItem = {
   is_active: boolean;
 };
 
+type FiscalPosition = {
+  id: number;
+  company_id: number;
+  name: string;
+  description: string;
+  auto_apply: boolean;
+  is_active: boolean;
+};
+
+type Budget = {
+  id: number;
+  company_id: number;
+  name: string;
+  date_from: string;
+  date_to: string;
+  status: string;
+  notes: string;
+  lines: { id: number; account_id: number | null; planned_amount: number; practical_amount: number }[];
+};
+
+type ProductMapping = {
+  id: number;
+  name: string;
+  reference: string;
+  income_account_id: number | null;
+  expense_account_id: number | null;
+  inventory_account_id: number | null;
+  cogs_account_id: number | null;
+};
+
+type CategoryMapping = {
+  id: number;
+  name: string;
+  income_account_id: number | null;
+  expense_account_id: number | null;
+  inventory_account_id: number | null;
+  cogs_account_id: number | null;
+};
+
+type ContactMapping = {
+  id: number;
+  name: string;
+  reference: string;
+  receivable_account_id: number | null;
+  payable_account_id: number | null;
+};
+
 type SectionKey =
   | "chart_of_accounts"
   | "journals"
-  | "payment_terms";
+  | "payment_terms"
+  | "fiscal_positions"
+  | "budgets"
+  | "account_mappings";
 
 const ACCOUNT_TYPES = [
   { value: "asset", label: "Asset" },
@@ -144,6 +194,11 @@ export default function AccountingConfigPage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [journals, setJournals] = useState<Journal[]>([]);
   const [paymentTerms, setPaymentTerms] = useState<PaymentTermItem[]>([]);
+  const [fiscalPositions, setFiscalPositions] = useState<FiscalPosition[]>([]);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [productMappings, setProductMappings] = useState<ProductMapping[]>([]);
+  const [categoryMappings, setCategoryMappings] = useState<CategoryMapping[]>([]);
+  const [contactMappings, setContactMappings] = useState<ContactMapping[]>([]);
 
   // Forms
   const [showForm, setShowForm] = useState(false);
@@ -187,6 +242,42 @@ export default function AccountingConfigPage() {
         apiFetch<PaymentTermItem[]>(`/accounting/payment-terms?company_id=${companyId}`)
           .then(setPaymentTerms)
           .catch(() => setPaymentTerms([])),
+      fiscal_positions: () =>
+        apiFetch<FiscalPosition[]>(`/accounting/fiscal-positions?company_id=${companyId}`)
+          .then(setFiscalPositions)
+          .catch(() => setFiscalPositions([])),
+      budgets: () =>
+        Promise.all([
+          apiFetch<Budget[]>(`/accounting/budgets?company_id=${companyId}`),
+          apiFetch<Account[]>(`/accounting/accounts?company_id=${companyId}`),
+        ])
+          .then(([budgetList, accountList]) => {
+            setBudgets(budgetList);
+            setAccounts(accountList.filter((a) => a.is_active));
+          })
+          .catch(() => {
+            setBudgets([]);
+            setAccounts([]);
+          }),
+      account_mappings: () =>
+        Promise.all([
+          apiFetch<Account[]>(`/accounting/accounts?company_id=${companyId}`),
+          apiFetch<ProductMapping[]>(`/products?company_id=${companyId}`),
+          apiFetch<CategoryMapping[]>(`/categories?company_id=${companyId}`),
+          apiFetch<ContactMapping[]>(`/contacts?company_id=${companyId}`),
+        ])
+          .then(([accountList, products, categories, contacts]) => {
+            setAccounts(accountList.filter((a) => a.is_active));
+            setProductMappings(products);
+            setCategoryMappings(categories);
+            setContactMappings(contacts);
+          })
+          .catch(() => {
+            setAccounts([]);
+            setProductMappings([]);
+            setCategoryMappings([]);
+            setContactMappings([]);
+          }),
     };
     fetchMap[activeSection]();
   }, [companyId, activeSection]);
@@ -196,6 +287,9 @@ export default function AccountingConfigPage() {
     { key: "chart_of_accounts", label: "CHART OF ACCOUNTS", icon: BookOpen, color: "#4a7de6" },
     { key: "journals", label: "JOURNALS", icon: FileText, color: "#4a7de6" },
     { key: "payment_terms", label: "PAYMENT TERMS", icon: Clock, color: "#4a7de6" },
+    { key: "fiscal_positions", label: "FISCAL POSITIONS", icon: Layers, color: "#4a7de6" },
+    { key: "budgets", label: "BUDGETS", icon: Calculator, color: "#4a7de6" },
+    { key: "account_mappings", label: "ACCOUNT MAPPINGS", icon: Settings, color: "#4a7de6" },
   ];
 
   // CRUD helpers
@@ -215,17 +309,32 @@ export default function AccountingConfigPage() {
         chart_of_accounts: "/accounting/accounts",
         journals: "/accounting/journals",
         payment_terms: "/accounting/payment-terms",
+        fiscal_positions: "/accounting/fiscal-positions",
+        budgets: "/accounting/budgets",
+        account_mappings: "",
       };
       const endpoint = endpointMap[activeSection];
+      const payloadData =
+        activeSection === "budgets"
+          ? {
+              ...formData,
+              lines: (formData.lines || [])
+                .filter((line: any) => line.account_id)
+                .map((line: any) => ({
+                  account_id: Number(line.account_id),
+                  planned_amount: Number(line.planned_amount || 0),
+                })),
+            }
+          : formData;
       if (editingId) {
         await apiFetch(`${endpoint}/${editingId}`, {
           method: "PATCH",
-          body: JSON.stringify(formData),
+          body: JSON.stringify(payloadData),
         });
       } else {
         await apiFetch(endpoint, {
           method: "POST",
-          body: JSON.stringify({ ...formData, company_id: companyId }),
+          body: JSON.stringify({ ...payloadData, company_id: companyId }),
         });
       }
       resetForm();
@@ -288,6 +397,7 @@ export default function AccountingConfigPage() {
   /* ── Form Rendering ── */
   const renderForm = () => {
     if (!showForm) return null;
+    if (activeSection === "budgets") return renderBudgetForm();
     const fields = getFormFields();
     return (
       <div style={card}>
@@ -360,6 +470,9 @@ export default function AccountingConfigPage() {
       chart_of_accounts: "Account",
       journals: "Journal",
       payment_terms: "Payment Term",
+      fiscal_positions: "Fiscal Position",
+      budgets: "Budget",
+      account_mappings: "Account Mapping",
     };
     return m[activeSection];
   };
@@ -398,6 +511,21 @@ export default function AccountingConfigPage() {
           { key: "discount_percentage", label: "Discount (%)", type: "number" },
           { key: "discount_days", label: "Discount Days", type: "number" },
         ];
+      case "fiscal_positions":
+        return [
+          { key: "name", label: "Name", type: "text" },
+          { key: "description", label: "Description", type: "text", fullWidth: true },
+          { key: "auto_apply", label: "Auto Apply", type: "checkbox" },
+        ];
+      case "budgets":
+        return [
+          { key: "name", label: "Name", type: "text" },
+          { key: "date_from", label: "Date From", type: "date" },
+          { key: "date_to", label: "Date To", type: "date" },
+          { key: "notes", label: "Notes", type: "text", fullWidth: true },
+        ];
+      case "account_mappings":
+        return [];
       default:
         return [];
     }
@@ -412,10 +540,306 @@ export default function AccountingConfigPage() {
         return renderJournalsTable();
       case "payment_terms":
         return renderPaymentTermsTable();
+      case "fiscal_positions":
+        return renderFiscalPositionsTable();
+      case "budgets":
+        return renderBudgetsTable();
+      case "account_mappings":
+        return renderAccountMappings();
       default:
         return null;
     }
   };
+
+  const budgetLines = (formData.lines || [
+    { account_id: "", planned_amount: 0 },
+  ]) as { account_id: number | ""; planned_amount: number; practical_amount?: number }[];
+
+  const renderBudgetForm = () => (
+    <div style={card}>
+      <h4 style={{ margin: "0 0 12px", fontSize: 14, fontWeight: 600 }}>
+        {editingId ? "Edit" : "New"} Budget
+      </h4>
+      {error && (
+        <div style={{ color: "#ef4444", fontSize: 13, marginBottom: 10 }}>{error}</div>
+      )}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+        <div>
+          <div style={labelStyle}>Name</div>
+          <input
+            type="text"
+            style={inputStyle}
+            value={formData.name ?? ""}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          />
+        </div>
+        <div>
+          <div style={labelStyle}>Date From</div>
+          <input
+            type="datetime-local"
+            style={inputStyle}
+            value={formData.date_from ?? ""}
+            onChange={(e) => setFormData({ ...formData, date_from: e.target.value })}
+          />
+        </div>
+        <div>
+          <div style={labelStyle}>Date To</div>
+          <input
+            type="datetime-local"
+            style={inputStyle}
+            value={formData.date_to ?? ""}
+            onChange={(e) => setFormData({ ...formData, date_to: e.target.value })}
+          />
+        </div>
+      </div>
+
+      <div style={{ marginTop: 14 }}>
+        <div style={labelStyle}>Budget Lines</div>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th style={thStyle}>Account</th>
+              <th style={{ ...thStyle, textAlign: "right" }}>Planned</th>
+              <th style={{ ...thStyle, textAlign: "right" }}>Actual</th>
+              <th style={{ ...thStyle, textAlign: "right" }}>Variance</th>
+              <th style={thStyle}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {budgetLines.map((line, index) => {
+              const planned = Number(line.planned_amount || 0);
+              const actual = Number(line.practical_amount || 0);
+              return (
+                <tr key={index}>
+                  <td style={tdStyle}>
+                    <select
+                      style={selectStyle}
+                      value={line.account_id ?? ""}
+                      onChange={(e) => {
+                        const lines = [...budgetLines];
+                        lines[index] = { ...line, account_id: Number(e.target.value) || "" };
+                        setFormData({ ...formData, lines });
+                      }}
+                    >
+                      <option value="">Select account...</option>
+                      {accounts.map((a) => (
+                        <option key={a.id} value={a.id}>{a.code} - {a.name}</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td style={tdStyle}>
+                    <input
+                      type="number"
+                      style={{ ...inputStyle, textAlign: "right" }}
+                      value={line.planned_amount ?? 0}
+                      onChange={(e) => {
+                        const lines = [...budgetLines];
+                        lines[index] = { ...line, planned_amount: Number(e.target.value || 0) };
+                        setFormData({ ...formData, lines });
+                      }}
+                    />
+                  </td>
+                  <td style={{ ...tdStyle, textAlign: "right" }}>{actual.toFixed(2)}</td>
+                  <td style={{ ...tdStyle, textAlign: "right", color: planned - actual >= 0 ? "#059669" : "#dc2626" }}>
+                    {(planned - actual).toFixed(2)}
+                  </td>
+                  <td style={tdStyle}>
+                    <button
+                      style={{ ...btnSecondary, padding: "4px 8px", fontSize: 11, color: "#ef4444" }}
+                      onClick={() => setFormData({ ...formData, lines: budgetLines.filter((_, i) => i !== index) })}
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        <button
+          style={{ ...btnSecondary, marginTop: 8 }}
+          onClick={() => setFormData({
+            ...formData,
+            lines: [...budgetLines, { account_id: "", planned_amount: 0 }],
+          })}
+        >
+          <Plus size={14} /> Add Line
+        </button>
+      </div>
+
+      <div style={{ marginTop: 12 }}>
+        <div style={labelStyle}>Notes</div>
+        <input
+          type="text"
+          style={inputStyle}
+          value={formData.notes ?? ""}
+          onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+        />
+      </div>
+
+      <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+        <button style={btnPrimary} onClick={handleSave} disabled={saving}>
+          {saving ? "Saving..." : "Save"}
+        </button>
+        <button style={btnSecondary} onClick={resetForm}>
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+
+  const accountSelect = (
+    value: number | null,
+    onChange: (next: number | null) => void,
+    type?: string,
+  ) => (
+    <select
+      style={selectStyle}
+      value={value ?? ""}
+      onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
+    >
+      <option value="">Generic default</option>
+      {accounts
+        .filter((a) => !type || a.account_type === type)
+        .map((a) => (
+          <option key={a.id} value={a.id}>{a.code} - {a.name}</option>
+        ))}
+    </select>
+  );
+
+  const saveMapping = async (kind: "product" | "category" | "contact", item: any) => {
+    const endpoint =
+      kind === "product"
+        ? `/products/${item.id}`
+        : kind === "category"
+        ? `/categories/${item.id}`
+        : `/contacts/${item.id}`;
+    const fields =
+      kind === "contact"
+        ? {
+            receivable_account_id: item.receivable_account_id,
+            payable_account_id: item.payable_account_id,
+          }
+        : {
+            income_account_id: item.income_account_id,
+            expense_account_id: item.expense_account_id,
+            inventory_account_id: item.inventory_account_id,
+            cogs_account_id: item.cogs_account_id,
+          };
+    await apiFetch(endpoint, { method: "PATCH", body: JSON.stringify(fields) });
+  };
+
+  const renderAccountMappings = () => (
+    <div style={{ display: "grid", gap: 16 }}>
+      <div>
+        <h3 style={{ margin: "0 0 10px", fontSize: 15 }}>Products</h3>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th style={thStyle}>Product</th>
+              <th style={thStyle}>Income</th>
+              <th style={thStyle}>Expense</th>
+              <th style={thStyle}>Inventory</th>
+              <th style={thStyle}>COGS</th>
+              <th style={thStyle}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {productMappings.map((p, index) => (
+              <tr key={p.id}>
+                <td style={{ ...tdStyle, fontWeight: 600 }}>{p.reference ? `${p.reference} - ${p.name}` : p.name}</td>
+                {(["income_account_id", "expense_account_id", "inventory_account_id", "cogs_account_id"] as const).map((field) => (
+                  <td style={tdStyle} key={field}>
+                    {accountSelect(p[field], (next) => {
+                      const rows = [...productMappings];
+                      rows[index] = { ...p, [field]: next };
+                      setProductMappings(rows);
+                    })}
+                  </td>
+                ))}
+                <td style={tdStyle}>
+                  <button style={{ ...btnSecondary, padding: "4px 8px", fontSize: 11 }} onClick={() => saveMapping("product", p)}>Save</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div>
+        <h3 style={{ margin: "0 0 10px", fontSize: 15 }}>Product Categories</h3>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th style={thStyle}>Category</th>
+              <th style={thStyle}>Income</th>
+              <th style={thStyle}>Expense</th>
+              <th style={thStyle}>Inventory</th>
+              <th style={thStyle}>COGS</th>
+              <th style={thStyle}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {categoryMappings.map((c, index) => (
+              <tr key={c.id}>
+                <td style={{ ...tdStyle, fontWeight: 600 }}>{c.name}</td>
+                {(["income_account_id", "expense_account_id", "inventory_account_id", "cogs_account_id"] as const).map((field) => (
+                  <td style={tdStyle} key={field}>
+                    {accountSelect(c[field], (next) => {
+                      const rows = [...categoryMappings];
+                      rows[index] = { ...c, [field]: next };
+                      setCategoryMappings(rows);
+                    })}
+                  </td>
+                ))}
+                <td style={tdStyle}>
+                  <button style={{ ...btnSecondary, padding: "4px 8px", fontSize: 11 }} onClick={() => saveMapping("category", c)}>Save</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div>
+        <h3 style={{ margin: "0 0 10px", fontSize: 15 }}>Customers and Suppliers</h3>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th style={thStyle}>Contact</th>
+              <th style={thStyle}>Receivable</th>
+              <th style={thStyle}>Payable</th>
+              <th style={thStyle}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {contactMappings.map((c, index) => (
+              <tr key={c.id}>
+                <td style={{ ...tdStyle, fontWeight: 600 }}>{c.reference ? `${c.reference} - ${c.name}` : c.name}</td>
+                <td style={tdStyle}>
+                  {accountSelect(c.receivable_account_id, (next) => {
+                    const rows = [...contactMappings];
+                    rows[index] = { ...c, receivable_account_id: next };
+                    setContactMappings(rows);
+                  }, "asset")}
+                </td>
+                <td style={tdStyle}>
+                  {accountSelect(c.payable_account_id, (next) => {
+                    const rows = [...contactMappings];
+                    rows[index] = { ...c, payable_account_id: next };
+                    setContactMappings(rows);
+                  }, "liability")}
+                </td>
+                <td style={tdStyle}>
+                  <button style={{ ...btnSecondary, padding: "4px 8px", fontSize: 11 }} onClick={() => saveMapping("contact", c)}>Save</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
 
   const renderAccountsTable = () => (
     <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -626,6 +1050,120 @@ export default function AccountingConfigPage() {
     </table>
   );
 
+  const renderFiscalPositionsTable = () => (
+    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <thead>
+        <tr>
+          <th style={thStyle}>Name</th>
+          <th style={thStyle}>Description</th>
+          <th style={thStyle}>Auto Apply</th>
+          <th style={thStyle}>Active</th>
+          <th style={thStyle}>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {fiscalPositions.length === 0 && (
+          <tr>
+            <td colSpan={5} style={{ ...tdStyle, textAlign: "center", color: "#9ca3af" }}>
+              No fiscal positions yet. Click "New" to create one.
+            </td>
+          </tr>
+        )}
+        {fiscalPositions.map((fp) => (
+          <tr key={fp.id}>
+            <td style={{ ...tdStyle, fontWeight: 600 }}>{fp.name}</td>
+            <td style={tdStyle}>{fp.description || "—"}</td>
+            <td style={tdStyle}>{fp.auto_apply ? "Yes" : "No"}</td>
+            <td style={tdStyle}>{fp.is_active ? "Yes" : "No"}</td>
+            <td style={tdStyle}>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button
+                  style={{ ...btnSecondary, padding: "4px 8px", fontSize: 11 }}
+                  onClick={() => handleEdit(fp)}
+                >
+                  <PencilLine size={12} /> Edit
+                </button>
+                <button
+                  style={{ ...btnSecondary, padding: "4px 8px", fontSize: 11, color: "#ef4444" }}
+                  onClick={() => handleDelete("/accounting/fiscal-positions", fp.id)}
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+
+  const renderBudgetsTable = () => (
+    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <thead>
+        <tr>
+          <th style={thStyle}>Name</th>
+          <th style={thStyle}>Period</th>
+          <th style={{ ...thStyle, textAlign: "right" }}>Planned</th>
+          <th style={{ ...thStyle, textAlign: "right" }}>Actual</th>
+          <th style={{ ...thStyle, textAlign: "right" }}>Variance</th>
+          <th style={thStyle}>Status</th>
+          <th style={thStyle}>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {budgets.length === 0 && (
+          <tr>
+            <td colSpan={7} style={{ ...tdStyle, textAlign: "center", color: "#9ca3af" }}>
+              No budgets yet. Click "New" to create one.
+            </td>
+          </tr>
+        )}
+        {budgets.map((b) => {
+          const planned = (b.lines || []).reduce((sum, line) => sum + Number(line.planned_amount || 0), 0);
+          const actual = (b.lines || []).reduce((sum, line) => sum + Number(line.practical_amount || 0), 0);
+          const variance = planned - actual;
+          return (
+            <tr key={b.id}>
+              <td style={{ ...tdStyle, fontWeight: 600 }}>{b.name}</td>
+              <td style={tdStyle}>
+                {new Date(b.date_from).toLocaleDateString()} - {new Date(b.date_to).toLocaleDateString()}
+              </td>
+              <td style={{ ...tdStyle, textAlign: "right" }}>{planned.toFixed(2)}</td>
+              <td style={{ ...tdStyle, textAlign: "right" }}>{actual.toFixed(2)}</td>
+              <td style={{ ...tdStyle, textAlign: "right", color: variance >= 0 ? "#059669" : "#dc2626" }}>{variance.toFixed(2)}</td>
+              <td style={tdStyle}>{b.status}</td>
+              <td style={tdStyle}>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button
+                    style={{ ...btnSecondary, padding: "4px 8px", fontSize: 11 }}
+                    onClick={() => handleEdit({
+                      ...b,
+                      date_from: b.date_from?.slice(0, 16),
+                      date_to: b.date_to?.slice(0, 16),
+                      lines: (b.lines || []).map((line) => ({
+                        account_id: line.account_id || "",
+                        planned_amount: line.planned_amount,
+                        practical_amount: line.practical_amount,
+                      })),
+                    })}
+                  >
+                    <PencilLine size={12} /> Edit
+                  </button>
+                  <button
+                    style={{ ...btnSecondary, padding: "4px 8px", fontSize: 11, color: "#ef4444" }}
+                    onClick={() => handleDelete("/accounting/budgets", b.id)}
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+
   /* ── Render ── */
   return (
     <div style={{ display: "flex", height: "100%", overflow: "hidden" }}>
@@ -717,15 +1255,17 @@ export default function AccountingConfigPage() {
                     <Download size={14} /> {installing ? "Installing..." : "Install Generic Chart"}
                   </button>
                 )}
-                <button
-                  style={btnPrimary}
-                  onClick={() => {
-                    resetForm();
-                    setShowForm(true);
-                  }}
-                >
-                  <Plus size={14} /> New
-                </button>
+                {activeSection !== "account_mappings" && (
+                  <button
+                    style={btnPrimary}
+                    onClick={() => {
+                      resetForm();
+                      setShowForm(true);
+                    }}
+                  >
+                    <Plus size={14} /> New
+                  </button>
+                )}
               </div>
             </div>
 

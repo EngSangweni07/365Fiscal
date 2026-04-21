@@ -17,6 +17,7 @@ from app.models.stock_quant import StockQuant
 from app.models.company_settings import CompanySettings
 from app.models.audit_log import AuditAction, ResourceType
 from app.schemas.invoice import InvoiceCreate, InvoiceRead, InvoiceUpdate
+from app.services.accounting import post_invoice_entry, post_payment_entry, post_stock_move_entry
 from app.services.fdms import submit_invoice
 
 router = APIRouter(prefix="/invoices", tags=["invoices"])
@@ -136,11 +137,16 @@ def process_invoice_stock(invoice: Invoice, db: Session, reverse: bool = False):
             product_id=line.product_id,
             location_id=location.id,
             quantity=quantity,
+            unit_cost=product.purchase_cost or product.sales_cost or 0,
+            total_cost=abs(quantity) * (product.purchase_cost or product.sales_cost or 0),
             reference=f"INV-{invoice.reference}",
             move_type="out" if quantity > 0 else "in",
             state="done",
+            done_date=datetime.utcnow(),
         )
         db.add(move)
+        db.flush()
+        post_stock_move_entry(db, move)
         
         # Update stock quant
         quant = db.query(StockQuant).filter(
@@ -494,6 +500,7 @@ def post_invoice(
     
     invoice.status = "posted"
     invoice.confirmed_by_id = user.id
+    post_invoice_entry(db, invoice)
     
     # Audit log
     log_audit(
@@ -561,6 +568,19 @@ def register_payment(
     
     if invoice.amount_due <= 0:
         invoice.status = "paid"
+    
+    payment_stub = type("InvoicePayment", (), {
+        "id": None,
+        "company_id": invoice.company_id,
+        "invoice_id": invoice.id,
+        "contact_id": invoice.customer_id,
+        "reference": payment_reference or f"{invoice.reference}-PAY-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}",
+        "payment_date": datetime.utcnow(),
+        "amount": amount,
+        "currency": invoice.currency,
+        "payment_method": "cash",
+    })
+    post_payment_entry(db, payment_stub)
     
     # Audit log
     log_audit(

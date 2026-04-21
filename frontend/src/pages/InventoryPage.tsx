@@ -22,6 +22,7 @@ import {
   ChevronRight,
   Clock3,
   DollarSign,
+  FileText,
   Package,
   PenLine,
   Plus,
@@ -7091,6 +7092,18 @@ export default function InventoryPage() {
                                     >
                                       <Printer size={14} />
                                     </button>
+                                    {m.state === "done" && (
+                                      <button
+                                        className="o-btn o-btn-secondary o-btn-icon"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          navigate(`/accounting?section=journal_entries&reference=${encodeURIComponent(`STK/${m.id}`)}`);
+                                        }}
+                                        title="Journal Entry"
+                                      >
+                                        <FileText size={14} />
+                                      </button>
+                                    )}
                                     {m.state === "draft" && (
                                       <>
                                         <button

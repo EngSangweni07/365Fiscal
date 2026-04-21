@@ -7,6 +7,7 @@ from app.api.deps import get_db, ensure_company_access, require_company_access, 
 from app.models.expense import Expense
 from app.models.contact import Contact
 from app.schemas.expense import ExpenseCreate, ExpenseRead, ExpenseUpdate
+from app.services.accounting import post_expense_entry
 
 router = APIRouter(prefix="/expenses", tags=["expenses"])
 
@@ -103,6 +104,9 @@ def create_expense(
     recalc_amounts(exp)
 
     db.add(exp)
+    db.flush()
+    if exp.status == "posted":
+        post_expense_entry(db, exp)
     db.commit()
     db.refresh(exp)
     return exp
@@ -145,6 +149,8 @@ def update_expense(
 
     if "subtotal" in updates or "vat_rate" in updates:
         recalc_amounts(exp)
+    if exp.status == "posted":
+        post_expense_entry(db, exp, replace_existing=True)
 
     db.commit()
     db.refresh(exp)

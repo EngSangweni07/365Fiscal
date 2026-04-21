@@ -17,6 +17,7 @@ from app.schemas.purchase_order import (
     PurchaseOrderUpdate,
     PurchaseOrderReceive,
 )
+from app.services.accounting import post_purchase_entry
 
 router = APIRouter(prefix="/purchases", tags=["purchases"])
 
@@ -276,6 +277,7 @@ def confirm_purchase_order(
         raise HTTPException(status_code=400, detail="Cannot confirm purchase order without lines")
 
     order.status = "confirmed"
+    post_purchase_entry(db, order)
     db.commit()
     db.refresh(order)
     return order
@@ -362,6 +364,7 @@ def receive_purchase_order(
 
     order.status = "received"
     order.received_at = datetime.utcnow()
+    post_purchase_entry(db, order, replace_existing=True)
 
     db.commit()
     db.refresh(order)

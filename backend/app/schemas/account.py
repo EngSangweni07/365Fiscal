@@ -72,6 +72,56 @@ class JournalRead(ORMBase):
     is_active: bool
 
 
+# --- Journal Entry ---
+class JournalEntryLineCreate(BaseModel):
+    account_id: int
+    contact_id: Optional[int] = None
+    label: str = ""
+    debit: float = 0
+    credit: float = 0
+    currency_code: str = "USD"
+
+
+class JournalEntryLineRead(ORMBase):
+    id: int
+    account_id: int
+    contact_id: Optional[int]
+    label: str
+    debit: float
+    credit: float
+    currency_code: str
+
+
+class JournalEntryCreate(BaseModel):
+    company_id: int
+    journal_id: int
+    reference: str
+    entry_date: datetime
+    narration: str = ""
+    lines: list[JournalEntryLineCreate]
+
+
+class JournalEntryUpdate(BaseModel):
+    journal_id: Optional[int] = None
+    reference: Optional[str] = None
+    entry_date: Optional[datetime] = None
+    narration: Optional[str] = None
+    lines: Optional[list[JournalEntryLineCreate]] = None
+
+
+class JournalEntryRead(ORMBase):
+    id: int
+    company_id: int
+    journal_id: int
+    reference: str
+    entry_date: datetime
+    status: str
+    narration: str
+    invoice_id: Optional[int]
+    payment_id: Optional[int]
+    lines: list[JournalEntryLineRead] = []
+
+
 # ── Payment Term ──
 class PaymentTermCreate(BaseModel):
     company_id: int
@@ -161,6 +211,7 @@ class BudgetUpdate(BaseModel):
     date_to: Optional[datetime] = None
     status: Optional[str] = None
     notes: Optional[str] = None
+    lines: Optional[list[BudgetLineCreate]] = None
 
 
 class BudgetRead(ORMBase):

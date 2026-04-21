@@ -2091,6 +2091,16 @@ export default function ExpensesPage() {
                           <TrashIcon />
                         </button>
                       )}
+                      {selectedExpense && selectedExpense.status !== "draft" && (
+                        <button
+                          className="o-btn o-btn-secondary"
+                          onClick={() =>
+                            navigate(`/accounting?section=journal_entries&reference=${encodeURIComponent(`EXP/${selectedExpense.reference}`)}`)
+                          }
+                        >
+                          Journal Entry
+                        </button>
+                      )}
                     </>
                   )}
                 </div>

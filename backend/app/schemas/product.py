@@ -28,6 +28,10 @@ class ProductCreate(BaseModel):
     can_be_sold: bool = True
     can_be_purchased: bool = True
     show_in_pos: bool = True
+    income_account_id: int | None = None
+    expense_account_id: int | None = None
+    inventory_account_id: int | None = None
+    cogs_account_id: int | None = None
 
 
 class ProductRead(ORMBase):
@@ -57,6 +61,10 @@ class ProductRead(ORMBase):
     can_be_sold: bool
     can_be_purchased: bool
     show_in_pos: bool
+    income_account_id: int | None = None
+    expense_account_id: int | None = None
+    inventory_account_id: int | None = None
+    cogs_account_id: int | None = None
 
 
 class ProductUpdate(BaseModel):
@@ -84,6 +92,10 @@ class ProductUpdate(BaseModel):
     can_be_sold: bool | None = None
     can_be_purchased: bool | None = None
     show_in_pos: bool | None = None
+    income_account_id: int | None = None
+    expense_account_id: int | None = None
+    inventory_account_id: int | None = None
+    cogs_account_id: int | None = None
 
 
 class ProductWithStock(ProductRead):

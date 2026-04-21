@@ -1427,6 +1427,16 @@ export default function PurchasesPage({
                         Cancel
                       </button>
                     )}
+                    {selectedOrder && currentStatus !== "draft" && (
+                      <button
+                        className="btn btn-outline-secondary btn-sm"
+                        onClick={() =>
+                          navigate(`/accounting?section=journal_entries&reference=${encodeURIComponent(`PO/${selectedOrder.reference}`)}`)
+                        }
+                      >
+                        Journal Entry
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div className="statusbar">

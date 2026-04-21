@@ -14,15 +14,107 @@ from app.models.invoice import Invoice
 from app.models.payment import Payment
 from app.models.expense import Expense
 from app.models.purchase_order import PurchaseOrder
+from app.models.stock_move import StockMove
 from app.schemas.account import (
     AccountCreate, AccountRead, AccountUpdate,
     JournalCreate, JournalRead, JournalUpdate,
+    JournalEntryCreate, JournalEntryRead, JournalEntryUpdate,
     PaymentTermCreate, PaymentTermRead, PaymentTermUpdate,
     FiscalPositionCreate, FiscalPositionRead, FiscalPositionUpdate,
     BudgetCreate, BudgetRead, BudgetUpdate,
 )
+from app.services.accounting import (
+    post_expense_entry,
+    post_invoice_entry,
+    post_payment_entry,
+    post_purchase_entry,
+    post_stock_move_entry,
+)
 
 router = APIRouter(prefix="/accounting", tags=["accounting"])
+
+
+def _validate_journal_entry_payload(db: Session, payload) -> None:
+    """Validate double-entry rules and company ownership before saving."""
+    lines = payload.lines or []
+    usable_lines = [
+        line for line in lines
+        if round(float(line.debit or 0), 2) or round(float(line.credit or 0), 2)
+    ]
+    if len(usable_lines) < 2:
+        raise HTTPException(400, "A journal entry needs at least two non-zero lines")
+
+    total_debit = 0.0
+    total_credit = 0.0
+    account_ids = set()
+    for line in usable_lines:
+        debit = round(float(line.debit or 0), 2)
+        credit = round(float(line.credit or 0), 2)
+        if debit < 0 or credit < 0:
+            raise HTTPException(400, "Debit and credit amounts cannot be negative")
+        if debit and credit:
+            raise HTTPException(400, "A line cannot have both debit and credit")
+        total_debit += debit
+        total_credit += credit
+        account_ids.add(line.account_id)
+
+    if round(total_debit - total_credit, 2) != 0:
+        raise HTTPException(400, "Journal entry is not balanced")
+
+    journal = (
+        db.query(Journal)
+        .filter(
+            Journal.id == payload.journal_id,
+            Journal.company_id == payload.company_id,
+            Journal.is_active == True,
+        )
+        .first()
+    )
+    if not journal:
+        raise HTTPException(400, "Journal does not belong to this company or is inactive")
+
+    account_count = (
+        db.query(func.count(Account.id))
+        .filter(
+            Account.id.in_(account_ids),
+            Account.company_id == payload.company_id,
+            Account.is_active == True,
+        )
+        .scalar() or 0
+    )
+    if account_count != len(account_ids):
+        raise HTTPException(400, "One or more accounts are inactive or belong to another company")
+
+
+def _replace_journal_entry_lines(db: Session, entry: JournalEntry, lines) -> None:
+    entry.lines.clear()
+    db.flush()
+    for line_data in lines:
+        data = line_data.model_dump()
+        if not round(float(data.get("debit") or 0), 2) and not round(float(data.get("credit") or 0), 2):
+            continue
+        entry.lines.append(JournalEntryLine(**data))
+
+
+def _refresh_budget_actuals(db: Session, budget: Budget) -> Budget:
+    for line in budget.lines:
+        if not line.account_id:
+            line.practical_amount = 0
+            continue
+        actual = (
+            db.query(func.coalesce(func.sum(JournalEntryLine.debit - JournalEntryLine.credit), 0))
+            .join(JournalEntry, JournalEntry.id == JournalEntryLine.entry_id)
+            .filter(
+                JournalEntry.company_id == budget.company_id,
+                JournalEntry.status == "posted",
+                JournalEntry.entry_date >= budget.date_from,
+                JournalEntry.entry_date <= budget.date_to,
+                JournalEntryLine.account_id == line.account_id,
+            )
+            .scalar() or 0
+        )
+        line.practical_amount = round(float(actual), 2)
+    return budget
 
 
 # ─── Chart of Accounts ────────────────────────────────
@@ -424,6 +516,292 @@ def delete_journal(
     return {"ok": True}
 
 
+# --- Manual Journal Entries ---
+@router.get("/journal-entries", response_model=list[JournalEntryRead])
+def list_journal_entries(
+    company_id: int,
+    status: str | None = None,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+    _=Depends(require_company_access),
+):
+    query = db.query(JournalEntry).filter(JournalEntry.company_id == company_id)
+    if status:
+        query = query.filter(JournalEntry.status == status)
+    return query.order_by(JournalEntry.entry_date.desc(), JournalEntry.id.desc()).all()
+
+
+@router.post("/journal-entries", response_model=JournalEntryRead)
+def create_journal_entry(
+    payload: JournalEntryCreate,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    ensure_company_access(db, user, payload.company_id)
+    _validate_journal_entry_payload(db, payload)
+    data = payload.model_dump(exclude={"lines"})
+    entry = JournalEntry(**data, status="draft")
+    db.add(entry)
+    db.flush()
+    _replace_journal_entry_lines(db, entry, payload.lines)
+    db.commit()
+    db.refresh(entry)
+    return entry
+
+
+@router.get("/journal-entries/{entry_id}", response_model=JournalEntryRead)
+def get_journal_entry(
+    entry_id: int,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    entry = db.query(JournalEntry).filter(JournalEntry.id == entry_id).first()
+    if not entry:
+        raise HTTPException(404, "Journal entry not found")
+    ensure_company_access(db, user, entry.company_id)
+    return entry
+
+
+@router.patch("/journal-entries/{entry_id}", response_model=JournalEntryRead)
+def update_journal_entry(
+    entry_id: int,
+    payload: JournalEntryUpdate,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    entry = db.query(JournalEntry).filter(JournalEntry.id == entry_id).first()
+    if not entry:
+        raise HTTPException(404, "Journal entry not found")
+    ensure_company_access(db, user, entry.company_id)
+    if entry.status != "draft":
+        raise HTTPException(400, "Only draft journal entries can be edited")
+
+    next_data = {
+        "company_id": entry.company_id,
+        "journal_id": payload.journal_id if payload.journal_id is not None else entry.journal_id,
+        "reference": payload.reference if payload.reference is not None else entry.reference,
+        "entry_date": payload.entry_date if payload.entry_date is not None else entry.entry_date,
+        "narration": payload.narration if payload.narration is not None else entry.narration,
+        "lines": payload.lines if payload.lines is not None else entry.lines,
+    }
+    if payload.lines is not None:
+        _validate_journal_entry_payload(db, type("EntryPayload", (), next_data))
+        _replace_journal_entry_lines(db, entry, payload.lines)
+    elif payload.journal_id is not None:
+        journal = (
+            db.query(Journal)
+            .filter(
+                Journal.id == payload.journal_id,
+                Journal.company_id == entry.company_id,
+                Journal.is_active == True,
+            )
+            .first()
+        )
+        if not journal:
+            raise HTTPException(400, "Journal does not belong to this company or is inactive")
+
+    for field in ["journal_id", "reference", "entry_date", "narration"]:
+        value = getattr(payload, field)
+        if value is not None:
+            setattr(entry, field, value)
+    db.commit()
+    db.refresh(entry)
+    return entry
+
+
+@router.post("/journal-entries/{entry_id}/post", response_model=JournalEntryRead)
+def post_journal_entry(
+    entry_id: int,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    entry = db.query(JournalEntry).filter(JournalEntry.id == entry_id).first()
+    if not entry:
+        raise HTTPException(404, "Journal entry not found")
+    ensure_company_access(db, user, entry.company_id)
+    if entry.status != "draft":
+        raise HTTPException(400, "Only draft journal entries can be posted")
+    payload = type("EntryPayload", (), {
+        "company_id": entry.company_id,
+        "journal_id": entry.journal_id,
+        "lines": entry.lines,
+    })
+    _validate_journal_entry_payload(db, payload)
+    entry.status = "posted"
+    db.commit()
+    db.refresh(entry)
+    return entry
+
+
+@router.post("/journal-entries/{entry_id}/cancel", response_model=JournalEntryRead)
+def cancel_journal_entry(
+    entry_id: int,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    entry = db.query(JournalEntry).filter(JournalEntry.id == entry_id).first()
+    if not entry:
+        raise HTTPException(404, "Journal entry not found")
+    ensure_company_access(db, user, entry.company_id)
+    if entry.status == "cancelled":
+        raise HTTPException(400, "Journal entry is already cancelled")
+    entry.status = "cancelled"
+    db.commit()
+    db.refresh(entry)
+    return entry
+
+
+@router.delete("/journal-entries/{entry_id}")
+def delete_journal_entry(
+    entry_id: int,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    entry = db.query(JournalEntry).filter(JournalEntry.id == entry_id).first()
+    if not entry:
+        raise HTTPException(404, "Journal entry not found")
+    ensure_company_access(db, user, entry.company_id)
+    if entry.status != "draft":
+        raise HTTPException(400, "Only draft journal entries can be deleted")
+    db.delete(entry)
+    db.commit()
+    return {"ok": True}
+
+
+@router.get("/journal-entry-link")
+def journal_entry_link(
+    source_type: str,
+    source_id: int,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    """Resolve the posted accounting entry for a business document."""
+    source_type = source_type.strip().lower()
+    entry = None
+    company_id = None
+    reference = ""
+
+    if source_type == "invoice":
+        source = db.query(Invoice).filter(Invoice.id == source_id).first()
+        if source:
+            company_id = source.company_id
+            entry = db.query(JournalEntry).filter(JournalEntry.invoice_id == source.id).first()
+            reference = f"INV/{source.reference}"
+    elif source_type == "payment":
+        source = db.query(Payment).filter(Payment.id == source_id).first()
+        if source:
+            company_id = source.company_id
+            entry = db.query(JournalEntry).filter(JournalEntry.payment_id == source.id).first()
+            reference = f"PAY/{source.reference}"
+    elif source_type == "expense":
+        source = db.query(Expense).filter(Expense.id == source_id).first()
+        if source:
+            company_id = source.company_id
+            reference = f"EXP/{source.reference}"
+    elif source_type == "purchase":
+        source = db.query(PurchaseOrder).filter(PurchaseOrder.id == source_id).first()
+        if source:
+            company_id = source.company_id
+            reference = f"PO/{source.reference}"
+    elif source_type == "stock":
+        source = db.query(StockMove).filter(StockMove.id == source_id).first()
+        if source:
+            company_id = source.company_id
+            reference = f"STK/{source.id}"
+    else:
+        raise HTTPException(400, "Unsupported source type")
+
+    if not company_id:
+        raise HTTPException(404, "Source document not found")
+    ensure_company_access(db, user, company_id)
+
+    if not entry and reference:
+        entry = (
+            db.query(JournalEntry)
+            .filter(JournalEntry.company_id == company_id, JournalEntry.reference == reference)
+            .first()
+        )
+    return {
+        "company_id": company_id,
+        "entry_id": entry.id if entry else None,
+        "entry_reference": entry.reference if entry else reference,
+        "exists": bool(entry),
+    }
+
+
+@router.post("/backfill")
+def backfill_accounting_entries(
+    company_id: int,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    """Generate missing accounting entries for older operational records."""
+    ensure_company_access(db, user, company_id)
+    created = {
+        "invoices": 0,
+        "payments": 0,
+        "expenses": 0,
+        "purchases": 0,
+        "stock_moves": 0,
+    }
+
+    for invoice in (
+        db.query(Invoice)
+        .filter(
+            Invoice.company_id == company_id,
+            Invoice.status.in_(["posted", "paid", "partial", "fiscalized"]),
+        )
+        .all()
+    ):
+        before = db.query(JournalEntry.id).filter(JournalEntry.reference == f"INV/{invoice.reference}").first()
+        entry = post_invoice_entry(db, invoice)
+        if entry and not before:
+            created["invoices"] += 1
+
+    for payment in (
+        db.query(Payment)
+        .filter(Payment.company_id == company_id, Payment.status.in_(["posted", "reconciled"]))
+        .all()
+    ):
+        before = db.query(JournalEntry.id).filter(JournalEntry.reference == f"PAY/{payment.reference}").first()
+        entry = post_payment_entry(db, payment)
+        if entry and not before:
+            created["payments"] += 1
+
+    for expense in (
+        db.query(Expense)
+        .filter(Expense.company_id == company_id, Expense.status == "posted")
+        .all()
+    ):
+        before = db.query(JournalEntry.id).filter(JournalEntry.reference == f"EXP/{expense.reference}").first()
+        entry = post_expense_entry(db, expense)
+        if entry and not before:
+            created["expenses"] += 1
+
+    for order in (
+        db.query(PurchaseOrder)
+        .filter(PurchaseOrder.company_id == company_id, PurchaseOrder.status.in_(["confirmed", "received"]))
+        .all()
+    ):
+        before = db.query(JournalEntry.id).filter(JournalEntry.reference == f"PO/{order.reference}").first()
+        entry = post_purchase_entry(db, order)
+        if entry and not before:
+            created["purchases"] += 1
+
+    for move in (
+        db.query(StockMove)
+        .filter(StockMove.company_id == company_id, StockMove.state == "done")
+        .all()
+    ):
+        before = db.query(JournalEntry.id).filter(JournalEntry.reference == f"STK/{move.id}").first()
+        entry = post_stock_move_entry(db, move)
+        if entry and not before:
+            created["stock_moves"] += 1
+
+    db.commit()
+    return {"ok": True, "created": created}
+
+
 # ─── Payment Terms ────────────────────────────────────
 @router.get("/payment-terms", response_model=list[PaymentTermRead])
 def list_payment_terms(
@@ -558,12 +936,16 @@ def list_budgets(
     user=Depends(get_current_user),
     _=Depends(require_company_access),
 ):
-    return (
+    budgets = (
         db.query(Budget)
         .filter(Budget.company_id == company_id)
         .order_by(Budget.date_from.desc())
         .all()
     )
+    for budget in budgets:
+        _refresh_budget_actuals(db, budget)
+    db.flush()
+    return budgets
 
 
 @router.post("/budgets", response_model=BudgetRead)
@@ -580,6 +962,8 @@ def create_budget(
     for line_data in payload.lines:
         line = BudgetLine(budget_id=budget.id, **line_data.model_dump())
         db.add(line)
+    db.flush()
+    _refresh_budget_actuals(db, budget)
     db.commit()
     db.refresh(budget)
     return budget
@@ -596,8 +980,17 @@ def update_budget(
     if not budget:
         raise HTTPException(404, "Budget not found")
     ensure_company_access(db, user, budget.company_id)
-    for k, v in payload.model_dump(exclude_unset=True).items():
+    data = payload.model_dump(exclude_unset=True, exclude={"lines"})
+    for k, v in data.items():
         setattr(budget, k, v)
+    if payload.lines is not None:
+        budget.lines.clear()
+        db.flush()
+        for line_data in payload.lines:
+            line = BudgetLine(budget_id=budget.id, **line_data.model_dump())
+            budget.lines.append(line)
+    db.flush()
+    _refresh_budget_actuals(db, budget)
     db.commit()
     db.refresh(budget)
     return budget

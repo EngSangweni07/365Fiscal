@@ -11,6 +11,10 @@ class Category(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(primary_key=True)
     company_id: Mapped[int] = mapped_column(ForeignKey("companies.id"), index=True)
     name: Mapped[str] = mapped_column(String(255))
+    income_account_id: Mapped[int | None] = mapped_column(ForeignKey("accounts.id"), nullable=True)
+    expense_account_id: Mapped[int | None] = mapped_column(ForeignKey("accounts.id"), nullable=True)
+    inventory_account_id: Mapped[int | None] = mapped_column(ForeignKey("accounts.id"), nullable=True)
+    cogs_account_id: Mapped[int | None] = mapped_column(ForeignKey("accounts.id"), nullable=True)
 
     company = relationship("Company")
     products = relationship("Product", back_populates="category")

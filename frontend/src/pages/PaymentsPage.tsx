@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../api";
 import { TablePagination } from "../components/TablePagination";
 import { useMe } from "../hooks/useMe";
@@ -72,6 +73,7 @@ const ClockIcon = () => (
 );
 
 export default function PaymentsPage() {
+  const navigate = useNavigate();
   const { me } = useMe();
   const companyId = me?.company_ids?.[0];
 
@@ -408,6 +410,15 @@ export default function PaymentsPage() {
                       )}
                     </td>
                     <td>
+                      <button
+                        className="btn btn-sm btn-light"
+                        onClick={() =>
+                          navigate(`/accounting?section=journal_entries&reference=${encodeURIComponent(`PAY/${payment.reference}`)}`)
+                        }
+                        style={{ marginRight: 6 }}
+                      >
+                        Journal
+                      </button>
                       {!payment.is_reconciled && (
                         <button
                           className="btn btn-sm btn-primary"

@@ -17,5 +17,7 @@ class Contact(Base, TimestampMixin):
     phone: Mapped[str] = mapped_column(String(50), default="")
     email: Mapped[str] = mapped_column(String(255), default="")
     reference: Mapped[str] = mapped_column(String(100), default="")
+    receivable_account_id: Mapped[int | None] = mapped_column(ForeignKey("accounts.id"), nullable=True)
+    payable_account_id: Mapped[int | None] = mapped_column(ForeignKey("accounts.id"), nullable=True)
 
     company = relationship("Company", back_populates="contacts")

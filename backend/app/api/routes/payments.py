@@ -17,6 +17,7 @@ from app.schemas.payment import (
     PaymentCreate, PaymentUpdate, PaymentRead, PaymentReconcile,
     PaymentMethodCreate, PaymentMethodUpdate, PaymentMethodRead
 )
+from app.services.accounting import post_payment_entry
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 
@@ -138,6 +139,7 @@ def create_payment(
         created_by_id=user.id,
     )
     db.add(payment)
+    db.flush()
     
     # Update invoice if linked
     if invoice:
@@ -145,6 +147,9 @@ def create_payment(
         invoice.amount_due = invoice.total_amount - invoice.amount_paid
         if invoice.amount_due <= 0:
             invoice.payment_reference = payment.reference
+            invoice.status = "paid"
+    
+    post_payment_entry(db, payment)
     
     # Audit log
     log_audit(

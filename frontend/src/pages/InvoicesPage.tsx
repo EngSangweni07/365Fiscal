@@ -2453,6 +2453,16 @@ export default function InvoicesPage({
                   >
                     Credit Note
                   </button>
+                  <button
+                    className="btn btn-sm btn-light border"
+                    onClick={() =>
+                      selectedInvoice &&
+                      navigate(`/accounting?section=journal_entries&reference=${encodeURIComponent(`INV/${selectedInvoice.reference}`)}`)
+                    }
+                    disabled={statusLabel === "draft"}
+                  >
+                    Journal Entry
+                  </button>
                 </>
               )}
             </div>

@@ -38,6 +38,10 @@ class Product(Base, TimestampMixin):
     can_be_sold: Mapped[bool] = mapped_column(Boolean, default=True)
     can_be_purchased: Mapped[bool] = mapped_column(Boolean, default=True)
     show_in_pos: Mapped[bool] = mapped_column(Boolean, default=True)
+    income_account_id: Mapped[int | None] = mapped_column(ForeignKey("accounts.id"), nullable=True)
+    expense_account_id: Mapped[int | None] = mapped_column(ForeignKey("accounts.id"), nullable=True)
+    inventory_account_id: Mapped[int | None] = mapped_column(ForeignKey("accounts.id"), nullable=True)
+    cogs_account_id: Mapped[int | None] = mapped_column(ForeignKey("accounts.id"), nullable=True)
 
     company = relationship("Company", back_populates="products")
     category = relationship("Category", back_populates="products")

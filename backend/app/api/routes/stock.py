@@ -8,6 +8,7 @@ from app.models.stock_quant import StockQuant
 from app.models.product import Product
 from app.schemas.stock_move import StockMoveCreate, StockMoveRead, StockMoveUpdate
 from app.schemas.stock_quant import StockQuantRead
+from app.services.accounting import post_stock_move_entry
 
 router = APIRouter(prefix="/stock", tags=["stock"])
 
@@ -146,7 +147,9 @@ def confirm_stock_move(
     
     move.state = "done"
     move.done_date = datetime.utcnow()
+    move.total_cost = move.quantity * move.unit_cost
     update_stock_quant(db, move)
+    post_stock_move_entry(db, move)
     
     db.commit()
     db.refresh(move)

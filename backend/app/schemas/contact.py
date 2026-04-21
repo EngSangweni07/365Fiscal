@@ -11,6 +11,8 @@ class ContactCreate(BaseModel):
     phone: str = ""
     email: EmailStr | None = None
     reference: str = ""
+    receivable_account_id: int | None = None
+    payable_account_id: int | None = None
 
 
 class ContactRead(ORMBase):
@@ -23,6 +25,8 @@ class ContactRead(ORMBase):
     phone: str
     email: str | None = None
     reference: str
+    receivable_account_id: int | None = None
+    payable_account_id: int | None = None
 
 
 class ContactUpdate(BaseModel):
@@ -33,3 +37,5 @@ class ContactUpdate(BaseModel):
     phone: str | None = None
     email: EmailStr | None = None
     reference: str | None = None
+    receivable_account_id: int | None = None
+    payable_account_id: int | None = None
