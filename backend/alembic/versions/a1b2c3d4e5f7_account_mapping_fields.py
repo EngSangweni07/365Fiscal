@@ -1,7 +1,7 @@
 """account mapping fields
 
 Revision ID: a1b2c3d4e5f7
-Revises: z2x3c4v5b6
+Revises: o1p2q3r4s5t6
 Create Date: 2026-04-21 17:05:00.000000
 """
 
@@ -9,7 +9,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision = "a1b2c3d4e5f7"
-down_revision = "z2x3c4v5b6"
+down_revision = "o1p2q3r4s5t6"
 branch_labels = None
 depends_on = None
 
