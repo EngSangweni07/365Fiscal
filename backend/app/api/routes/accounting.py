@@ -1,7 +1,7 @@
 """API routes for accounting configuration: Chart of Accounts, Journals, Payment Terms, Fiscal Positions, Budgets, Overview."""
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, get_current_user, ensure_company_access, require_company_access
@@ -10,8 +10,11 @@ from app.models.account import (
     PaymentTerm, FiscalPosition, FiscalPositionTax,
     Budget, BudgetLine,
 )
+from app.models.category import Category
+from app.models.contact import Contact
 from app.models.invoice import Invoice
 from app.models.payment import Payment
+from app.models.product import Product
 from app.models.expense import Expense
 from app.models.purchase_order import PurchaseOrder
 from app.models.stock_move import StockMove
@@ -22,8 +25,17 @@ from app.schemas.account import (
     PaymentTermCreate, PaymentTermRead, PaymentTermUpdate,
     FiscalPositionCreate, FiscalPositionRead, FiscalPositionUpdate,
     BudgetCreate, BudgetRead, BudgetUpdate,
+    AccountMappingExportRead,
+    AccountMappingImportPayload,
+    AccountMappingImportResult,
+    CategoryAccountMappingTransfer,
+    ContactAccountMappingTransfer,
+    ProductAccountMappingTransfer,
+    SourceJournalPreviewRead,
 )
 from app.services.accounting import (
+    build_preview_entries,
+    build_source_payload,
     post_expense_entry,
     post_invoice_entry,
     post_payment_entry,
@@ -726,6 +738,240 @@ def journal_entry_link(
         "entry_id": entry.id if entry else None,
         "entry_reference": entry.reference if entry else reference,
         "exists": bool(entry),
+    }
+
+
+@router.get("/source-entry-preview", response_model=SourceJournalPreviewRead)
+def source_entry_preview(
+    source_type: str,
+    source_id: int,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    normalized = source_type.strip().lower()
+    source = None
+    if normalized == "invoice":
+        source = db.query(Invoice).filter(Invoice.id == source_id).first()
+    elif normalized == "payment":
+        source = db.query(Payment).filter(Payment.id == source_id).first()
+    elif normalized == "expense":
+        source = db.query(Expense).filter(Expense.id == source_id).first()
+    elif normalized == "purchase":
+        source = db.query(PurchaseOrder).filter(PurchaseOrder.id == source_id).first()
+    elif normalized == "stock":
+        source = db.query(StockMove).filter(StockMove.id == source_id).first()
+    else:
+        raise HTTPException(400, "Unsupported source type")
+
+    if not source:
+        raise HTTPException(404, "Source document not found")
+    ensure_company_access(db, user, source.company_id)
+
+    payload = build_source_payload(db, normalized, source)
+    if not payload:
+        return {
+            "company_id": source.company_id,
+            "source_type": normalized,
+            "source_id": source_id,
+            "source_reference": getattr(source, "reference", str(source_id)),
+            "exists": False,
+            "entries": [],
+        }
+
+    related_query = db.query(JournalEntry).filter(JournalEntry.company_id == source.company_id)
+    if normalized == "invoice":
+        related_query = related_query.filter(
+            or_(
+                JournalEntry.invoice_id == source.id,
+                JournalEntry.reference == payload["reference"],
+                JournalEntry.reference.like(f"REV/{payload['reference']}%"),
+            )
+        )
+    elif normalized == "payment":
+        related_query = related_query.filter(
+            or_(
+                JournalEntry.payment_id == source.id,
+                JournalEntry.reference == payload["reference"],
+                JournalEntry.reference.like(f"REV/{payload['reference']}%"),
+            )
+        )
+    else:
+        related_query = related_query.filter(
+            or_(
+                JournalEntry.reference == payload["reference"],
+                JournalEntry.reference.like(f"REV/{payload['reference']}%"),
+            )
+        )
+    entries = related_query.order_by(JournalEntry.entry_date.asc(), JournalEntry.id.asc()).all()
+
+    return {
+        "company_id": source.company_id,
+        "source_type": normalized,
+        "source_id": source_id,
+        "source_reference": getattr(source, "reference", str(source_id)),
+        "exists": bool(entries),
+        "entries": build_preview_entries(db, payload, entries),
+    }
+
+
+@router.get("/account-mappings/export", response_model=AccountMappingExportRead)
+def export_account_mappings(
+    company_id: int,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+    _=Depends(require_company_access),
+):
+    ensure_company_access(db, user, company_id)
+    accounts = db.query(Account).filter(Account.company_id == company_id).all()
+    account_code_by_id = {account.id: account.code for account in accounts}
+
+    products = db.query(Product).filter(Product.company_id == company_id).order_by(Product.reference, Product.name).all()
+    categories = db.query(Category).filter(Category.company_id == company_id).order_by(Category.name).all()
+    contacts = db.query(Contact).filter(Contact.company_id == company_id).order_by(Contact.reference, Contact.name).all()
+
+    return {
+        "company_id": company_id,
+        "exported_at": datetime.utcnow(),
+        "products": [
+            ProductAccountMappingTransfer(
+                reference=product.reference or "",
+                name=product.name,
+                income_account_code=account_code_by_id.get(product.income_account_id),
+                expense_account_code=account_code_by_id.get(product.expense_account_id),
+                inventory_account_code=account_code_by_id.get(product.inventory_account_id),
+                cogs_account_code=account_code_by_id.get(product.cogs_account_id),
+            )
+            for product in products
+        ],
+        "categories": [
+            CategoryAccountMappingTransfer(
+                name=category.name,
+                income_account_code=account_code_by_id.get(category.income_account_id),
+                expense_account_code=account_code_by_id.get(category.expense_account_id),
+                inventory_account_code=account_code_by_id.get(category.inventory_account_id),
+                cogs_account_code=account_code_by_id.get(category.cogs_account_id),
+            )
+            for category in categories
+        ],
+        "contacts": [
+            ContactAccountMappingTransfer(
+                reference=contact.reference or "",
+                name=contact.name,
+                receivable_account_code=account_code_by_id.get(contact.receivable_account_id),
+                payable_account_code=account_code_by_id.get(contact.payable_account_id),
+            )
+            for contact in contacts
+        ],
+    }
+
+
+@router.post("/account-mappings/import", response_model=AccountMappingImportResult)
+def import_account_mappings(
+    payload: AccountMappingImportPayload,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    ensure_company_access(db, user, payload.company_id)
+    account_code_map = {
+        account.code.strip().upper(): account.id
+        for account in db.query(Account).filter(Account.company_id == payload.company_id, Account.is_active == True).all()
+    }
+    unknown_codes: set[str] = set()
+
+    def resolve_account_id(code: str | None):
+        if code is None:
+            return True, None
+        normalized = code.strip().upper()
+        if not normalized:
+            return True, None
+        account_id = account_code_map.get(normalized)
+        if not account_id:
+            unknown_codes.add(normalized)
+            return False, None
+        return True, account_id
+
+    def apply_mapping(target, field: str, code: str | None) -> bool:
+        valid, account_id = resolve_account_id(code)
+        if code is None or not code.strip():
+            if payload.overwrite_nulls and getattr(target, field) is not None:
+                setattr(target, field, None)
+                return True
+            return False
+        if not valid:
+            return False
+        if getattr(target, field) != account_id:
+            setattr(target, field, account_id)
+            return True
+        return False
+
+    updated_products = 0
+    updated_categories = 0
+    updated_contacts = 0
+    unmatched_products: list[str] = []
+    unmatched_categories: list[str] = []
+    unmatched_contacts: list[str] = []
+
+    for row in payload.products:
+        query = db.query(Product).filter(Product.company_id == payload.company_id)
+        product = None
+        if row.reference:
+            product = query.filter(Product.reference == row.reference).first()
+        if not product:
+            product = query.filter(Product.name == row.name).first()
+        if not product:
+            unmatched_products.append(row.reference or row.name)
+            continue
+        changed = False
+        changed = apply_mapping(product, "income_account_id", row.income_account_code) or changed
+        changed = apply_mapping(product, "expense_account_id", row.expense_account_code) or changed
+        changed = apply_mapping(product, "inventory_account_id", row.inventory_account_code) or changed
+        changed = apply_mapping(product, "cogs_account_id", row.cogs_account_code) or changed
+        if changed:
+            updated_products += 1
+
+    for row in payload.categories:
+        category = (
+            db.query(Category)
+            .filter(Category.company_id == payload.company_id, Category.name == row.name)
+            .first()
+        )
+        if not category:
+            unmatched_categories.append(row.name)
+            continue
+        changed = False
+        changed = apply_mapping(category, "income_account_id", row.income_account_code) or changed
+        changed = apply_mapping(category, "expense_account_id", row.expense_account_code) or changed
+        changed = apply_mapping(category, "inventory_account_id", row.inventory_account_code) or changed
+        changed = apply_mapping(category, "cogs_account_id", row.cogs_account_code) or changed
+        if changed:
+            updated_categories += 1
+
+    for row in payload.contacts:
+        query = db.query(Contact).filter(Contact.company_id == payload.company_id)
+        contact = None
+        if row.reference:
+            contact = query.filter(Contact.reference == row.reference).first()
+        if not contact:
+            contact = query.filter(Contact.name == row.name).first()
+        if not contact:
+            unmatched_contacts.append(row.reference or row.name)
+            continue
+        changed = False
+        changed = apply_mapping(contact, "receivable_account_id", row.receivable_account_code) or changed
+        changed = apply_mapping(contact, "payable_account_id", row.payable_account_code) or changed
+        if changed:
+            updated_contacts += 1
+
+    db.commit()
+    return {
+        "company_id": payload.company_id,
+        "updated_products": updated_products,
+        "updated_categories": updated_categories,
+        "updated_contacts": updated_contacts,
+        "unmatched_products": unmatched_products,
+        "unmatched_categories": unmatched_categories,
+        "unmatched_contacts": unmatched_contacts,
+        "unknown_account_codes": sorted(unknown_codes),
     }
 
 

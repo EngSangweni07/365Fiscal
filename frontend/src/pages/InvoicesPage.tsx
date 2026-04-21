@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { apiFetch } from "../api";
+import JournalEntryPreviewDrawer from "../components/JournalEntryPreviewDrawer";
 import { useMe } from "../hooks/useMe";
 import { useCompanies, Company } from "../hooks/useCompanies";
 import { useAlert } from "../context/AlertContext";
@@ -572,6 +573,7 @@ export default function InvoicesPage({
   const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<Set<number>>(
     new Set(),
   );
+  const [journalPreviewOpen, setJournalPreviewOpen] = useState(false);
   const [exportingSelected, setExportingSelected] = useState(false);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const filterMenuRef = useRef<HTMLDivElement | null>(null);
@@ -2455,6 +2457,13 @@ export default function InvoicesPage({
                   </button>
                   <button
                     className="btn btn-sm btn-light border"
+                    onClick={() => setJournalPreviewOpen(true)}
+                    disabled={!selectedInvoice}
+                  >
+                    Journal Preview
+                  </button>
+                  <button
+                    className="btn btn-sm btn-light border"
                     onClick={() =>
                       selectedInvoice &&
                       navigate(`/accounting?section=journal_entries&reference=${encodeURIComponent(`INV/${selectedInvoice.reference}`)}`)
@@ -3509,6 +3518,13 @@ export default function InvoicesPage({
           </div>
         </>
       )}
+
+      <JournalEntryPreviewDrawer
+        open={journalPreviewOpen}
+        onClose={() => setJournalPreviewOpen(false)}
+        sourceType="invoice"
+        sourceId={selectedInvoiceId}
+      />
 
       {createProductOpen && (
         <>

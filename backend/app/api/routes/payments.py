@@ -10,6 +10,7 @@ from app.api.deps import (
     can_record_payment, require_portal_user, log_audit
 )
 from app.models.payment import Payment, PaymentMethod
+from app.models.account import JournalEntry
 from app.models.invoice import Invoice
 from app.models.user import User
 from app.models.audit_log import AuditAction, ResourceType
@@ -17,7 +18,7 @@ from app.schemas.payment import (
     PaymentCreate, PaymentUpdate, PaymentRead, PaymentReconcile,
     PaymentMethodCreate, PaymentMethodUpdate, PaymentMethodRead
 )
-from app.services.accounting import post_payment_entry
+from app.services.accounting import create_reversal_entry, post_payment_entry
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 
@@ -328,6 +329,17 @@ def delete_payment(
         if invoice:
             invoice.amount_paid -= payment.amount
             invoice.amount_due = invoice.total_amount - invoice.amount_paid
+
+    linked_entry = (
+        db.query(JournalEntry)
+        .filter(
+            JournalEntry.company_id == payment.company_id,
+            JournalEntry.reference == f"PAY/{payment.reference}",
+        )
+        .first()
+    )
+    if linked_entry:
+        create_reversal_entry(db, linked_entry, reason=f"Payment {payment.reference} cancelled")
     
     # Mark as cancelled instead of deleting
     payment.status = "cancelled"

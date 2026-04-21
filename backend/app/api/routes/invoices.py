@@ -12,12 +12,13 @@ from app.models.invoice_line import InvoiceLine
 from app.models.quotation import Quotation
 from app.models.contact import Contact
 from app.models.device import Device
+from app.models.account import JournalEntry
 from app.models.stock_move import StockMove
 from app.models.stock_quant import StockQuant
 from app.models.company_settings import CompanySettings
 from app.models.audit_log import AuditAction, ResourceType
 from app.schemas.invoice import InvoiceCreate, InvoiceRead, InvoiceUpdate
-from app.services.accounting import post_invoice_entry, post_payment_entry, post_stock_move_entry
+from app.services.accounting import create_reversal_entry, post_invoice_entry, post_payment_entry, post_stock_move_entry
 from app.services.fdms import submit_invoice
 
 router = APIRouter(prefix="/invoices", tags=["invoices"])
@@ -771,6 +772,16 @@ def cancel_invoice(
     invoice.status = "cancelled"
     invoice.cancelled_by_id = user.id
     invoice.notes = f"{invoice.notes}\nCancelled: {reason}" if reason else invoice.notes
+    linked_entry = (
+        db.query(JournalEntry)
+        .filter(
+            JournalEntry.company_id == invoice.company_id,
+            JournalEntry.reference == f"INV/{invoice.reference}",
+        )
+        .first()
+    )
+    if linked_entry:
+        create_reversal_entry(db, linked_entry, reason=reason or f"Invoice {invoice.reference} cancelled")
     
     log_audit(
         db=db,

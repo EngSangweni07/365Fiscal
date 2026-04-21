@@ -26,6 +26,7 @@ import {
   X,
 } from "lucide-react";
 import { apiFetch, apiRequest } from "../api";
+import JournalEntryPreviewDrawer from "../components/JournalEntryPreviewDrawer";
 import { Sidebar } from "../components/Sidebar";
 import type { SidebarSection } from "../types/sidebar";
 import { useMe } from "../hooks/useMe";
@@ -270,6 +271,7 @@ export default function ExpensesPage() {
   const [selectedExpenseId, setSelectedExpenseId] = useState<number | null>(
     null,
   );
+  const [journalPreviewOpen, setJournalPreviewOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isNew, setIsNew] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -2091,6 +2093,14 @@ export default function ExpensesPage() {
                           <TrashIcon />
                         </button>
                       )}
+                      {selectedExpense && (
+                        <button
+                          className="o-btn o-btn-secondary"
+                          onClick={() => setJournalPreviewOpen(true)}
+                        >
+                          Journal Preview
+                        </button>
+                      )}
                       {selectedExpense && selectedExpense.status !== "draft" && (
                         <button
                           className="o-btn o-btn-secondary"
@@ -3099,6 +3109,13 @@ export default function ExpensesPage() {
           </div>
         </div>
       )}
+
+      <JournalEntryPreviewDrawer
+        open={journalPreviewOpen}
+        onClose={() => setJournalPreviewOpen(false)}
+        sourceType="expense"
+        sourceId={selectedExpenseId}
+      />
     </>
   );
 }

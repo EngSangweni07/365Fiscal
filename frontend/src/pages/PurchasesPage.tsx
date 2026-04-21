@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import html2pdf from "html2pdf.js";
 import { useNavigate, useParams } from "react-router-dom";
 import { apiFetch } from "../api";
+import JournalEntryPreviewDrawer from "../components/JournalEntryPreviewDrawer";
 import { Sidebar } from "../components/Sidebar";
 import type { SidebarSection } from "../types/sidebar";
 import { useMe } from "../hooks/useMe";
@@ -226,6 +227,7 @@ export default function PurchasesPage({
   const [error, setError] = useState<string | null>(null);
 
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+  const [journalPreviewOpen, setJournalPreviewOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [updatingPaidState, setUpdatingPaidState] = useState(false);
@@ -1427,6 +1429,14 @@ export default function PurchasesPage({
                         Cancel
                       </button>
                     )}
+                    {selectedOrder && (
+                      <button
+                        className="btn btn-outline-secondary btn-sm"
+                        onClick={() => setJournalPreviewOpen(true)}
+                      >
+                        Journal Preview
+                      </button>
+                    )}
                     {selectedOrder && currentStatus !== "draft" && (
                       <button
                         className="btn btn-outline-secondary btn-sm"
@@ -1434,6 +1444,13 @@ export default function PurchasesPage({
                           navigate(`/accounting?section=journal_entries&reference=${encodeURIComponent(`PO/${selectedOrder.reference}`)}`)
                         }
                       >
+
+                              <JournalEntryPreviewDrawer
+                                open={journalPreviewOpen}
+                                onClose={() => setJournalPreviewOpen(false)}
+                                sourceType="purchase"
+                                sourceId={selectedOrderId}
+                              />
                         Journal Entry
                       </button>
                     )}

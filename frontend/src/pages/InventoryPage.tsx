@@ -11,6 +11,7 @@ import html2pdf from "html2pdf.js";
 import * as XLSX from "xlsx";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../api";
+import JournalEntryPreviewDrawer from "../components/JournalEntryPreviewDrawer";
 import { useMe } from "../hooks/useMe";
 import { useCompanies, Company } from "../hooks/useCompanies";
 import {
@@ -656,6 +657,7 @@ export default function InventoryPage() {
     null,
   );
   const [selectedMoveId, setSelectedMoveId] = useState<number | null>(null);
+  const [journalPreviewOpen, setJournalPreviewOpen] = useState(false);
   const [selectedLocationId, setSelectedLocationId] = useState<number | null>(
     null,
   );
@@ -7676,6 +7678,14 @@ export default function InventoryPage() {
                           <Printer size={14} />
                           <span>Print PDF</span>
                         </button>
+                        {!isNew && selectedMoveId && (
+                          <button
+                            className="o-btn o-btn-secondary"
+                            onClick={() => setJournalPreviewOpen(true)}
+                          >
+                            Journal Preview
+                          </button>
+                        )}
                       </div>
                     </div>
                     {/* <div className="inventory-form-actions">
@@ -8355,6 +8365,13 @@ export default function InventoryPage() {
                 </div>
               </div>
             )}
+
+            <JournalEntryPreviewDrawer
+              open={journalPreviewOpen}
+              onClose={() => setJournalPreviewOpen(false)}
+              sourceType="stock"
+              sourceId={selectedMoveId}
+            />
           </div>
         </div>
       </div>

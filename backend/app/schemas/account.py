@@ -122,6 +122,89 @@ class JournalEntryRead(ORMBase):
     lines: list[JournalEntryLineRead] = []
 
 
+class JournalPreviewLineRead(BaseModel):
+    account_id: Optional[int] = None
+    account_code: str = ""
+    account_name: str = ""
+    label: str = ""
+    debit: float = 0
+    credit: float = 0
+    currency_code: str = "USD"
+    resolution: str = "unresolved"
+
+
+class JournalPreviewEntryRead(BaseModel):
+    entry_id: Optional[int] = None
+    reference: str
+    entry_date: Optional[datetime] = None
+    status: str = "preview"
+    narration: str = ""
+    journal_name: Optional[str] = None
+    journal_code: Optional[str] = None
+    persisted: bool = False
+    lines: list[JournalPreviewLineRead] = []
+
+
+class SourceJournalPreviewRead(BaseModel):
+    company_id: int
+    source_type: str
+    source_id: int
+    source_reference: str
+    exists: bool = False
+    entries: list[JournalPreviewEntryRead] = []
+
+
+class ProductAccountMappingTransfer(BaseModel):
+    reference: str = ""
+    name: str
+    income_account_code: Optional[str] = None
+    expense_account_code: Optional[str] = None
+    inventory_account_code: Optional[str] = None
+    cogs_account_code: Optional[str] = None
+
+
+class CategoryAccountMappingTransfer(BaseModel):
+    name: str
+    income_account_code: Optional[str] = None
+    expense_account_code: Optional[str] = None
+    inventory_account_code: Optional[str] = None
+    cogs_account_code: Optional[str] = None
+
+
+class ContactAccountMappingTransfer(BaseModel):
+    reference: str = ""
+    name: str
+    receivable_account_code: Optional[str] = None
+    payable_account_code: Optional[str] = None
+
+
+class AccountMappingExportRead(BaseModel):
+    company_id: int
+    exported_at: datetime
+    products: list[ProductAccountMappingTransfer] = []
+    categories: list[CategoryAccountMappingTransfer] = []
+    contacts: list[ContactAccountMappingTransfer] = []
+
+
+class AccountMappingImportPayload(BaseModel):
+    company_id: int
+    overwrite_nulls: bool = False
+    products: list[ProductAccountMappingTransfer] = []
+    categories: list[CategoryAccountMappingTransfer] = []
+    contacts: list[ContactAccountMappingTransfer] = []
+
+
+class AccountMappingImportResult(BaseModel):
+    company_id: int
+    updated_products: int = 0
+    updated_categories: int = 0
+    updated_contacts: int = 0
+    unmatched_products: list[str] = []
+    unmatched_categories: list[str] = []
+    unmatched_contacts: list[str] = []
+    unknown_account_codes: list[str] = []
+
+
 # ── Payment Term ──
 class PaymentTermCreate(BaseModel):
     company_id: int

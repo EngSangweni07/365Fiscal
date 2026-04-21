@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   BookOpen,
@@ -13,6 +13,7 @@ import {
   Search,
   Settings,
   Trash2,
+  Upload,
 } from "lucide-react";
 import { apiFetch } from "../api";
 import { useCompanies, Company } from "../hooks/useCompanies";
@@ -207,6 +208,22 @@ export default function AccountingConfigPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [installing, setInstalling] = useState(false);
+  const [exportingMappings, setExportingMappings] = useState(false);
+  const [importingMappings, setImportingMappings] = useState(false);
+  const importFileRef = useRef<HTMLInputElement | null>(null);
+
+  const loadAccountMappings = async (targetCompanyId: number) => {
+    const [accountList, products, categories, contacts] = await Promise.all([
+      apiFetch<Account[]>(`/accounting/accounts?company_id=${targetCompanyId}`),
+      apiFetch<ProductMapping[]>(`/products?company_id=${targetCompanyId}`),
+      apiFetch<CategoryMapping[]>(`/categories?company_id=${targetCompanyId}`),
+      apiFetch<ContactMapping[]>(`/contacts?company_id=${targetCompanyId}`),
+    ]);
+    setAccounts(accountList.filter((a) => a.is_active));
+    setProductMappings(products);
+    setCategoryMappings(categories);
+    setContactMappings(contacts);
+  };
 
   // Company selection
   useEffect(() => {
@@ -260,18 +277,7 @@ export default function AccountingConfigPage() {
             setAccounts([]);
           }),
       account_mappings: () =>
-        Promise.all([
-          apiFetch<Account[]>(`/accounting/accounts?company_id=${companyId}`),
-          apiFetch<ProductMapping[]>(`/products?company_id=${companyId}`),
-          apiFetch<CategoryMapping[]>(`/categories?company_id=${companyId}`),
-          apiFetch<ContactMapping[]>(`/contacts?company_id=${companyId}`),
-        ])
-          .then(([accountList, products, categories, contacts]) => {
-            setAccounts(accountList.filter((a) => a.is_active));
-            setProductMappings(products);
-            setCategoryMappings(categories);
-            setContactMappings(contacts);
-          })
+        loadAccountMappings(companyId)
           .catch(() => {
             setAccounts([]);
             setProductMappings([]);
@@ -729,8 +735,99 @@ export default function AccountingConfigPage() {
     await apiFetch(endpoint, { method: "PATCH", body: JSON.stringify(fields) });
   };
 
+  const exportMappings = async () => {
+    if (!companyId) return;
+    setExportingMappings(true);
+    setError(null);
+    try {
+      const payload = await apiFetch<any>(`/accounting/account-mappings/export?company_id=${companyId}`);
+      const blob = new Blob([JSON.stringify(payload, null, 2)], {
+        type: "application/json;charset=utf-8",
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `account-mappings-company-${companyId}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      setError(err?.message || "Failed to export account mappings");
+    } finally {
+      setExportingMappings(false);
+    }
+  };
+
+  const importMappings = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !companyId) return;
+    setImportingMappings(true);
+    setError(null);
+    try {
+      const raw = await file.text();
+      const parsed = JSON.parse(raw);
+      const result = await apiFetch<any>(`/accounting/account-mappings/import`, {
+        method: "POST",
+        body: JSON.stringify({
+          company_id: companyId,
+          overwrite_nulls: true,
+          products: parsed.products || [],
+          categories: parsed.categories || [],
+          contacts: parsed.contacts || [],
+        }),
+      });
+      await loadAccountMappings(companyId);
+      const messages = [
+        `Updated products: ${result.updated_products}`,
+        `Updated categories: ${result.updated_categories}`,
+        `Updated contacts: ${result.updated_contacts}`,
+      ];
+      if (result.unknown_account_codes?.length) {
+        messages.push(`Unknown account codes: ${result.unknown_account_codes.join(", ")}`);
+      }
+      if (result.unmatched_products?.length || result.unmatched_categories?.length || result.unmatched_contacts?.length) {
+        messages.push("Some records could not be matched in this company.");
+      }
+      window.alert(messages.join("\n"));
+    } catch (err: any) {
+      setError(err?.message || "Failed to import account mappings");
+    } finally {
+      event.target.value = "";
+      setImportingMappings(false);
+    }
+  };
+
   const renderAccountMappings = () => (
     <div style={{ display: "grid", gap: 16 }}>
+      <div style={{ ...card, marginBottom: 0 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary, #111)" }}>
+              Mapping Rollout
+            </div>
+            <div style={{ fontSize: 13, color: "var(--text-muted, #6b7280)", marginTop: 4 }}>
+              Export portable account-code mappings from one company and import them into another.
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button style={btnSecondary} onClick={exportMappings} disabled={exportingMappings || !companyId}>
+              <Download size={14} /> {exportingMappings ? "Exporting..." : "Export JSON"}
+            </button>
+            <button style={btnPrimary} onClick={() => importFileRef.current?.click()} disabled={importingMappings || !companyId}>
+              <Upload size={14} /> {importingMappings ? "Importing..." : "Import JSON"}
+            </button>
+            <input
+              ref={importFileRef}
+              type="file"
+              accept="application/json"
+              style={{ display: "none" }}
+              onChange={importMappings}
+            />
+          </div>
+        </div>
+      </div>
+
       <div>
         <h3 style={{ margin: "0 0 10px", fontSize: 15 }}>Products</h3>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>

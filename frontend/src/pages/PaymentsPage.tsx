@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../api";
+import JournalEntryPreviewDrawer from "../components/JournalEntryPreviewDrawer";
 import { TablePagination } from "../components/TablePagination";
 import { useMe } from "../hooks/useMe";
 
@@ -90,6 +91,7 @@ export default function PaymentsPage() {
   const [pageSize, setPageSize] = useState(10);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [exportingSelected, setExportingSelected] = useState(false);
+  const [previewPaymentId, setPreviewPaymentId] = useState<number | null>(null);
 
   useEffect(() => {
     loadData();
@@ -412,6 +414,13 @@ export default function PaymentsPage() {
                     <td>
                       <button
                         className="btn btn-sm btn-light"
+                        onClick={() => setPreviewPaymentId(payment.id)}
+                        style={{ marginRight: 6 }}
+                      >
+                        Preview
+                      </button>
+                      <button
+                        className="btn btn-sm btn-light"
                         onClick={() =>
                           navigate(`/accounting?section=journal_entries&reference=${encodeURIComponent(`PAY/${payment.reference}`)}`)
                         }
@@ -442,6 +451,13 @@ export default function PaymentsPage() {
           />
         </div>
       )}
+
+      <JournalEntryPreviewDrawer
+        open={previewPaymentId !== null}
+        onClose={() => setPreviewPaymentId(null)}
+        sourceType="payment"
+        sourceId={previewPaymentId}
+      />
 
       <style>{`
         .alert-error {

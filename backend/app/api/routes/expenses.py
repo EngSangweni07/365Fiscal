@@ -4,10 +4,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, ensure_company_access, require_company_access, require_portal_user
+from app.models.account import JournalEntry
 from app.models.expense import Expense
 from app.models.contact import Contact
 from app.schemas.expense import ExpenseCreate, ExpenseRead, ExpenseUpdate
-from app.services.accounting import post_expense_entry
+from app.services.accounting import create_reversal_entry, post_expense_entry
 
 router = APIRouter(prefix="/expenses", tags=["expenses"])
 
@@ -167,6 +168,17 @@ def delete_expense(
     if not exp:
         raise HTTPException(status_code=404, detail="Expense not found")
     ensure_company_access(db, user, exp.company_id)
+
+    linked_entry = (
+        db.query(JournalEntry)
+        .filter(
+            JournalEntry.company_id == exp.company_id,
+            JournalEntry.reference == f"EXP/{exp.reference}",
+        )
+        .first()
+    )
+    if linked_entry:
+        create_reversal_entry(db, linked_entry, reason=f"Expense {exp.reference} deleted")
 
     db.delete(exp)
     db.commit()
