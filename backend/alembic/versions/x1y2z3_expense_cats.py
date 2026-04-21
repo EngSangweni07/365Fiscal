@@ -1,7 +1,7 @@
 """create expense_categories table
 
 Revision ID: x1y2z3_expense_cats
-Revises: None
+Revises: p1o2s3t4a5b6
 Create Date: 2026-02-20
 """
 from alembic import op
@@ -9,7 +9,7 @@ import sqlalchemy as sa
 from sqlalchemy import inspect as sa_inspect
 
 revision = "x1y2z3_expense_cats"
-down_revision = None
+down_revision = "p1o2s3t4a5b6"
 branch_labels = None
 depends_on = None
 
