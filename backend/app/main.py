@@ -261,20 +261,6 @@ def ensure_new_columns():
                     _startup_logger.info(">>> fiscal_device_id column already exists")
 
             _startup_logger.info(">>> ensure_new_columns: COMPLETE")
-
-            # Stamp alembic so 'alembic upgrade head' won't re-run this migration
-            if "alembic_version" in table_names:
-                row = conn.execute(text(
-                    "SELECT version_num FROM alembic_version"
-                )).fetchone()
-                current = row[0] if row else None
-                if current and current != "z2x3c4v5b6":
-                    _startup_logger.info(
-                        "Stamping alembic to z2x3c4v5b6 (was %s)", current
-                    )
-                    conn.execute(text(
-                        "UPDATE alembic_version SET version_num = 'z2x3c4v5b6'"
-                    ))
     except Exception:
         _startup_logger.exception("!!! ensure_new_columns FAILED — will continue startup")
 
