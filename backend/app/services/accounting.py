@@ -146,6 +146,14 @@ def _normalize_reference(prefix: str, reference: str, max_length: int = 100) -> 
     return value if len(value) <= max_length else value[:max_length]
 
 
+def is_nested_reversal_reference(reference: str | None) -> bool:
+    return bool(reference and reference.startswith("REV/REV/"))
+
+
+def cleanup_neutralizing_reference(reference: str) -> str:
+    return _normalize_reference("CLN/", reference)
+
+
 def _invoice_entry_payload(db: Session, invoice) -> dict[str, Any] | None:
     sign = -1 if invoice.invoice_type == "credit_note" else 1
     total = round(abs(float(invoice.total_amount or 0)), 2)
@@ -443,6 +451,8 @@ def build_preview_entries(db: Session, payload: dict[str, Any], persisted_entrie
 def create_reversal_entry(db: Session, entry: JournalEntry, *, reason: str = "", entry_date: datetime | None = None) -> JournalEntry | None:
     if not entry or entry.status != "posted":
         return None
+    if (entry.reference or "").startswith("REV/"):
+        return None
     reversal_reference = _normalize_reference("REV/", entry.reference)
     existing = (
         db.query(JournalEntry)
@@ -473,6 +483,47 @@ def create_reversal_entry(db: Session, entry: JournalEntry, *, reason: str = "",
             currency_code=line.currency_code or "USD",
         ))
     return reversal
+
+
+def create_cleanup_neutralizing_entry(
+    db: Session,
+    entry: JournalEntry,
+    *,
+    reason: str = "",
+    entry_date: datetime | None = None,
+) -> JournalEntry | None:
+    if not entry or entry.status != "posted" or not is_nested_reversal_reference(entry.reference):
+        return None
+    cleanup_reference = cleanup_neutralizing_reference(entry.reference)
+    existing = (
+        db.query(JournalEntry)
+        .filter(JournalEntry.company_id == entry.company_id, JournalEntry.reference == cleanup_reference)
+        .first()
+    )
+    if existing:
+        return existing
+
+    cleanup_entry = JournalEntry(
+        company_id=entry.company_id,
+        journal_id=entry.journal_id,
+        reference=cleanup_reference,
+        entry_date=entry_date or datetime.utcnow(),
+        status="posted",
+        narration=f"Cleanup neutralization of {entry.reference}" + (f": {reason}" if reason else ""),
+    )
+    db.add(cleanup_entry)
+    db.flush()
+    for line in entry.lines:
+        db.add(JournalEntryLine(
+            entry_id=cleanup_entry.id,
+            account_id=line.account_id,
+            contact_id=line.contact_id,
+            label=line.label or entry.reference,
+            debit=round(float(line.credit or 0), 2),
+            credit=round(float(line.debit or 0), 2),
+            currency_code=line.currency_code or "USD",
+        ))
+    return cleanup_entry
 
 
 def post_entry(

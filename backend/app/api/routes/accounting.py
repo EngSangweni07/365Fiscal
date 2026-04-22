@@ -23,6 +23,8 @@ from app.schemas.account import (
     AccountCreate, AccountRead, AccountUpdate,
     JournalCreate, JournalRead, JournalUpdate,
     JournalEntryCreate, JournalEntryRead, JournalEntryUpdate,
+    NestedReversalCleanupEntryRead,
+    NestedReversalCleanupReportRead,
     PaymentTermCreate, PaymentTermRead, PaymentTermUpdate,
     FiscalPositionCreate, FiscalPositionRead, FiscalPositionUpdate,
     BudgetCreate, BudgetRead, BudgetUpdate,
@@ -38,7 +40,10 @@ from app.services.accounting import (
     build_preview_entries,
     build_pos_payloads,
     build_source_payload,
+    cleanup_neutralizing_reference,
+    create_cleanup_neutralizing_entry,
     create_reversal_entry,
+    is_nested_reversal_reference,
     post_expense_entry,
     post_invoice_entry,
     post_payment_entry,
@@ -564,6 +569,93 @@ def create_journal_entry(
     return entry
 
 
+def _build_nested_reversal_cleanup_report(db: Session, company_id: int, *, cleaned_entries: int = 0):
+    items: list[NestedReversalCleanupEntryRead] = []
+    pending_entries = 0
+    entries = (
+        db.query(JournalEntry)
+        .filter(JournalEntry.company_id == company_id, JournalEntry.reference.like("REV/REV/%"))
+        .order_by(JournalEntry.entry_date.desc(), JournalEntry.id.desc())
+        .all()
+    )
+    for entry in entries:
+        cleanup_reference = cleanup_neutralizing_reference(entry.reference)
+        cleanup_entry = (
+            db.query(JournalEntry)
+            .filter(JournalEntry.company_id == company_id, JournalEntry.reference == cleanup_reference)
+            .first()
+        )
+        neutralized = cleanup_entry is not None
+        if entry.status == "posted" and not neutralized and is_nested_reversal_reference(entry.reference):
+            pending_entries += 1
+        items.append(
+            NestedReversalCleanupEntryRead(
+                entry_id=entry.id,
+                reference=entry.reference,
+                entry_date=entry.entry_date,
+                status=entry.status,
+                cleanup_reference=cleanup_reference,
+                cleanup_entry_id=cleanup_entry.id if cleanup_entry else None,
+                neutralized=neutralized,
+            )
+        )
+    return NestedReversalCleanupReportRead(
+        company_id=company_id,
+        detected_entries=len(items),
+        pending_entries=pending_entries,
+        cleaned_entries=cleaned_entries,
+        items=items,
+    )
+
+
+@router.get("/journal-entries/nested-reversals", response_model=NestedReversalCleanupReportRead)
+def list_nested_reversal_entries(
+    company_id: int,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+    _=Depends(require_company_access),
+):
+    ensure_company_access(db, user, company_id)
+    return _build_nested_reversal_cleanup_report(db, company_id)
+
+
+@router.post("/journal-entries/nested-reversals/cleanup", response_model=NestedReversalCleanupReportRead)
+def cleanup_nested_reversal_entries(
+    company_id: int,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    ensure_company_access(db, user, company_id)
+    cleaned_entries = 0
+    entries = (
+        db.query(JournalEntry)
+        .filter(
+            JournalEntry.company_id == company_id,
+            JournalEntry.status == "posted",
+            JournalEntry.reference.like("REV/REV/%"),
+        )
+        .order_by(JournalEntry.entry_date.asc(), JournalEntry.id.asc())
+        .all()
+    )
+    for entry in entries:
+        cleanup_entry = create_cleanup_neutralizing_entry(
+            db,
+            entry,
+            reason="Nested reversal cleanup",
+        )
+        if not cleanup_entry:
+            continue
+        neutralization_note = f"Neutralized by {cleanup_entry.reference}"
+        if neutralization_note not in (entry.narration or ""):
+            entry.narration = (
+                f"{entry.narration}\n{neutralization_note}" if entry.narration else neutralization_note
+            )
+        entry.status = "cancelled"
+        cleaned_entries += 1
+    db.commit()
+    return _build_nested_reversal_cleanup_report(db, company_id, cleaned_entries=cleaned_entries)
+
+
 @router.get("/journal-entries/{entry_id}", response_model=JournalEntryRead)
 def get_journal_entry(
     entry_id: int,
@@ -686,6 +778,8 @@ def reverse_journal_entry(
     ensure_company_access(db, user, entry.company_id)
     if entry.status != "posted":
         raise HTTPException(400, "Only posted journal entries can be reversed")
+    if (entry.reference or "").startswith("REV/"):
+        raise HTTPException(400, "Reversal entries cannot be reversed again")
     reversal = create_reversal_entry(
         db,
         entry,

@@ -122,6 +122,24 @@ class JournalEntryRead(ORMBase):
     lines: list[JournalEntryLineRead] = []
 
 
+class NestedReversalCleanupEntryRead(BaseModel):
+    entry_id: int
+    reference: str
+    entry_date: datetime
+    status: str
+    cleanup_reference: str
+    cleanup_entry_id: Optional[int] = None
+    neutralized: bool = False
+
+
+class NestedReversalCleanupReportRead(BaseModel):
+    company_id: int
+    detected_entries: int = 0
+    pending_entries: int = 0
+    cleaned_entries: int = 0
+    items: list[NestedReversalCleanupEntryRead] = []
+
+
 class JournalPreviewLineRead(BaseModel):
     account_id: Optional[int] = None
     account_code: str = ""

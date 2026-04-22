@@ -1315,7 +1315,7 @@ export default function AccountingPage() {
                     Post
                   </button>
                 )}
-                {selectedJournalEntry.status === "posted" && (
+                {selectedJournalEntry.status === "posted" && !selectedJournalEntry.reference.startsWith("REV/") && (
                   <button
                     onClick={() => updateJournalEntryStatus(selectedJournalEntry.id, "reverse")}
                     style={{ padding: "8px 14px", background: "#2563eb", color: "#fff", border: "none", borderRadius: 6, fontWeight: 600, cursor: "pointer" }}
