@@ -137,6 +137,18 @@ type ReportKey =
   | "aged_receivable"
   | "aged_payable";
 
+const REPORT_LABELS: Record<ReportKey, string> = {
+  balance_sheet: "Balance Sheet",
+  profit_loss: "Profit and Loss",
+  cash_flow: "Cash Flow",
+  executive_summary: "Executive Summary",
+  tax_return: "Tax Return",
+  trial_balance: "Trial Balance",
+  general_ledger: "General Ledger",
+  aged_receivable: "Aged Receivable",
+  aged_payable: "Aged Payable",
+};
+
 /* ── Styles ──────────────────────────────────────────── */
 const card: React.CSSProperties = {
   background: "#fff",
@@ -760,6 +772,32 @@ export default function AccountingReportsPage() {
 
       {/* Main Content */}
       <div style={{ flex: 1, overflowY: "auto", padding: "1.25rem" }}>
+        <div
+          className="o-control-panel"
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginBottom: 16,
+            padding: "8px 0",
+          }}
+        >
+          <div className="o-breadcrumb">
+            <span
+              className="o-breadcrumb-item"
+              style={{ cursor: "pointer" }}
+              onClick={() => navigate("/accounting")}
+            >
+              Accounting
+            </span>
+            <span className="o-breadcrumb-separator">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </span>
+            <span className="o-breadcrumb-current">{REPORT_LABELS[activeReport]}</span>
+          </div>
+        </div>
+
         {/* Company Selector */}
         {isAdmin && (
           <div style={{ marginBottom: 16 }}>

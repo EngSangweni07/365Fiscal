@@ -1324,22 +1324,6 @@ export default function AccountingConfigPage() {
                 <polyline points="9 18 15 12 9 6" />
               </svg>
             </span>
-            <span className="o-breadcrumb-item">Configuration</span>
-            {currentCompany && (
-              <>
-                <span className="o-breadcrumb-separator">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="9 18 15 12 9 6" />
-                  </svg>
-                </span>
-                <span className="o-breadcrumb-item">{currentCompany.name}</span>
-              </>
-            )}
-            <span className="o-breadcrumb-separator">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </span>
             <span className="o-breadcrumb-current">{SECTION_LABELS[activeSection]}</span>
           </div>
         </div>

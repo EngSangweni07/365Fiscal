@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { apiFetch } from "../api";
 import JournalEntryPreviewDrawer from "../components/JournalEntryPreviewDrawer";
 import { TablePagination } from "../components/TablePagination";
-import { useCompanies } from "../hooks/useCompanies";
 import { useMe } from "../hooks/useMe";
 
 interface Payment {
@@ -78,7 +77,6 @@ export default function PaymentsPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { me } = useMe();
-  const { companies } = useCompanies();
   const isAdmin = Boolean(me?.is_admin);
   const [companyId, setCompanyId] = useState<number | null>(null);
 
@@ -107,11 +105,6 @@ export default function PaymentsPage() {
       setCompanyId(me.company_ids[0]);
     }
   }, [isAdmin, me?.company_ids, searchParams]);
-
-  const currentCompany = useMemo(
-    () => companies.find((company) => company.id === companyId) ?? null,
-    [companies, companyId],
-  );
 
   useEffect(() => {
     loadData();
@@ -262,16 +255,6 @@ export default function PaymentsPage() {
           >
             Accounting
           </span>
-          {currentCompany && (
-            <>
-              <span className="o-breadcrumb-separator">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-              </span>
-              <span className="o-breadcrumb-item">{currentCompany.name}</span>
-            </>
-          )}
           <span className="o-breadcrumb-separator">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="9 18 15 12 9 6" />
