@@ -121,6 +121,7 @@ const PORTAL_NAV_APP_KEYS: Record<string, string> = {
   "/my-devices": "devices",
   "/expenses": "expenses",
   "/accounting": "accounting",
+  "/payments": "accounting",
   "/accounting/reports": "accounting",
   "/accounting/configuration": "accounting",
   "/reports": "reports",
