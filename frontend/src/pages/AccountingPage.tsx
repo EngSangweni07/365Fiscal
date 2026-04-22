@@ -27,6 +27,7 @@ import { apiFetch } from "../api";
 import { useCompanies } from "../hooks/useCompanies";
 import { useMe } from "../hooks/useMe";
 import { SidebarMenu } from "../components/SidebarMenu";
+import { TablePagination } from "../components/TablePagination";
 import type { SidebarMenuItem } from "../components/SidebarMenu";
 
 /* ── Types ───────────────────────────────────────────── */
@@ -199,6 +200,12 @@ export default function AccountingPage() {
   const [editingJournalEntryId, setEditingJournalEntryId] = useState<number | null>(null);
   const [savingJournalEntry, setSavingJournalEntry] = useState(false);
   const [backfilling, setBackfilling] = useState(false);
+  const [journalEntrySearch, setJournalEntrySearch] = useState("");
+  const [journalEntryStatusFilter, setJournalEntryStatusFilter] = useState("all");
+  const [journalEntryJournalFilter, setJournalEntryJournalFilter] = useState("all");
+  const [selectedJournalEntry, setSelectedJournalEntry] = useState<JournalEntry | null>(null);
+  const [journalEntriesPage, setJournalEntriesPage] = useState(1);
+  const [journalEntriesPageSize, setJournalEntriesPageSize] = useState(10);
   const [journalForm, setJournalForm] = useState({
     journal_id: "",
     reference: "",
@@ -261,6 +268,15 @@ export default function AccountingPage() {
       setActiveSection("journal_entries");
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    if (activeSection !== "journal_entries") return;
+    setJournalEntrySearch(searchParams.get("reference") || "");
+  }, [activeSection, searchParams]);
+
+  useEffect(() => {
+    setJournalEntriesPage(1);
+  }, [journalEntrySearch, journalEntryStatusFilter, journalEntryJournalFilter, journalEntriesPageSize]);
 
   const fetchJournalEntries = useCallback(async () => {
     if (!companyId) return;
@@ -844,9 +860,37 @@ export default function AccountingPage() {
       return account ? `${account.code} ${account.name}` : "Account";
     };
     const referenceFilter = searchParams.get("reference") || "";
-    const visibleEntries = referenceFilter
-      ? journalEntries.filter((entry) => entry.reference === referenceFilter)
-      : journalEntries;
+    const filteredEntries = journalEntries.filter((entry) => {
+      if (referenceFilter && entry.reference !== referenceFilter) {
+        return false;
+      }
+      if (journalEntryStatusFilter !== "all" && entry.status !== journalEntryStatusFilter) {
+        return false;
+      }
+      if (journalEntryJournalFilter !== "all" && String(entry.journal_id) !== journalEntryJournalFilter) {
+        return false;
+      }
+      const searchValue = journalEntrySearch.trim().toLowerCase();
+      if (!searchValue) {
+        return true;
+      }
+      const searchHaystack = [
+        entry.reference,
+        entry.narration,
+        journalName(entry.journal_id),
+        ...entry.lines.map((line) => line.label),
+        ...entry.lines.map((line) => accountLabel(line.account_id)),
+      ]
+        .join(" ")
+        .toLowerCase();
+      return searchHaystack.includes(searchValue);
+    });
+    const totalJournalEntryPages = Math.max(1, Math.ceil(filteredEntries.length / journalEntriesPageSize));
+    const safeJournalEntriesPage = Math.min(journalEntriesPage, totalJournalEntryPages);
+    const visibleEntries = filteredEntries.slice(
+      (safeJournalEntriesPage - 1) * journalEntriesPageSize,
+      safeJournalEntriesPage * journalEntriesPageSize,
+    );
 
     return (
       <>
@@ -856,9 +900,6 @@ export default function AccountingPage() {
               <BookOpen size={20} style={{ marginRight: 8, verticalAlign: "text-bottom" }} />
               Journal Entries
             </h2>
-            <div style={{ fontSize: 12, color: "var(--text-muted, #6b7280)", marginTop: 4 }}>
-              Create balanced manual entries, then post them into the ledger.
-            </div>
           </div>
           <button
             onClick={() => setShowJournalForm(true)}
@@ -880,9 +921,103 @@ export default function AccountingPage() {
           </button>
         </div>
 
+        <div style={{ ...card, display: "grid", gridTemplateColumns: "minmax(220px, 1.4fr) minmax(160px, 0.8fr) minmax(180px, 0.9fr) auto", gap: 12, alignItems: "end" }}>
+          <div>
+            <div style={kpiLabel}>Search</div>
+            <div style={{ position: "relative" }}>
+              <Search size={14} style={{ position: "absolute", left: 10, top: 10, color: "#9ca3af" }} />
+              <input
+                value={journalEntrySearch}
+                onChange={(e) => setJournalEntrySearch(e.target.value)}
+                placeholder="Search reference, narration, journal, or lines"
+                style={{ width: "100%", padding: "8px 10px 8px 30px", border: "1px solid #e5e7eb", borderRadius: 6 }}
+              />
+            </div>
+          </div>
+          <div>
+            <div style={kpiLabel}>Status</div>
+            <select
+              value={journalEntryStatusFilter}
+              onChange={(e) => setJournalEntryStatusFilter(e.target.value)}
+              style={{ width: "100%", padding: "8px 10px", border: "1px solid #e5e7eb", borderRadius: 6 }}
+            >
+              <option value="all">All statuses</option>
+              <option value="draft">Draft</option>
+              <option value="posted">Posted</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+          <div>
+            <div style={kpiLabel}>Journal</div>
+            <select
+              value={journalEntryJournalFilter}
+              onChange={(e) => setJournalEntryJournalFilter(e.target.value)}
+              style={{ width: "100%", padding: "8px 10px", border: "1px solid #e5e7eb", borderRadius: 6 }}
+            >
+              <option value="all">All journals</option>
+              {journals.map((journal) => (
+                <option key={journal.id} value={String(journal.id)}>{journal.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <div style={kpiLabel}>Rows</div>
+            <select
+              value={journalEntriesPageSize}
+              onChange={(e) => setJournalEntriesPageSize(Number(e.target.value))}
+              style={{ width: "100%", minWidth: 90, padding: "8px 10px", border: "1px solid #e5e7eb", borderRadius: 6 }}
+            >
+              {[5, 10, 20, 50].map((size) => (
+                <option key={size} value={size}>{size}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
         {error && (
           <div style={{ ...card, background: "#fef2f2", borderColor: "#fecaca", color: "#991b1b", fontSize: 13 }}>
             {error}
+          </div>
+        )}
+
+        {selectedJournalEntry && (
+          <div style={card}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, marginBottom: 12 }}>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 700 }}>{selectedJournalEntry.reference}</div>
+                <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>
+                  {journalName(selectedJournalEntry.journal_id)}
+                  {selectedJournalEntry.entry_date ? ` • ${new Date(selectedJournalEntry.entry_date).toLocaleString()}` : ""}
+                  {selectedJournalEntry.narration ? ` • ${selectedJournalEntry.narration}` : ""}
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedJournalEntry(null)}
+                style={{ border: "1px solid #e5e7eb", background: "#fff", borderRadius: 6, padding: "7px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+              >
+                Close
+              </button>
+            </div>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  <th style={thStyle}>Account</th>
+                  <th style={thStyle}>Label</th>
+                  <th style={{ ...thStyle, textAlign: "right" }}>Debit</th>
+                  <th style={{ ...thStyle, textAlign: "right" }}>Credit</th>
+                </tr>
+              </thead>
+              <tbody>
+                {selectedJournalEntry.lines.map((line) => (
+                  <tr key={line.id}>
+                    <td style={tdStyle}>{accountLabel(line.account_id)}</td>
+                    <td style={tdStyle}>{line.label || "-"}</td>
+                    <td style={{ ...tdStyle, textAlign: "right" }}>{fmt(Number(line.debit || 0))}</td>
+                    <td style={{ ...tdStyle, textAlign: "right" }}>{fmt(Number(line.credit || 0))}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
 
@@ -1053,75 +1188,102 @@ export default function AccountingPage() {
           {loading ? (
             <p style={{ color: "#6b7280", textAlign: "center", padding: 30 }}>Loading journal entries...</p>
           ) : (
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr>
-                  <th style={thStyle}>Date</th>
-                  <th style={thStyle}>Reference</th>
-                  <th style={thStyle}>Journal</th>
-                  <th style={{ ...thStyle, textAlign: "right" }}>Debit</th>
-                  <th style={{ ...thStyle, textAlign: "right" }}>Credit</th>
-                  <th style={thStyle}>Status</th>
-                  <th style={thStyle}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibleEntries.length === 0 && (
+            <>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
                   <tr>
-                    <td colSpan={7} style={{ ...tdStyle, textAlign: "center", color: "#9ca3af" }}>
-                      {referenceFilter ? `No journal entry found for ${referenceFilter}.` : "No journal entries yet."}
-                    </td>
+                    <th style={thStyle}>Date</th>
+                    <th style={thStyle}>Reference</th>
+                    <th style={thStyle}>Journal</th>
+                    <th style={{ ...thStyle, textAlign: "right" }}>Debit</th>
+                    <th style={{ ...thStyle, textAlign: "right" }}>Credit</th>
+                    <th style={thStyle}>Status</th>
+                    <th style={thStyle}>Actions</th>
                   </tr>
-                )}
-                {visibleEntries.map((entry) => {
-                  const debit = entry.lines.reduce((sum, line) => sum + Number(line.debit || 0), 0);
-                  const credit = entry.lines.reduce((sum, line) => sum + Number(line.credit || 0), 0);
-                  return (
-                    <tr key={entry.id}>
-                      <td style={tdStyle}>{entry.entry_date ? new Date(entry.entry_date).toLocaleDateString() : "-"}</td>
-                      <td style={{ ...tdStyle, fontWeight: 600 }}>
-                        <div>{entry.reference}</div>
-                        <div style={{ fontSize: 11, color: "#6b7280" }}>
-                          {entry.lines.slice(0, 2).map((line) => accountLabel(line.account_id)).join(" / ")}
-                        </div>
-                      </td>
-                      <td style={tdStyle}>{journalName(entry.journal_id)}</td>
-                      <td style={{ ...tdStyle, textAlign: "right" }}>{fmt(debit)}</td>
-                      <td style={{ ...tdStyle, textAlign: "right" }}>{fmt(credit)}</td>
-                      <td style={tdStyle}>
-                        <span style={statusBadge(entry.status === "posted" ? "green" : entry.status === "cancelled" ? "red" : "orange")}>
-                          {entry.status}
-                        </span>
-                      </td>
-                      <td style={tdStyle}>
-                        <div style={{ display: "flex", gap: 6 }}>
-                          {entry.status === "draft" && (
-                            <button onClick={() => editJournalEntry(entry)} title="Edit draft" style={{ border: "none", background: "transparent", color: "#2563eb", cursor: "pointer" }}>
-                              <FileText size={16} />
-                            </button>
-                          )}
-                          {entry.status === "draft" && (
-                            <button onClick={() => updateJournalEntryStatus(entry.id, "post")} title="Post" style={{ border: "none", background: "transparent", color: "#16a34a", cursor: "pointer" }}>
-                              <CheckCircle size={16} />
-                            </button>
-                          )}
-                          {entry.status !== "cancelled" && (
-                            <button onClick={() => updateJournalEntryStatus(entry.id, "cancel")} title="Cancel" style={{ border: "none", background: "transparent", color: "#ea580c", cursor: "pointer" }}>
-                              <XCircle size={16} />
-                            </button>
-                          )}
-                          {entry.status === "draft" && (
-                            <button onClick={() => deleteJournalEntry(entry.id)} title="Delete draft" style={{ border: "none", background: "transparent", color: "#dc2626", cursor: "pointer" }}>
-                              <Trash2 size={16} />
-                            </button>
-                          )}
-                        </div>
+                </thead>
+                <tbody>
+                  {visibleEntries.length === 0 && (
+                    <tr>
+                      <td colSpan={7} style={{ ...tdStyle, textAlign: "center", color: "#9ca3af" }}>
+                        {referenceFilter ? `No journal entry found for ${referenceFilter}.` : "No journal entries match the current filters."}
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  )}
+                  {visibleEntries.map((entry) => {
+                    const debit = entry.lines.reduce((sum, line) => sum + Number(line.debit || 0), 0);
+                    const credit = entry.lines.reduce((sum, line) => sum + Number(line.credit || 0), 0);
+                    const isSelected = selectedJournalEntry?.id === entry.id;
+                    return (
+                      <tr key={entry.id} style={{ background: isSelected ? "rgba(74,125,230,0.06)" : "transparent" }}>
+                        <td style={tdStyle}>{entry.entry_date ? new Date(entry.entry_date).toLocaleDateString() : "-"}</td>
+                        <td style={{ ...tdStyle, fontWeight: 600 }}>
+                          <button
+                            onClick={() => setSelectedJournalEntry(entry)}
+                            style={{
+                              border: "none",
+                              background: "transparent",
+                              padding: 0,
+                              margin: 0,
+                              textAlign: "left",
+                              color: "#2563eb",
+                              cursor: "pointer",
+                              fontWeight: 600,
+                            }}
+                          >
+                            <div>{entry.reference}</div>
+                            <div style={{ fontSize: 11, color: "#6b7280" }}>
+                              {entry.lines.slice(0, 2).map((line) => accountLabel(line.account_id)).join(" / ")}
+                            </div>
+                          </button>
+                        </td>
+                        <td style={tdStyle}>{journalName(entry.journal_id)}</td>
+                        <td style={{ ...tdStyle, textAlign: "right" }}>{fmt(debit)}</td>
+                        <td style={{ ...tdStyle, textAlign: "right" }}>{fmt(credit)}</td>
+                        <td style={tdStyle}>
+                          <span style={statusBadge(entry.status === "posted" ? "green" : entry.status === "cancelled" ? "red" : "orange")}>
+                            {entry.status}
+                          </span>
+                        </td>
+                        <td style={tdStyle}>
+                          <div style={{ display: "flex", gap: 6 }}>
+                            {entry.status === "draft" && (
+                              <button onClick={() => editJournalEntry(entry)} title="Edit draft" style={{ border: "none", background: "transparent", color: "#2563eb", cursor: "pointer" }}>
+                                <FileText size={16} />
+                              </button>
+                            )}
+                            {entry.status === "draft" && (
+                              <button onClick={() => updateJournalEntryStatus(entry.id, "post")} title="Post" style={{ border: "none", background: "transparent", color: "#16a34a", cursor: "pointer" }}>
+                                <CheckCircle size={16} />
+                              </button>
+                            )}
+                            {entry.status !== "cancelled" && (
+                              <button onClick={() => updateJournalEntryStatus(entry.id, "cancel")} title="Cancel" style={{ border: "none", background: "transparent", color: "#ea580c", cursor: "pointer" }}>
+                                <XCircle size={16} />
+                              </button>
+                            )}
+                            {entry.status === "draft" && (
+                              <button onClick={() => deleteJournalEntry(entry.id)} title="Delete draft" style={{ border: "none", background: "transparent", color: "#dc2626", cursor: "pointer" }}>
+                                <Trash2 size={16} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+
+              <div style={{ marginTop: 12 }}>
+                <TablePagination
+                  page={safeJournalEntriesPage}
+                  pageSize={journalEntriesPageSize}
+                  totalItems={filteredEntries.length}
+                  onPageChange={setJournalEntriesPage}
+                  onPageSizeChange={setJournalEntriesPageSize}
+                />
+              </div>
+            </>
           )}
         </div>
       </>
