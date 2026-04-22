@@ -38,6 +38,7 @@ from app.services.accounting import (
     build_preview_entries,
     build_pos_payloads,
     build_source_payload,
+    create_reversal_entry,
     post_expense_entry,
     post_invoice_entry,
     post_payment_entry,
@@ -659,10 +660,42 @@ def cancel_journal_entry(
     ensure_company_access(db, user, entry.company_id)
     if entry.status == "cancelled":
         raise HTTPException(400, "Journal entry is already cancelled")
+    if entry.status == "posted":
+        reversal = create_reversal_entry(
+            db,
+            entry,
+            reason=f"Journal entry {entry.reference} cancelled",
+        )
+        if not reversal:
+            raise HTTPException(400, "Posted journal entry could not be reversed")
     entry.status = "cancelled"
     db.commit()
     db.refresh(entry)
     return entry
+
+
+@router.post("/journal-entries/{entry_id}/reverse", response_model=JournalEntryRead)
+def reverse_journal_entry(
+    entry_id: int,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    entry = db.query(JournalEntry).filter(JournalEntry.id == entry_id).first()
+    if not entry:
+        raise HTTPException(404, "Journal entry not found")
+    ensure_company_access(db, user, entry.company_id)
+    if entry.status != "posted":
+        raise HTTPException(400, "Only posted journal entries can be reversed")
+    reversal = create_reversal_entry(
+        db,
+        entry,
+        reason=f"Journal entry {entry.reference} reversed",
+    )
+    if not reversal:
+        raise HTTPException(400, "Journal entry could not be reversed")
+    db.commit()
+    db.refresh(reversal)
+    return reversal
 
 
 @router.delete("/journal-entries/{entry_id}")

@@ -400,12 +400,13 @@ export default function AccountingPage() {
     setShowJournalForm(true);
   };
 
-  const updateJournalEntryStatus = async (entryId: number, action: "post" | "cancel") => {
+  const updateJournalEntryStatus = async (entryId: number, action: "post" | "cancel" | "reverse") => {
     setError(null);
     try {
       await apiFetch(`/accounting/journal-entries/${entryId}/${action}`, { method: "POST" });
+      setSelectedJournalEntry(null);
       fetchJournalEntries();
-      if (activeSection === "overview") fetchOverview();
+      fetchOverview();
     } catch (err: any) {
       setError(err?.detail || err?.message || `Failed to ${action} journal entry`);
     }
@@ -980,47 +981,6 @@ export default function AccountingPage() {
           </div>
         )}
 
-        {selectedJournalEntry && (
-          <div style={card}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, marginBottom: 12 }}>
-              <div>
-                <div style={{ fontSize: 18, fontWeight: 700 }}>{selectedJournalEntry.reference}</div>
-                <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>
-                  {journalName(selectedJournalEntry.journal_id)}
-                  {selectedJournalEntry.entry_date ? ` • ${new Date(selectedJournalEntry.entry_date).toLocaleString()}` : ""}
-                  {selectedJournalEntry.narration ? ` • ${selectedJournalEntry.narration}` : ""}
-                </div>
-              </div>
-              <button
-                onClick={() => setSelectedJournalEntry(null)}
-                style={{ border: "1px solid #e5e7eb", background: "#fff", borderRadius: 6, padding: "7px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
-              >
-                Close
-              </button>
-            </div>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr>
-                  <th style={thStyle}>Account</th>
-                  <th style={thStyle}>Label</th>
-                  <th style={{ ...thStyle, textAlign: "right" }}>Debit</th>
-                  <th style={{ ...thStyle, textAlign: "right" }}>Credit</th>
-                </tr>
-              </thead>
-              <tbody>
-                {selectedJournalEntry.lines.map((line) => (
-                  <tr key={line.id}>
-                    <td style={tdStyle}>{accountLabel(line.account_id)}</td>
-                    <td style={tdStyle}>{line.label || "-"}</td>
-                    <td style={{ ...tdStyle, textAlign: "right" }}>{fmt(Number(line.debit || 0))}</td>
-                    <td style={{ ...tdStyle, textAlign: "right" }}>{fmt(Number(line.credit || 0))}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
         {showJournalForm && (
           <div style={card}>
             <div style={sectionTitle}>{editingJournalEntryId ? "Edit Draft Journal Entry" : "New Journal Entry"}</div>
@@ -1214,27 +1174,20 @@ export default function AccountingPage() {
                     const credit = entry.lines.reduce((sum, line) => sum + Number(line.credit || 0), 0);
                     const isSelected = selectedJournalEntry?.id === entry.id;
                     return (
-                      <tr key={entry.id} style={{ background: isSelected ? "rgba(74,125,230,0.06)" : "transparent" }}>
+                      <tr
+                        key={entry.id}
+                        onClick={() => setSelectedJournalEntry(entry)}
+                        style={{
+                          background: isSelected ? "rgba(74,125,230,0.06)" : "transparent",
+                          cursor: "pointer",
+                        }}
+                      >
                         <td style={tdStyle}>{entry.entry_date ? new Date(entry.entry_date).toLocaleDateString() : "-"}</td>
                         <td style={{ ...tdStyle, fontWeight: 600 }}>
-                          <button
-                            onClick={() => setSelectedJournalEntry(entry)}
-                            style={{
-                              border: "none",
-                              background: "transparent",
-                              padding: 0,
-                              margin: 0,
-                              textAlign: "left",
-                              color: "#2563eb",
-                              cursor: "pointer",
-                              fontWeight: 600,
-                            }}
-                          >
-                            <div>{entry.reference}</div>
-                            <div style={{ fontSize: 11, color: "#6b7280" }}>
-                              {entry.lines.slice(0, 2).map((line) => accountLabel(line.account_id)).join(" / ")}
-                            </div>
-                          </button>
+                          <div style={{ color: "#2563eb" }}>{entry.reference}</div>
+                          <div style={{ fontSize: 11, color: "#6b7280" }}>
+                            {entry.lines.slice(0, 2).map((line) => accountLabel(line.account_id)).join(" / ")}
+                          </div>
                         </td>
                         <td style={tdStyle}>{journalName(entry.journal_id)}</td>
                         <td style={{ ...tdStyle, textAlign: "right" }}>{fmt(debit)}</td>
@@ -1247,22 +1200,34 @@ export default function AccountingPage() {
                         <td style={tdStyle}>
                           <div style={{ display: "flex", gap: 6 }}>
                             {entry.status === "draft" && (
-                              <button onClick={() => editJournalEntry(entry)} title="Edit draft" style={{ border: "none", background: "transparent", color: "#2563eb", cursor: "pointer" }}>
+                              <button onClick={(event) => {
+                                event.stopPropagation();
+                                editJournalEntry(entry);
+                              }} title="Edit draft" style={{ border: "none", background: "transparent", color: "#2563eb", cursor: "pointer" }}>
                                 <FileText size={16} />
                               </button>
                             )}
                             {entry.status === "draft" && (
-                              <button onClick={() => updateJournalEntryStatus(entry.id, "post")} title="Post" style={{ border: "none", background: "transparent", color: "#16a34a", cursor: "pointer" }}>
+                              <button onClick={(event) => {
+                                event.stopPropagation();
+                                updateJournalEntryStatus(entry.id, "post");
+                              }} title="Post" style={{ border: "none", background: "transparent", color: "#16a34a", cursor: "pointer" }}>
                                 <CheckCircle size={16} />
                               </button>
                             )}
                             {entry.status !== "cancelled" && (
-                              <button onClick={() => updateJournalEntryStatus(entry.id, "cancel")} title="Cancel" style={{ border: "none", background: "transparent", color: "#ea580c", cursor: "pointer" }}>
+                              <button onClick={(event) => {
+                                event.stopPropagation();
+                                updateJournalEntryStatus(entry.id, "cancel");
+                              }} title="Cancel" style={{ border: "none", background: "transparent", color: "#ea580c", cursor: "pointer" }}>
                                 <XCircle size={16} />
                               </button>
                             )}
                             {entry.status === "draft" && (
-                              <button onClick={() => deleteJournalEntry(entry.id)} title="Delete draft" style={{ border: "none", background: "transparent", color: "#dc2626", cursor: "pointer" }}>
+                              <button onClick={(event) => {
+                                event.stopPropagation();
+                                deleteJournalEntry(entry.id);
+                              }} title="Delete draft" style={{ border: "none", background: "transparent", color: "#dc2626", cursor: "pointer" }}>
                                 <Trash2 size={16} />
                               </button>
                             )}
@@ -1286,6 +1251,119 @@ export default function AccountingPage() {
             </>
           )}
         </div>
+
+        {selectedJournalEntry && (
+          <div
+            onClick={() => setSelectedJournalEntry(null)}
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(15, 23, 42, 0.45)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "1.5rem",
+              zIndex: 1200,
+            }}
+          >
+            <div
+              onClick={(event) => event.stopPropagation()}
+              style={{
+                width: "min(920px, 100%)",
+                maxHeight: "85vh",
+                overflowY: "auto",
+                background: "#fff",
+                borderRadius: 14,
+                border: "1px solid #e5e7eb",
+                boxShadow: "0 24px 60px rgba(15, 23, 42, 0.18)",
+                padding: "1.25rem",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, marginBottom: 16 }}>
+                <div>
+                  <div style={{ fontSize: 20, fontWeight: 700 }}>{selectedJournalEntry.reference}</div>
+                  <div style={{ fontSize: 12, color: "#6b7280", marginTop: 6 }}>
+                    {journalName(selectedJournalEntry.journal_id)}
+                    {selectedJournalEntry.entry_date ? ` • ${new Date(selectedJournalEntry.entry_date).toLocaleString()}` : ""}
+                  </div>
+                  {selectedJournalEntry.narration && (
+                    <div style={{ fontSize: 13, color: "#475569", marginTop: 8 }}>{selectedJournalEntry.narration}</div>
+                  )}
+                </div>
+                <button
+                  onClick={() => setSelectedJournalEntry(null)}
+                  style={{ border: "1px solid #e5e7eb", background: "#fff", borderRadius: 6, padding: "7px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                >
+                  Close
+                </button>
+              </div>
+
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+                {selectedJournalEntry.status === "draft" && (
+                  <button
+                    onClick={() => editJournalEntry(selectedJournalEntry)}
+                    style={{ padding: "8px 14px", background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6, fontWeight: 600, cursor: "pointer" }}
+                  >
+                    Edit Draft
+                  </button>
+                )}
+                {selectedJournalEntry.status === "draft" && (
+                  <button
+                    onClick={() => updateJournalEntryStatus(selectedJournalEntry.id, "post")}
+                    style={{ padding: "8px 14px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 6, fontWeight: 600, cursor: "pointer" }}
+                  >
+                    Post
+                  </button>
+                )}
+                {selectedJournalEntry.status === "posted" && (
+                  <button
+                    onClick={() => updateJournalEntryStatus(selectedJournalEntry.id, "reverse")}
+                    style={{ padding: "8px 14px", background: "#2563eb", color: "#fff", border: "none", borderRadius: 6, fontWeight: 600, cursor: "pointer" }}
+                  >
+                    Reverse
+                  </button>
+                )}
+                {selectedJournalEntry.status !== "cancelled" && (
+                  <button
+                    onClick={() => updateJournalEntryStatus(selectedJournalEntry.id, "cancel")}
+                    style={{ padding: "8px 14px", background: "#fff", border: "1px solid #f59e0b", color: "#b45309", borderRadius: 6, fontWeight: 600, cursor: "pointer" }}
+                  >
+                    Cancel
+                  </button>
+                )}
+                {selectedJournalEntry.status === "draft" && (
+                  <button
+                    onClick={() => deleteJournalEntry(selectedJournalEntry.id)}
+                    style={{ padding: "8px 14px", background: "#fff", border: "1px solid #fecaca", color: "#dc2626", borderRadius: 6, fontWeight: 600, cursor: "pointer" }}
+                  >
+                    Delete Draft
+                  </button>
+                )}
+              </div>
+
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr>
+                    <th style={thStyle}>Account</th>
+                    <th style={thStyle}>Label</th>
+                    <th style={{ ...thStyle, textAlign: "right" }}>Debit</th>
+                    <th style={{ ...thStyle, textAlign: "right" }}>Credit</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedJournalEntry.lines.map((line) => (
+                    <tr key={line.id}>
+                      <td style={tdStyle}>{accountLabel(line.account_id)}</td>
+                      <td style={tdStyle}>{line.label || "-"}</td>
+                      <td style={{ ...tdStyle, textAlign: "right" }}>{fmt(Number(line.debit || 0))}</td>
+                      <td style={{ ...tdStyle, textAlign: "right" }}>{fmt(Number(line.credit || 0))}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </>
     );
   };
