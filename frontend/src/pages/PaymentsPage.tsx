@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { apiFetch } from "../api";
 import JournalEntryPreviewDrawer from "../components/JournalEntryPreviewDrawer";
 import { TablePagination } from "../components/TablePagination";
+import { useCompanies } from "../hooks/useCompanies";
 import { useMe } from "../hooks/useMe";
 
 interface Payment {
@@ -75,8 +76,11 @@ const ClockIcon = () => (
 
 export default function PaymentsPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { me } = useMe();
-  const companyId = me?.company_ids?.[0];
+  const { companies } = useCompanies();
+  const isAdmin = Boolean(me?.is_admin);
+  const [companyId, setCompanyId] = useState<number | null>(null);
 
   const [payments, setPayments] = useState<Payment[]>([]);
   const [summary, setSummary] = useState<PaymentSummary | null>(null);
@@ -92,6 +96,22 @@ export default function PaymentsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [exportingSelected, setExportingSelected] = useState(false);
   const [previewPaymentId, setPreviewPaymentId] = useState<number | null>(null);
+
+  useEffect(() => {
+    const requestedCompanyId = Number(searchParams.get("company_id") || 0);
+    if (requestedCompanyId > 0) {
+      setCompanyId(requestedCompanyId);
+      return;
+    }
+    if (!isAdmin && me?.company_ids?.length) {
+      setCompanyId(me.company_ids[0]);
+    }
+  }, [isAdmin, me?.company_ids, searchParams]);
+
+  const currentCompany = useMemo(
+    () => companies.find((company) => company.id === companyId) ?? null,
+    [companies, companyId],
+  );
 
   useEffect(() => {
     loadData();
@@ -225,6 +245,42 @@ export default function PaymentsPage() {
 
   return (
     <div className="content-area">
+      <div
+        className="o-control-panel"
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          marginBottom: 16,
+          padding: "8px 0",
+        }}
+      >
+        <div className="o-breadcrumb">
+          <span
+            className="o-breadcrumb-item"
+            style={{ cursor: "pointer" }}
+            onClick={() => navigate(companyId ? `/accounting?company_id=${companyId}` : "/accounting")}
+          >
+            Accounting
+          </span>
+          {currentCompany && (
+            <>
+              <span className="o-breadcrumb-separator">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </span>
+              <span className="o-breadcrumb-item">{currentCompany.name}</span>
+            </>
+          )}
+          <span className="o-breadcrumb-separator">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </span>
+          <span className="o-breadcrumb-current">Payments</span>
+        </div>
+      </div>
+
       <div className="page-header">
         <div>
           <h1 className="page-title">Payments</h1>
@@ -422,7 +478,9 @@ export default function PaymentsPage() {
                       <button
                         className="btn btn-sm btn-light"
                         onClick={() =>
-                          navigate(`/accounting?section=journal_entries&reference=${encodeURIComponent(`PAY/${payment.reference}`)}`)
+                          navigate(
+                            `/accounting?section=journal_entries&reference=${encodeURIComponent(`PAY/${payment.reference}`)}${companyId ? `&company_id=${companyId}` : ""}`,
+                          )
                         }
                         style={{ marginRight: 6 }}
                       >

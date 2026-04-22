@@ -217,6 +217,13 @@ export default function AccountingPage() {
     }
   }, [isAdmin, me?.company_ids, companyId]);
 
+  useEffect(() => {
+    const requestedCompanyId = Number(searchParams.get("company_id") || 0);
+    if (requestedCompanyId > 0) {
+      setCompanyId(requestedCompanyId);
+    }
+  }, [searchParams]);
+
   const filteredCompanies = useMemo(() => {
     if (!companyQuery.trim()) return companies;
     const q = companyQuery.toLowerCase();
@@ -291,7 +298,7 @@ export default function AccountingPage() {
   // Navigate to sub-pages
   const handleSectionSelect = (key: string) => {
     if (key === "payments") {
-      navigate("/payments");
+      navigate(companyId ? `/payments?company_id=${companyId}` : "/payments");
       return;
     }
     if (key === "reports") {
@@ -746,7 +753,9 @@ export default function AccountingPage() {
             <FileText size={14} /> New Invoice
           </button>
           <button
-            onClick={() => navigate("/payments")}
+            onClick={() =>
+              navigate(companyId ? `/payments?company_id=${companyId}` : "/payments")
+            }
             style={{
               padding: "8px 18px",
               fontSize: 13,
