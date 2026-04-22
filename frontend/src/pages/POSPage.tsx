@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../api";
+import JournalEntryPreviewDrawer from "../components/JournalEntryPreviewDrawer";
 import { useMe } from "../hooks/useMe";
 import { useAlert } from "../context/AlertContext";
 import BackIcon from "../assets/back.svg?react";
@@ -537,6 +538,7 @@ export default function POSPage() {
   const [ordersFilter, setOrdersFilter] = useState<"all" | "session">("all");
   const [showOrders, setShowOrders] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<POSOrder | null>(null);
+  const [journalPreviewOpen, setJournalPreviewOpen] = useState(false);
   const [showRefundDialog, setShowRefundDialog] = useState(false);
   const [refundReason, setRefundReason] = useState("");
   const [refundingOrderId, setRefundingOrderId] = useState<number | null>(null);
@@ -3253,6 +3255,23 @@ export default function POSPage() {
                     </svg>
                     Send
                   </button>
+                  <button
+                    className="pos-btn pos-btn-sm pos-btn-outline"
+                    onClick={() => setJournalPreviewOpen(true)}
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                    </svg>
+                    Journal Preview
+                  </button>
                   {!selectedOrder.is_fiscalized &&
                     selectedOrder.status !== "refunded" &&
                     selectedOrder.total_amount > 0 && (
@@ -4320,6 +4339,13 @@ export default function POSPage() {
           <button className="pos-toast-close">✕</button>
         </div>
       )}
+
+      <JournalEntryPreviewDrawer
+        open={journalPreviewOpen}
+        onClose={() => setJournalPreviewOpen(false)}
+        sourceType="pos"
+        sourceId={selectedOrder?.id ?? null}
+      />
     </div>
   );
 }

@@ -112,6 +112,15 @@ type SectionKey =
   | "budgets"
   | "account_mappings";
 
+const SECTION_LABELS: Record<SectionKey, string> = {
+  chart_of_accounts: "Chart of Accounts",
+  journals: "Journals",
+  payment_terms: "Payment Terms",
+  fiscal_positions: "Fiscal Positions",
+  budgets: "Budgets",
+  account_mappings: "Account Mappings",
+};
+
 const ACCOUNT_TYPES = [
   { value: "asset", label: "Asset" },
   { value: "liability", label: "Liability" },
@@ -241,6 +250,11 @@ export default function AccountingConfigPage() {
         (c.tin && c.tin.toLowerCase().includes(q)),
     );
   }, [companies, companyQuery]);
+
+  const currentCompany = useMemo(
+    () => companies.find((company) => company.id === companyId) ?? null,
+    [companies, companyId],
+  );
 
   // Fetch data on company/section change
   useEffect(() => {
@@ -1288,6 +1302,48 @@ export default function AccountingConfigPage() {
 
       {/* Main Content */}
       <div style={{ flex: 1, overflowY: "auto", padding: "1.25rem" }}>
+        <div
+          className="o-control-panel"
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginBottom: 16,
+            padding: "8px 0",
+          }}
+        >
+          <div className="o-breadcrumb">
+            <span
+              className="o-breadcrumb-item"
+              style={{ cursor: "pointer" }}
+              onClick={() => navigate("/accounting")}
+            >
+              Accounting
+            </span>
+            <span className="o-breadcrumb-separator">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </span>
+            <span className="o-breadcrumb-item">Configuration</span>
+            {currentCompany && (
+              <>
+                <span className="o-breadcrumb-separator">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </span>
+                <span className="o-breadcrumb-item">{currentCompany.name}</span>
+              </>
+            )}
+            <span className="o-breadcrumb-separator">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </span>
+            <span className="o-breadcrumb-current">{SECTION_LABELS[activeSection]}</span>
+          </div>
+        </div>
+
         {/* Company Selector */}
         {isAdmin && (
           <div style={{ marginBottom: 16 }}>

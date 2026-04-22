@@ -14,6 +14,7 @@ from app.models.category import Category
 from app.models.contact import Contact
 from app.models.invoice import Invoice
 from app.models.payment import Payment
+from app.models.pos_session import POSOrder
 from app.models.product import Product
 from app.models.expense import Expense
 from app.models.purchase_order import PurchaseOrder
@@ -35,6 +36,7 @@ from app.schemas.account import (
 )
 from app.services.accounting import (
     build_preview_entries,
+    build_pos_payloads,
     build_source_payload,
     post_expense_entry,
     post_invoice_entry,
@@ -710,6 +712,23 @@ def journal_entry_link(
         if source:
             company_id = source.company_id
             reference = f"EXP/{source.reference}"
+    elif source_type == "pos":
+        source = db.query(POSOrder).filter(POSOrder.id == source_id).first()
+        if source:
+            company_id = source.company_id
+            reference = f"PAY/{source.reference}"
+            if source.invoice_id:
+                entry = (
+                    db.query(JournalEntry)
+                    .filter(
+                        JournalEntry.company_id == source.company_id,
+                        JournalEntry.invoice_id == source.invoice_id,
+                    )
+                    .order_by(JournalEntry.entry_date.asc(), JournalEntry.id.asc())
+                    .first()
+                )
+                if entry and entry.reference:
+                    reference = entry.reference
     elif source_type == "purchase":
         source = db.query(PurchaseOrder).filter(PurchaseOrder.id == source_id).first()
         if source:
@@ -756,6 +775,8 @@ def source_entry_preview(
         source = db.query(Payment).filter(Payment.id == source_id).first()
     elif normalized == "expense":
         source = db.query(Expense).filter(Expense.id == source_id).first()
+    elif normalized == "pos":
+        source = db.query(POSOrder).filter(POSOrder.id == source_id).first()
     elif normalized == "purchase":
         source = db.query(PurchaseOrder).filter(PurchaseOrder.id == source_id).first()
     elif normalized == "stock":
@@ -767,8 +788,13 @@ def source_entry_preview(
         raise HTTPException(404, "Source document not found")
     ensure_company_access(db, user, source.company_id)
 
-    payload = build_source_payload(db, normalized, source)
-    if not payload:
+    if normalized == "pos":
+        payloads = build_pos_payloads(db, source)
+    else:
+        payload = build_source_payload(db, normalized, source)
+        payloads = [payload] if payload else []
+
+    if not payloads:
         return {
             "company_id": source.company_id,
             "source_type": normalized,
@@ -780,6 +806,7 @@ def source_entry_preview(
 
     related_query = db.query(JournalEntry).filter(JournalEntry.company_id == source.company_id)
     if normalized == "invoice":
+        payload = payloads[0]
         related_query = related_query.filter(
             or_(
                 JournalEntry.invoice_id == source.id,
@@ -788,6 +815,7 @@ def source_entry_preview(
             )
         )
     elif normalized == "payment":
+        payload = payloads[0]
         related_query = related_query.filter(
             or_(
                 JournalEntry.payment_id == source.id,
@@ -795,7 +823,17 @@ def source_entry_preview(
                 JournalEntry.reference.like(f"REV/{payload['reference']}%"),
             )
         )
+    elif normalized == "pos":
+        references = [payload["reference"] for payload in payloads if payload.get("reference")]
+        filters = []
+        if source.invoice_id:
+            filters.append(JournalEntry.invoice_id == source.invoice_id)
+        for reference in references:
+            filters.append(JournalEntry.reference == reference)
+            filters.append(JournalEntry.reference.like(f"REV/{reference}%"))
+        related_query = related_query.filter(or_(*filters)) if filters else related_query.filter(False)
     else:
+        payload = payloads[0]
         related_query = related_query.filter(
             or_(
                 JournalEntry.reference == payload["reference"],
@@ -810,7 +848,15 @@ def source_entry_preview(
         "source_id": source_id,
         "source_reference": getattr(source, "reference", str(source_id)),
         "exists": bool(entries),
-        "entries": build_preview_entries(db, payload, entries),
+        "entries": (
+            build_preview_entries(db, payloads[0], entries)
+            if entries
+            else [
+                preview
+                for payload in payloads
+                for preview in build_preview_entries(db, payload, [])
+            ]
+        ),
     }
 
 

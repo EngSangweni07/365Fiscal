@@ -97,6 +97,14 @@ type SectionKey =
   | "reports"
   | "configuration";
 
+const SECTION_LABELS: Record<SectionKey, string> = {
+  overview: "Overview",
+  journal_entries: "Journal Entries",
+  payments: "Payments",
+  reports: "Reports",
+  configuration: "Configuration",
+};
+
 /* ── Styles ──────────────────────────────────────────── */
 const card: React.CSSProperties = {
   background: "#fff",
@@ -218,6 +226,11 @@ export default function AccountingPage() {
         (c.tin && c.tin.toLowerCase().includes(q)),
     );
   }, [companies, companyQuery]);
+
+  const currentCompany = useMemo(
+    () => companies.find((company) => company.id === companyId) ?? null,
+    [companies, companyId],
+  );
 
   // Fetch overview data
   const fetchOverview = useCallback(async () => {
@@ -1120,6 +1133,41 @@ export default function AccountingPage() {
         onSelect={handleSectionSelect}
       />
       <div style={{ flex: 1, padding: "1.5rem", overflowY: "auto" }}>
+        <div
+          className="o-control-panel"
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginBottom: 16,
+            padding: "8px 0",
+          }}
+        >
+          <div className="o-breadcrumb">
+            <span
+              className="o-breadcrumb-item"
+              style={{ cursor: "pointer" }}
+              onClick={() => setActiveSection("overview")}
+            >
+              Accounting
+            </span>
+            {currentCompany && (
+              <>
+                <span className="o-breadcrumb-separator">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </span>
+                <span className="o-breadcrumb-item">{currentCompany.name}</span>
+              </>
+            )}
+            <span className="o-breadcrumb-separator">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </span>
+            <span className="o-breadcrumb-current">{SECTION_LABELS[activeSection]}</span>
+          </div>
+        </div>
         {companySelector}
         {activeSection === "overview" && renderOverview()}
         {activeSection === "journal_entries" && renderJournalEntries()}

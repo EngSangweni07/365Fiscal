@@ -40,6 +40,7 @@ from app.schemas.pos import (
     POSEmployeeCreate, POSEmployeeUpdate, POSEmployeeRead,
     POSTillCreate, POSTillUpdate, POSTillRead,
 )
+from app.services.accounting import post_invoice_entry, post_payment_entry
 from app.services.fdms import submit_invoice
 
 router = APIRouter(prefix="/pos", tags=["pos"])
@@ -656,6 +657,20 @@ def create_order(
     order.invoice_id = invoice.id
     db.flush()
 
+    post_invoice_entry(db, invoice)
+    pos_payment = type("POSPayment", (), {
+        "id": None,
+        "company_id": order.company_id,
+        "invoice_id": invoice.id,
+        "contact_id": order.customer_id,
+        "reference": order.reference,
+        "payment_date": order.order_date,
+        "amount": order.total_amount,
+        "currency": order.currency,
+        "payment_method": order.payment_method,
+    })
+    post_payment_entry(db, pos_payment)
+
     # Auto-fiscalize
     if payload.auto_fiscalize and device:
         try:
@@ -903,6 +918,20 @@ def refund_order(
 
     refund.invoice_id = cn.id
     order.status = "refunded"
+
+    post_invoice_entry(db, cn)
+    refund_payment = type("POSRefundPayment", (), {
+        "id": None,
+        "company_id": refund.company_id,
+        "invoice_id": cn.id,
+        "contact_id": refund.customer_id,
+        "reference": refund.reference,
+        "payment_date": refund.order_date,
+        "amount": refund.total_amount,
+        "currency": refund.currency,
+        "payment_method": refund.payment_method,
+    })
+    post_payment_entry(db, refund_payment)
 
     # Update session
     if session:

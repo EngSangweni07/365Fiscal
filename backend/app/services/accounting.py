@@ -199,26 +199,65 @@ def _invoice_entry_payload(db: Session, invoice) -> dict[str, Any] | None:
     }
 
 
-def _payment_entry_payload(db: Session, payment) -> dict[str, Any] | None:
-    amount = round(float(payment.amount or 0), 2)
-    if amount <= 0:
+def _payment_entry_payload_from_values(
+    db: Session,
+    *,
+    company_id: int,
+    contact_id: int | None,
+    reference: str,
+    payment_date,
+    amount: float,
+    currency: str,
+    payment_method: str,
+    payment_id: int | None = None,
+) -> dict[str, Any] | None:
+    amount = round(float(amount or 0), 2)
+    if amount == 0:
         return None
-    is_cash = payment.payment_method == "cash"
+    sign = 1 if amount > 0 else -1
+    absolute_amount = abs(amount)
+    is_cash = payment_method == "cash"
     cash_code = ACCOUNT_CODES["cash"] if is_cash else ACCOUNT_CODES["bank"]
-    receivable_account_id = contact_account_id(db, payment.company_id, payment.contact_id, "receivable_account_id")
-    return {
-        "company_id": payment.company_id,
-        "journal_type": "cash" if is_cash else "bank",
-        "reference": f"PAY/{payment.reference}",
-        "entry_date": payment.payment_date,
-        "narration": f"Payment {payment.reference}",
-        "lines": [
-            {"code": cash_code, "debit": amount, "contact_id": payment.contact_id, "label": payment.reference, "currency_code": payment.currency},
-            {"code": ACCOUNT_CODES["receivable"], "account_id": receivable_account_id, "credit": amount, "contact_id": payment.contact_id, "label": payment.reference, "currency_code": payment.currency},
-        ],
-        "invoice_id": None,
-        "payment_id": payment.id,
+    receivable_account_id = contact_account_id(db, company_id, contact_id, "receivable_account_id")
+    cash_line = {
+        "code": cash_code,
+        "contact_id": contact_id,
+        "label": reference,
+        "currency_code": currency,
+        "debit" if sign > 0 else "credit": absolute_amount,
     }
+    receivable_line = {
+        "code": ACCOUNT_CODES["receivable"],
+        "account_id": receivable_account_id,
+        "contact_id": contact_id,
+        "label": reference,
+        "currency_code": currency,
+        "credit" if sign > 0 else "debit": absolute_amount,
+    }
+    return {
+        "company_id": company_id,
+        "journal_type": "cash" if is_cash else "bank",
+        "reference": f"PAY/{reference}",
+        "entry_date": payment_date,
+        "narration": f"Payment {reference}" if sign > 0 else f"Payment refund {reference}",
+        "lines": [cash_line, receivable_line],
+        "invoice_id": None,
+        "payment_id": payment_id,
+    }
+
+
+def _payment_entry_payload(db: Session, payment) -> dict[str, Any] | None:
+    return _payment_entry_payload_from_values(
+        db,
+        company_id=payment.company_id,
+        contact_id=payment.contact_id,
+        reference=payment.reference,
+        payment_date=payment.payment_date,
+        amount=float(payment.amount or 0),
+        currency=payment.currency,
+        payment_method=payment.payment_method,
+        payment_id=payment.id,
+    )
 
 
 def _expense_entry_payload(db: Session, expense) -> dict[str, Any] | None:
@@ -313,6 +352,28 @@ def _stock_move_entry_payload(db: Session, move) -> dict[str, Any] | None:
     }
 
 
+def build_pos_payloads(db: Session, order) -> list[dict[str, Any]]:
+    payloads: list[dict[str, Any]] = []
+    if getattr(order, "invoice", None):
+        invoice_payload = _invoice_entry_payload(db, order.invoice)
+        if invoice_payload:
+            payloads.append(invoice_payload)
+
+    payment_payload = _payment_entry_payload_from_values(
+        db,
+        company_id=order.company_id,
+        contact_id=order.customer_id,
+        reference=order.reference,
+        payment_date=getattr(order, "order_date", None),
+        amount=float(order.total_amount or 0),
+        currency=order.currency,
+        payment_method=order.payment_method,
+    )
+    if payment_payload:
+        payloads.append(payment_payload)
+    return payloads
+
+
 def build_source_payload(db: Session, source_type: str, source) -> dict[str, Any] | None:
     normalized = source_type.strip().lower()
     if normalized == "invoice":
@@ -325,6 +386,9 @@ def build_source_payload(db: Session, source_type: str, source) -> dict[str, Any
         return _purchase_entry_payload(db, source)
     if normalized == "stock":
         return _stock_move_entry_payload(db, source)
+    if normalized == "pos":
+        payloads = build_pos_payloads(db, source)
+        return payloads[0] if payloads else None
     return None
 
 

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
 import { apiFetch } from "../api";
 
-type SourceType = "invoice" | "payment" | "expense" | "purchase" | "stock";
+type SourceType = "invoice" | "payment" | "expense" | "purchase" | "stock" | "pos";
 
 type PreviewLine = {
   account_id: number | null;
