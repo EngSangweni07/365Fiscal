@@ -1149,6 +1149,33 @@ export default function InvoicesPage({
     : linkedQuotation
       ? (contactById.get(linkedQuotation.customer_id) ?? null)
       : null;
+  const newInvoiceCustomerId = newCustomerId ?? newQuotation?.customer_id ?? null;
+  const newInvoiceCustomer = newInvoiceCustomerId
+    ? (contactById.get(newInvoiceCustomerId) ?? null)
+    : null;
+  const customerHistoryInvoices = useMemo(() => {
+    if (!newInvoiceCustomerId) return [];
+    return invoices
+      .filter((invoice) => invoice.customer_id === newInvoiceCustomerId)
+      .sort((left, right) => {
+        const leftDate =
+          left.invoice_date || left.fiscalized_at || new Date(0).toISOString();
+        const rightDate =
+          right.invoice_date || right.fiscalized_at || new Date(0).toISOString();
+        const byDate =
+          new Date(rightDate).getTime() - new Date(leftDate).getTime();
+        return byDate || right.id - left.id;
+      });
+  }, [invoices, newInvoiceCustomerId]);
+  const customerHistoryOutstandingTotal = useMemo(() => {
+    return customerHistoryInvoices.reduce(
+      (sum, invoice) => sum + (invoice.amount_due || 0),
+      0,
+    );
+  }, [customerHistoryInvoices]);
+  const recentCustomerHistory = useMemo(() => {
+    return customerHistoryInvoices.slice(0, 6);
+  }, [customerHistoryInvoices]);
 
   const invoiceDateLabel = selectedInvoice?.invoice_date
     ? formatDateTime(selectedInvoice.invoice_date)
@@ -2516,12 +2543,13 @@ export default function InvoicesPage({
 
           {/* ── New Invoice Form ── */}
           {newMode && (
-            <div
-              className="card shadow-sm"
-              style={{ maxHeight: "82vh", overflowY: "auto" }}
-            >
-              <div className="card-body invoice-form">
-                <div className="row g-3">
+            <div className="invoice-create-layout">
+              <div
+                className="card shadow-sm invoice-create-form-card"
+                style={{ maxHeight: "82vh", overflowY: "auto" }}
+              >
+                <div className="card-body invoice-form">
+                  <div className="row g-3">
                   <div className="col-md-6">
                     <label
                       className={`form-label ${
@@ -2747,53 +2775,53 @@ export default function InvoicesPage({
                       onChange={(e) => setNewNotes(e.target.value)}
                     />
                   </div>
-                </div>
+                  </div>
 
-                <hr className="my-4" />
-                <div className="d-flex flex-wrap justify-content-between align-items-center mb-2">
-                  <h6 className="fw-semibold mb-0">Invoice Lines</h6>
-                </div>
-                <div className="d-flex justify-content-between align-items-center mb-2">
-                  <small className="text-muted">
-                    Showing {visibleLineStart}-{visibleLineEnd} of{" "}
-                    {activeLineCount}
-                  </small>
-                </div>
-                <div className="table-responsive invoice-lines-table-wrap">
-                  <table className="table table-bordered align-middle mb-0 invoice-lines-table">
-                    <thead className="table-light">
-                      <tr>
-                        <th style={{ minWidth: 160 }}>Product</th>
-                        <th style={{ minWidth: 120 }}>Description</th>
-                        <th className="text-end" style={{ width: 100 }}>
-                          Qty
-                        </th>
-                        <th style={{ width: 100 }}>UoM</th>
-                        <th className="text-end" style={{ width: 100 }}>
-                          Price
-                        </th>
-                        <th className="text-end" style={{ width: 110 }}>
-                          Amount
-                        </th>
-                        <th style={{ width: 40 }}></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {pagedEditLines.map((line, pageIndex) => {
-                        const index = editLineStart + pageIndex;
-                        const product = line.product_id
-                          ? productById.get(line.product_id)
-                          : null;
-                        const lineTotal =
-                          (line.quantity || 0) *
-                          (line.unit_price || 0) *
-                          (1 - (line.discount || 0) / 100) *
-                          (1 + (line.vat_rate || 0) / 100);
-                        const displayUom = normalizeUom(
-                          product?.uom || line.uom || "Units",
-                        );
-                        return (
-                          <tr key={`new-${index}`}>
+                  <hr className="my-4" />
+                  <div className="d-flex flex-wrap justify-content-between align-items-center mb-2">
+                    <h6 className="fw-semibold mb-0">Invoice Lines</h6>
+                  </div>
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <small className="text-muted">
+                      Showing {visibleLineStart}-{visibleLineEnd} of{" "}
+                      {activeLineCount}
+                    </small>
+                  </div>
+                  <div className="table-responsive invoice-lines-table-wrap">
+                    <table className="table table-bordered align-middle mb-0 invoice-lines-table">
+                      <thead className="table-light">
+                        <tr>
+                          <th style={{ minWidth: 160 }}>Product</th>
+                          <th style={{ minWidth: 120 }}>Description</th>
+                          <th className="text-end" style={{ width: 100 }}>
+                            Qty
+                          </th>
+                          <th style={{ width: 100 }}>UoM</th>
+                          <th className="text-end" style={{ width: 100 }}>
+                            Price
+                          </th>
+                          <th className="text-end" style={{ width: 110 }}>
+                            Amount
+                          </th>
+                          <th style={{ width: 40 }}></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pagedEditLines.map((line, pageIndex) => {
+                          const index = editLineStart + pageIndex;
+                          const product = line.product_id
+                            ? productById.get(line.product_id)
+                            : null;
+                          const lineTotal =
+                            (line.quantity || 0) *
+                            (line.unit_price || 0) *
+                            (1 - (line.discount || 0) / 100) *
+                            (1 + (line.vat_rate || 0) / 100);
+                          const displayUom = normalizeUom(
+                            product?.uom || line.uom || "Units",
+                          );
+                          return (
+                            <tr key={`new-${index}`}>
                             <td>
                               <select
                                 className="form-select form-select-sm"
@@ -2893,55 +2921,161 @@ export default function InvoicesPage({
                       <tr className="invoice-lines-action-row">
                         <td colSpan={7}>
                           <div className="invoice-lines-actions-inline">
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                             <button
-                              className="invoice-lines-add-btn"
-                              onClick={addLine}
-                            >
-                              + Add Line
-                            </button>
-                            <button
-                              className="invoice-lines-secondary-btn"
-                              onClick={() => setCreateProductOpen(true)}
-                            >
-                              + New Product
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    </tbody>
-                    <tfoot className="table-light">
-                      <tr>
-                        <td colSpan={5} className="text-end fw-semibold">
-                          Untaxed Amount:
-                        </td>
+                  <div className="d-flex gap-3 mt-3">
+                    <button
+                      className="btn btn-link btn-sm px-0"
+                      onClick={addLine}
+                    >
+                      + Add Line
+                    </button>
+                    <button
+                      className="btn btn-link btn-sm px-0"
+                      onClick={() => setCreateProductOpen(true)}
+                    >
+                      + New Product
+                    </button>
+                  </div>
                         <td className="text-end fw-semibold">
-                          {formatCurrency(
-                            selectedInvoice?.subtotal || 0,
-                            invoiceCurrency,
-                          )}
-                        </td>
-                        {canEdit && <td></td>}
-                      </tr>
-                      <tr>
-                        <td colSpan={5} className="text-end fw-semibold">
-                          {invoiceTaxLabel}
-                        </td>
-                        <td className="text-end fw-semibold">
-                          {formatCurrency(
-                            selectedInvoice?.tax_amount || 0,
-                            invoiceCurrency,
-                          )}
-                        </td>
-                        {canEdit && <td></td>}
-                      </tr>
-                      <tr>
-                        <td colSpan={5} className="text-end fw-bold fs-5">
-                          Total:
-                        </td>
-                        <td className="text-end fw-bold fs-5">
-                          {formatCurrency(
+                  <div className="d-flex justify-content-end mt-3">
+                    <table className="table table-sm w-auto mb-0">
+                      <tbody>
+                        <tr>
+                          <th className="text-end">Untaxed Amount:</th>
+                          <td className="text-end">
+                            {formatCurrency(lineSubtotal, newCurrency)}
+                          </td>
+                        </tr>
+                        {taxBreakdown.map(([rate, amount]) => (
+                          <tr key={rate}>
+                            <th className="text-end">Tax {rate}%:</th>
+                            <td className="text-end">
+                              {formatCurrency(amount, newCurrency)}
+                            </td>
+                          </tr>
+                        ))}
+                        <tr>
+                          <th className="text-end fs-5">Total:</th>
+                          <td className="text-end fs-5 fw-bold">
+                            {formatCurrency(lineGrandTotal, newCurrency)}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
                             selectedInvoice?.total_amount || 0,
                             invoiceCurrency,
+              <aside className="card shadow-sm invoice-customer-history-card">
+                <div className="card-body">
+                  <div className="invoice-customer-history-header">
+                    <div>
+                      <h6 className="fw-semibold mb-1">Customer Invoice History</h6>
+                      <p className="text-muted mb-0">
+                        {newInvoiceCustomer
+                          ? `Previous invoices for ${newInvoiceCustomer.name}`
+                          : "Select a customer to see their previous invoices."}
+                      </p>
+                    </div>
+                  </div>
+
+                  {newInvoiceCustomer ? (
+                    <>
+                      <div className="invoice-customer-history-stats">
+                        <div className="invoice-customer-history-stat">
+                          <span className="invoice-customer-history-stat-label">
+                            Total invoices
+                          </span>
+                          <strong>{customerHistoryInvoices.length}</strong>
+                        </div>
+                        <div className="invoice-customer-history-stat">
+                          <span className="invoice-customer-history-stat-label">
+                            Outstanding
+                          </span>
+                          <strong>
+                            {formatCurrency(
+                              customerHistoryOutstandingTotal,
+                              newCurrency || "USD",
+                            )}
+                          </strong>
+                        </div>
+                      </div>
+
+                      {recentCustomerHistory.length ? (
+                        <div className="invoice-customer-history-list">
+                          {recentCustomerHistory.map((historyInvoice) => {
+                            const paymentState = getPaymentStatus(
+                              historyInvoice.amount_paid,
+                              historyInvoice.amount_due,
+                            );
+                            const statusClass =
+                              historyInvoice.status === "paid"
+                                ? "bg-success"
+                                : historyInvoice.status === "posted"
+                                  ? "bg-info"
+                                  : historyInvoice.status === "fiscalized"
+                                    ? "bg-primary"
+                                    : "bg-secondary";
+                            const paymentClass =
+                              paymentState === "Paid"
+                                ? "bg-success"
+                                : paymentState === "Partial"
+                                  ? "bg-warning"
+                                  : "bg-secondary";
+                            return (
+                              <button
+                                key={historyInvoice.id}
+                                type="button"
+                                className="invoice-customer-history-item"
+                                onClick={() => navigate(`/invoices/${historyInvoice.id}`)}
+                              >
+                                <div className="invoice-customer-history-item-top">
+                                  <strong>{historyInvoice.reference}</strong>
+                                  <span className={`badge ${statusClass}`}>
+                                    {historyInvoice.status}
+                                  </span>
+                                </div>
+                                <div className="invoice-customer-history-item-meta">
+                                  <span>
+                                    {formatDateTime(historyInvoice.invoice_date) || "—"}
+                                  </span>
+                                  <span>
+                                    {formatCurrency(
+                                      historyInvoice.total_amount,
+                                      historyInvoice.currency || newCurrency || "USD",
+                                    )}
+                                  </span>
+                                </div>
+                                <div className="invoice-customer-history-item-bottom">
+                                  <span className={`badge ${paymentClass}`}>
+                                    {paymentState}
+                                  </span>
+                                  <span className="text-muted">
+                                    Due {formatCurrency(historyInvoice.amount_due || 0, historyInvoice.currency || newCurrency || "USD")}
+                                  </span>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="invoice-customer-history-empty">
+                          No previous invoices found for this customer.
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="invoice-customer-history-empty">
+                      Choose a customer first. Their recent invoice history will appear here.
+                    </div>
+                  )}
+                </div>
+              </aside>
                           )}
                         </td>
                         {canEdit && <td></td>}
