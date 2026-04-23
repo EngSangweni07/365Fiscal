@@ -675,31 +675,31 @@ button.invoice-detail-btn:disabled {
 .invoice-customer-history-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0;
   overflow-y: auto;
   padding-right: 4px;
 }
 
 .invoice-customer-history-item {
   width: 100%;
-  border: 1px solid #e1e8f3;
-  border-radius: 14px;
-  padding: 14px;
-  background: #fff;
+  border: none;
+  border-bottom: 1px solid #e1e8f3;
+  border-radius: 0;
+  padding: 12px 0;
+  background: transparent;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   text-align: left;
   transition:
-    border-color 0.18s ease,
-    box-shadow 0.18s ease,
-    transform 0.18s ease;
+    background-color 0.18s ease;
 }
 
 .invoice-customer-history-item:hover {
-  border-color: #bdd2ff;
-  box-shadow: 0 10px 24px rgba(37, 87, 211, 0.08);
-  transform: translateY(-1px);
+  border-color: #e1e8f3;
+  box-shadow: none;
+  transform: none;
+  background-color: #f9fbff;
 }
 
 .invoice-customer-history-item-top,
