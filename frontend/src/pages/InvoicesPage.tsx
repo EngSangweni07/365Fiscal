@@ -3085,11 +3085,7 @@ export default function InvoicesPage({
                         </div>
                       )}
                     </>
-                  ) : (
-                    <div className="invoice-customer-history-empty">
-                      Choose a customer first. Their recent invoice history will appear here.
-                    </div>
-                  )}
+                  ) : null}
                 </div>
               </aside>
             </div>
