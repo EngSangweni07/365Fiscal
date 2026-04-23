@@ -2596,12 +2596,14 @@ export default function InvoicesPage({
                       Edit
                     </button>
                   )}
-                  <button
-                    className="btn btn-sm btn-light border"
-                    onClick={postInvoice}
-                  >
-                    Post
-                  </button>
+                  {statusLabel === "draft" && (
+                    <button
+                      className="btn btn-sm btn-light border"
+                      onClick={postInvoice}
+                    >
+                      Post
+                    </button>
+                  )}
                   {(statusLabel === "posted" || statusLabel === "paid") && (
                     <button
                       className="btn btn-sm btn-light border"
@@ -2638,23 +2640,6 @@ export default function InvoicesPage({
                       onClick={createCreditNote}
                     >
                       Credit Note
-                    </button>
-                  )}
-                  <button
-                    className="btn btn-sm btn-light border"
-                    onClick={() => setJournalPreviewOpen(true)}
-                  >
-                    Journal Preview
-                  </button>
-                  {statusLabel !== "draft" && (
-                    <button
-                      className="btn btn-sm btn-light border"
-                      onClick={() =>
-                        selectedInvoice &&
-                        navigate(`/accounting?section=journal_entries&reference=${encodeURIComponent(`INV/${selectedInvoice.reference}`)}`)
-                      }
-                    >
-                      Journal Entry
                     </button>
                   )}
                 </>
@@ -3192,25 +3177,8 @@ export default function InvoicesPage({
                 style={{ maxHeight: "82vh", overflowY: "auto" }}
               >
               <div className="card-body invoice-form">
-                {companySettings?.logo_data && (
-                  <div className="mb-3">
-                    <img
-                      src={companySettings.logo_data}
-                      alt="Company logo"
-                      style={{
-                        maxWidth: 180,
-                        maxHeight: 70,
-                        width: "auto",
-                        height: "auto",
-                        objectFit: "contain",
-                        display: "block",
-                      }}
-                    />
-                  </div>
-                )}
-
                 {/* Fields */}
-                <div className="row g-3 mb-4">
+                <div className="row g-3 mb-4 invoice-detail-fields">
                   <div className="col-md-6">
                     <label className="form-label">Customer</label>
                     {canEdit ? (
