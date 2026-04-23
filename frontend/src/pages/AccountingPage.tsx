@@ -577,40 +577,206 @@ export default function AccountingPage() {
         maximumFractionDigits: 2,
       }).format(value || 0);
 
-    const renderMiniBars = (values: number[], color: string, background: string) => {
-      const normalized = values.map((value) => Math.abs(value || 0));
-      const maxValue = Math.max(...normalized, 1);
+    const createLineGeometry = (values: number[], width = 320, height = 148, padding = 18) => {
+      const normalized = values.map((value) => Math.max(Number(value) || 0, 0));
+      const safeValues = normalized.length > 0 ? normalized : [0];
+      const maxValue = Math.max(...safeValues, 1);
+      const innerWidth = width - padding * 2;
+      const innerHeight = height - padding * 2;
+      const stepX = safeValues.length > 1 ? innerWidth / (safeValues.length - 1) : 0;
+      const baseline = height - padding;
+      const points = safeValues.map((value, index) => ({
+        x: padding + stepX * index,
+        y: baseline - (value / maxValue) * innerHeight,
+        value,
+      }));
+      const linePath = points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ");
+      const areaPath = points.length > 0
+        ? `${linePath} L ${points[points.length - 1].x} ${baseline} L ${points[0].x} ${baseline} Z`
+        : "";
+
+      return { points, linePath, areaPath, baseline };
+    };
+
+    const renderTrendChart = ({
+      id,
+      values,
+      labels,
+      stroke,
+      fillStart,
+      fillEnd,
+      accent,
+      valueLabel,
+    }: {
+      id: string;
+      values: number[];
+      labels: string[];
+      stroke: string;
+      fillStart: string;
+      fillEnd: string;
+      accent: string;
+      valueLabel: string;
+    }) => {
+      const width = 320;
+      const height = 148;
+      const { points, linePath, areaPath, baseline } = createLineGeometry(values, width, height, 18);
 
       return (
-        <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 88 }}>
-          {normalized.map((value, index) => {
-            const height = Math.max((value / maxValue) * 72, 10);
-            return (
-              <div key={`${color}-${index}`} style={{ flex: 1, display: "flex", alignItems: "flex-end", height: "100%" }}>
-                <div
-                  style={{
-                    width: "100%",
-                    height,
-                    borderRadius: 999,
-                    background,
-                    overflow: "hidden",
-                    display: "flex",
-                    alignItems: "flex-end",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      borderRadius: 999,
-                      background: color,
-                      opacity: 0.95,
-                    }}
+        <div style={{ padding: "0.8rem 0.9rem 0.7rem", borderRadius: 16, background: "#f8fafc", border: "1px solid #e2e8f0" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>{valueLabel}</span>
+            <span style={statPill(accent, stroke)}>{labels.length} months</span>
+          </div>
+          <svg viewBox={`0 0 ${width} ${height}`} style={{ width: "100%", height: 150, display: "block" }} preserveAspectRatio="none">
+            <defs>
+              <linearGradient id={`${id}-fill`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={fillStart} stopOpacity="0.35" />
+                <stop offset="100%" stopColor={fillEnd} stopOpacity="0.05" />
+              </linearGradient>
+            </defs>
+            {[0.25, 0.5, 0.75].map((ratio) => (
+              <line
+                key={`${id}-grid-${ratio}`}
+                x1="18"
+                y1={18 + (height - 36) * ratio}
+                x2={width - 18}
+                y2={18 + (height - 36) * ratio}
+                stroke="#dbe4f0"
+                strokeDasharray="4 6"
+              />
+            ))}
+            <line x1="18" y1={baseline} x2={width - 18} y2={baseline} stroke="#cbd5e1" />
+            {areaPath ? <path d={areaPath} fill={`url(#${id}-fill)`} /> : null}
+            {linePath ? <path d={linePath} fill="none" stroke={stroke} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" /> : null}
+            {points.map((point, index) => (
+              <g key={`${id}-point-${index}`}>
+                <circle cx={point.x} cy={point.y} r="5.5" fill="#ffffff" stroke={stroke} strokeWidth="2.5" />
+                <circle cx={point.x} cy={point.y} r="2.25" fill={stroke} />
+              </g>
+            ))}
+          </svg>
+          <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.max(labels.length, 1)}, minmax(0, 1fr))`, gap: 6, marginTop: 4 }}>
+            {labels.map((label) => (
+              <div key={`${id}-${label}`} style={{ textAlign: "center", fontSize: 11, color: "#64748b" }}>{label}</div>
+            ))}
+          </div>
+        </div>
+      );
+    };
+
+    const renderDonutChart = ({
+      id,
+      segments,
+      centerValue,
+      centerLabel,
+    }: {
+      id: string;
+      segments: { label: string; value: number; color: string; accent: string }[];
+      centerValue: string;
+      centerLabel: string;
+    }) => {
+      const total = Math.max(segments.reduce((sum, segment) => sum + Math.max(segment.value, 0), 0), 1);
+      const radius = 38;
+      const circumference = 2 * Math.PI * radius;
+      let currentOffset = 0;
+
+      return (
+        <div style={{ padding: "0.8rem 0.9rem", borderRadius: 16, background: "#ffffff", border: "1px solid #e2e8f0", display: "grid", gap: 12 }}>
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <svg viewBox="0 0 120 120" style={{ width: 132, height: 132 }}>
+              <circle cx="60" cy="60" r={radius} fill="none" stroke="#e2e8f0" strokeWidth="12" />
+              {segments.map((segment, index) => {
+                const segmentLength = (Math.max(segment.value, 0) / total) * circumference;
+                const dashArray = `${segmentLength} ${circumference - segmentLength}`;
+                const dashOffset = -currentOffset;
+                currentOffset += segmentLength;
+
+                return (
+                  <circle
+                    key={`${id}-segment-${index}`}
+                    cx="60"
+                    cy="60"
+                    r={radius}
+                    fill="none"
+                    stroke={segment.color}
+                    strokeWidth="12"
+                    strokeDasharray={dashArray}
+                    strokeDashoffset={dashOffset}
+                    strokeLinecap="round"
+                    transform="rotate(-90 60 60)"
                   />
+                );
+              })}
+              <circle cx="60" cy="60" r="26" fill="#ffffff" />
+              <text x="60" y="54" textAnchor="middle" style={{ fontSize: 18, fontWeight: 800, fill: "#0f172a" }}>{centerValue}</text>
+              <text x="60" y="71" textAnchor="middle" style={{ fontSize: 10, fontWeight: 700, fill: "#64748b", textTransform: "uppercase", letterSpacing: "0.08em" }}>{centerLabel}</text>
+            </svg>
+          </div>
+          <div style={{ display: "grid", gap: 8 }}>
+            {segments.map((segment) => (
+              <div key={`${id}-${segment.label}`} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+                <div style={{ display: "inline-flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                  <span style={{ width: 10, height: 10, borderRadius: 999, background: segment.color, flexShrink: 0 }} />
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#334155" }}>{segment.label}</span>
                 </div>
+                <span style={statPill(segment.accent, segment.color)}>{segment.value}</span>
               </div>
-            );
-          })}
+            ))}
+          </div>
+        </div>
+      );
+    };
+
+    const renderComparisonChart = ({
+      id,
+      items,
+    }: {
+      id: string;
+      items: { label: string; value: number; color: string }[];
+    }) => {
+      const width = 360;
+      const height = 180;
+      const paddingTop = 18;
+      const paddingBottom = 36;
+      const paddingX = 20;
+      const safeItems = items.length > 0 ? items : [{ label: "None", value: 0, color: "#cbd5e1" }];
+      const maxValue = Math.max(...safeItems.map((item) => Math.max(item.value, 0)), 1);
+      const chartWidth = width - paddingX * 2;
+      const chartHeight = height - paddingTop - paddingBottom;
+      const columnWidth = chartWidth / safeItems.length;
+
+      return (
+        <div style={{ padding: "0.8rem 0.9rem 0.7rem", borderRadius: 16, background: "#f8fafc", border: "1px solid #e2e8f0" }}>
+          <svg viewBox={`0 0 ${width} ${height}`} style={{ width: "100%", height: 188, display: "block" }} preserveAspectRatio="none">
+            {[0, 0.33, 0.66, 1].map((ratio) => (
+              <line
+                key={`${id}-grid-${ratio}`}
+                x1={paddingX}
+                y1={paddingTop + chartHeight * ratio}
+                x2={width - paddingX}
+                y2={paddingTop + chartHeight * ratio}
+                stroke="#dbe4f0"
+                strokeDasharray="4 6"
+              />
+            ))}
+            {safeItems.map((item, index) => {
+              const barHeight = (Math.max(item.value, 0) / maxValue) * (chartHeight - 8);
+              const x = paddingX + index * columnWidth + columnWidth * 0.2;
+              const y = paddingTop + chartHeight - barHeight;
+              const barWidth = columnWidth * 0.6;
+              return (
+                <g key={`${id}-${item.label}`}>
+                  <rect x={x} y={y} width={barWidth} height={barHeight} rx="14" fill={item.color} opacity="0.92" />
+                  <text x={x + barWidth / 2} y={y - 6} textAnchor="middle" style={{ fontSize: 11, fontWeight: 700, fill: "#334155" }}>
+                    {item.value >= 1000 ? `${Math.round(item.value / 1000)}k` : Math.round(item.value).toString()}
+                  </text>
+                  <text x={x + barWidth / 2} y={height - 12} textAnchor="middle" style={{ fontSize: 11, fontWeight: 700, fill: "#64748b" }}>
+                    {item.label}
+                  </text>
+                </g>
+              );
+            })}
+          </svg>
         </div>
       );
     };
@@ -727,17 +893,26 @@ export default function AccountingPage() {
               </div>
             </div>
 
-            <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>Last 6 months</span>
-                <span style={statPill("#e0f2fe", "#0c4a6e")}>{overview.invoice_count} posted</span>
-              </div>
-              {renderMiniBars(invoiceBars, "linear-gradient(180deg, #0f766e 0%, #14b8a6 100%)", "#ccfbf1")}
-              <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.max(overview.monthly_revenue.length, 1)}, 1fr)`, gap: 8, marginTop: 8 }}>
-                {overview.monthly_revenue.map((month) => (
-                  <div key={month.month} style={{ textAlign: "center", fontSize: 11, color: "#64748b" }}>{month.month}</div>
-                ))}
-              </div>
+            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.25fr) minmax(180px, 0.9fr)", gap: 12, alignItems: "stretch" }}>
+              {renderTrendChart({
+                id: "customer-invoices",
+                values: invoiceBars,
+                labels: overview.monthly_revenue.map((month) => month.month),
+                stroke: "#0f766e",
+                fillStart: "#14b8a6",
+                fillEnd: "#ccfbf1",
+                accent: "#ccfbf1",
+                valueLabel: "Revenue trend",
+              })}
+              {renderDonutChart({
+                id: "customer-donut",
+                segments: [
+                  { label: "Unpaid", value: overview.customer_invoices.unpaid_count, color: "#0f766e", accent: "#ccfbf1" },
+                  { label: "Overdue", value: overview.customer_invoices.overdue_count, color: "#c2410c", accent: "#ffedd5" },
+                ],
+                centerValue: `${overview.customer_invoices.unpaid_count + overview.customer_invoices.overdue_count}`,
+                centerLabel: "Invoices",
+              })}
             </div>
           </div>
 
@@ -784,17 +959,26 @@ export default function AccountingPage() {
               </div>
             </div>
 
-            <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>Expense activity</span>
-                <span style={statPill("#ede9fe", "#5b21b6")}>{money(overview.total_payables)} open</span>
-              </div>
-              {renderMiniBars(vendorBars, "linear-gradient(180deg, #7c3aed 0%, #a855f7 100%)", "#ede9fe")}
-              <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.max(overview.monthly_revenue.length, 1)}, 1fr)`, gap: 8, marginTop: 8 }}>
-                {overview.monthly_revenue.map((month) => (
-                  <div key={month.month} style={{ textAlign: "center", fontSize: 11, color: "#64748b" }}>{month.month}</div>
-                ))}
-              </div>
+            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.25fr) minmax(180px, 0.9fr)", gap: 12, alignItems: "stretch" }}>
+              {renderTrendChart({
+                id: "vendor-bills",
+                values: vendorBars,
+                labels: overview.monthly_revenue.map((month) => month.month),
+                stroke: "#7c3aed",
+                fillStart: "#a855f7",
+                fillEnd: "#ede9fe",
+                accent: "#ede9fe",
+                valueLabel: "Expense trend",
+              })}
+              {renderDonutChart({
+                id: "vendor-donut",
+                segments: [
+                  { label: "Draft", value: overview.vendor_bills.to_validate_count, color: "#2563eb", accent: "#dbeafe" },
+                  { label: "Open", value: overview.vendor_bills.open_count, color: "#7c3aed", accent: "#ede9fe" },
+                ],
+                centerValue: `${overview.vendor_bills.to_validate_count + overview.vendor_bills.open_count}`,
+                centerLabel: "Bills",
+              })}
             </div>
           </div>
 
@@ -835,19 +1019,16 @@ export default function AccountingPage() {
                     </div>
                   </div>
 
-                  <div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>Activity</span>
-                      <span style={statPill("#dcfce7", "#166534")}>{overview.payment_count} payments</span>
-                    </div>
-                    {renderMiniBars(
-                      journalSeries,
-                      journal.journal_type === "cash"
-                        ? "linear-gradient(180deg, #d97706 0%, #f59e0b 100%)"
-                        : "linear-gradient(180deg, #2563eb 0%, #38bdf8 100%)",
-                      journal.journal_type === "cash" ? "#fef3c7" : "#dbeafe",
-                    )}
-                  </div>
+                  {renderTrendChart({
+                    id: `journal-${journal.id}`,
+                    values: journalSeries,
+                    labels: overview.monthly_revenue.map((month) => month.month),
+                    stroke: journal.journal_type === "cash" ? "#d97706" : "#2563eb",
+                    fillStart: journal.journal_type === "cash" ? "#f59e0b" : "#38bdf8",
+                    fillEnd: journal.journal_type === "cash" ? "#fef3c7" : "#dbeafe",
+                    accent: journal.journal_type === "cash" ? "#fef3c7" : "#dbeafe",
+                    valueLabel: "Activity",
+                  })}
 
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     <button
@@ -946,18 +1127,29 @@ export default function AccountingPage() {
                 <BarChart3 size={14} /> View reports
               </button>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
-              <div style={{ padding: "1rem", borderRadius: 16, background: "#f8fafc", border: "1px solid #e2e8f0" }}>
-                <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>Outstanding receivables</div>
-                <div style={{ fontSize: 24, fontWeight: 800, marginTop: 6, color: "#0f172a" }}>{money(overview.outstanding_receivables)}</div>
-              </div>
-              <div style={{ padding: "1rem", borderRadius: 16, background: "#fff7ed", border: "1px solid #fed7aa" }}>
-                <div style={{ fontSize: 12, color: "#9a3412", fontWeight: 700 }}>Overdue receivables</div>
-                <div style={{ fontSize: 24, fontWeight: 800, marginTop: 6, color: "#9a3412" }}>{money(overview.overdue_receivables)}</div>
-              </div>
-              <div style={{ padding: "1rem", borderRadius: 16, background: "#eff6ff", border: "1px solid #bfdbfe" }}>
-                <div style={{ fontSize: 12, color: "#1d4ed8", fontWeight: 700 }}>Payments this year</div>
-                <div style={{ fontSize: 24, fontWeight: 800, marginTop: 6, color: "#1d4ed8" }}>{overview.payment_count}</div>
+            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.2fr) minmax(220px, 0.8fr)", gap: 12, alignItems: "stretch" }}>
+              {renderComparisonChart({
+                id: "performance-overview",
+                items: [
+                  { label: "Revenue", value: overview.ytd_revenue, color: "#0f766e" },
+                  { label: "Expenses", value: overview.ytd_expenses, color: "#7c3aed" },
+                  { label: "Cash", value: overview.cash_balance, color: "#2563eb" },
+                  { label: "Receiv.", value: overview.outstanding_receivables, color: "#f97316" },
+                ],
+              })}
+              <div style={{ display: "grid", gap: 10 }}>
+                <div style={{ padding: "1rem", borderRadius: 16, background: "#f8fafc", border: "1px solid #e2e8f0" }}>
+                  <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>Outstanding receivables</div>
+                  <div style={{ fontSize: 24, fontWeight: 800, marginTop: 6, color: "#0f172a" }}>{money(overview.outstanding_receivables)}</div>
+                </div>
+                <div style={{ padding: "1rem", borderRadius: 16, background: "#fff7ed", border: "1px solid #fed7aa" }}>
+                  <div style={{ fontSize: 12, color: "#9a3412", fontWeight: 700 }}>Overdue receivables</div>
+                  <div style={{ fontSize: 24, fontWeight: 800, marginTop: 6, color: "#9a3412" }}>{money(overview.overdue_receivables)}</div>
+                </div>
+                <div style={{ padding: "1rem", borderRadius: 16, background: "#eff6ff", border: "1px solid #bfdbfe" }}>
+                  <div style={{ fontSize: 12, color: "#1d4ed8", fontWeight: 700 }}>Payments this year</div>
+                  <div style={{ fontSize: 24, fontWeight: 800, marginTop: 6, color: "#1d4ed8" }}>{overview.payment_count}</div>
+                </div>
               </div>
             </div>
           </div>
