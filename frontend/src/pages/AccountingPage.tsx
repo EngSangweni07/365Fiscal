@@ -6,7 +6,6 @@ import {
   BookOpen,
   Calculator,
   CheckCircle,
-  ChevronDown,
   Clock,
   CreditCard,
   DollarSign,
@@ -781,22 +780,45 @@ export default function AccountingPage() {
       );
     };
 
+    const overviewInk = "#24445f";
+    const overviewMuted = "#70859a";
+    const overviewBorder = "#dce5ee";
+    const overviewPrimary = "#4a8198";
+    const overviewPrimaryBorder = "#86acbd";
+    const overviewSurface = "#fbfdff";
+
     const widgetCardStyle: React.CSSProperties = {
       background: "#ffffff",
-      border: "1px solid #d6dde8",
+      border: `1px solid ${overviewBorder}`,
       borderRadius: 20,
       padding: "1.2rem 1.2rem 1.1rem",
-      boxShadow: "0 18px 40px rgba(15, 23, 42, 0.06)",
+      boxShadow: "0 16px 34px rgba(103, 132, 160, 0.08)",
       display: "flex",
       flexDirection: "column",
       gap: 16,
       minHeight: 320,
     };
 
+    const cardLabelStyle: React.CSSProperties = {
+      fontSize: 12,
+      letterSpacing: "0.08em",
+      textTransform: "uppercase",
+      color: "#64748b",
+      fontWeight: 700,
+    };
+
+    const cardTitleStyle: React.CSSProperties = {
+      fontSize: 20,
+      fontWeight: 600,
+      color: overviewInk,
+      marginTop: 4,
+      lineHeight: 1.25,
+    };
+
     const widgetButton = (tone: "primary" | "secondary" = "secondary"): React.CSSProperties => ({
-      border: tone === "primary" ? "1px solid #164e63" : "1px solid #d6dde8",
-      background: tone === "primary" ? "#164e63" : "#f8fafc",
-      color: tone === "primary" ? "#ffffff" : "#0f172a",
+      border: tone === "primary" ? `1px solid ${overviewPrimaryBorder}` : `1px solid ${overviewBorder}`,
+      background: tone === "primary" ? overviewPrimary : overviewSurface,
+      color: tone === "primary" ? "#ffffff" : overviewInk,
       borderRadius: 999,
       padding: "0.48rem 0.9rem",
       fontSize: 12,
@@ -824,21 +846,13 @@ export default function AccountingPage() {
         <div
           style={{
             display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
+            justifyContent: "flex-end",
+            alignItems: "center",
             gap: 16,
             flexWrap: "wrap",
             marginBottom: 18,
           }}
         >
-          <div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: "#0f172a", marginBottom: 4 }}>
-              Accounting overview
-            </div>
-            <div style={{ color: "#64748b", fontSize: 13 }}>
-              Follow receivables, vendor bills, cash journals, and accounting operations from one board.
-            </div>
-          </div>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <button onClick={() => navigate("/accounting/configuration")} style={widgetButton()}>
               <Settings size={14} /> Configuration
@@ -849,14 +863,12 @@ export default function AccountingPage() {
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16, marginBottom: 18 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 16, marginBottom: 18, alignItems: "start" }}>
           <div style={widgetCardStyle}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
               <div>
-                <div style={{ fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase", color: "#64748b", fontWeight: 700 }}>
-                  Customers
-                </div>
-                <div style={{ fontSize: 24, fontWeight: 800, color: "#0f172a", marginTop: 4 }}>Customer Invoices</div>
+                <div style={cardLabelStyle}>Customers</div>
+                <div style={cardTitleStyle}>Customer Invoices</div>
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <button onClick={() => navigate("/invoices/new")} style={widgetButton("primary")}>
@@ -869,25 +881,25 @@ export default function AccountingPage() {
             </div>
 
             <div style={{ display: "grid", gap: 10 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.8rem 0.9rem", borderRadius: 14, background: "#ecfeff" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.8rem 0.9rem", borderRadius: 14, background: "#eef9f7" }}>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#155e75" }}>To collect</div>
-                  <div style={{ fontSize: 12, color: "#0f766e", marginTop: 2 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#3f7e78" }}>To collect</div>
+                  <div style={{ fontSize: 12, color: "#5e918b", marginTop: 2 }}>
                     {overview.customer_invoices.unpaid_count} unpaid invoices
                   </div>
                 </div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: "#155e75" }}>
+                <div style={{ fontSize: 18, fontWeight: 800, color: "#3f7e78" }}>
                   {money(overview.customer_invoices.unpaid_amount)}
                 </div>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.8rem 0.9rem", borderRadius: 14, background: "#fff7ed" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.8rem 0.9rem", borderRadius: 14, background: "#fff4ea" }}>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#9a3412" }}>Late</div>
-                  <div style={{ fontSize: 12, color: "#c2410c", marginTop: 2 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#c67b4a" }}>Late</div>
+                  <div style={{ fontSize: 12, color: "#d19363", marginTop: 2 }}>
                     {overview.customer_invoices.overdue_count} overdue invoices
                   </div>
                 </div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: "#9a3412" }}>
+                <div style={{ fontSize: 18, fontWeight: 800, color: "#c67b4a" }}>
                   {money(overview.customer_invoices.overdue_amount)}
                 </div>
               </div>
@@ -898,17 +910,17 @@ export default function AccountingPage() {
                 id: "customer-invoices",
                 values: invoiceBars,
                 labels: overview.monthly_revenue.map((month) => month.month),
-                stroke: "#0f766e",
-                fillStart: "#14b8a6",
-                fillEnd: "#ccfbf1",
-                accent: "#ccfbf1",
+                stroke: "#4f948d",
+                fillStart: "#89d6cf",
+                fillEnd: "#eef9f7",
+                accent: "#dff3ef",
                 valueLabel: "Revenue trend",
               })}
               {renderDonutChart({
                 id: "customer-donut",
                 segments: [
-                  { label: "Unpaid", value: overview.customer_invoices.unpaid_count, color: "#0f766e", accent: "#ccfbf1" },
-                  { label: "Overdue", value: overview.customer_invoices.overdue_count, color: "#c2410c", accent: "#ffedd5" },
+                  { label: "Unpaid", value: overview.customer_invoices.unpaid_count, color: "#4f948d", accent: "#dff3ef" },
+                  { label: "Overdue", value: overview.customer_invoices.overdue_count, color: "#d19363", accent: "#fff0e2" },
                 ],
                 centerValue: `${overview.customer_invoices.unpaid_count + overview.customer_invoices.overdue_count}`,
                 centerLabel: "Invoices",
@@ -919,10 +931,8 @@ export default function AccountingPage() {
           <div style={widgetCardStyle}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
               <div>
-                <div style={{ fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase", color: "#64748b", fontWeight: 700 }}>
-                  Vendors
-                </div>
-                <div style={{ fontSize: 24, fontWeight: 800, color: "#0f172a", marginTop: 4 }}>Vendor Bills</div>
+                <div style={cardLabelStyle}>Vendors</div>
+                <div style={cardTitleStyle}>Vendor Bills</div>
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <button onClick={() => navigate("/purchases")} style={widgetButton("primary")}>
@@ -935,25 +945,25 @@ export default function AccountingPage() {
             </div>
 
             <div style={{ display: "grid", gap: 10 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.8rem 0.9rem", borderRadius: 14, background: "#eff6ff" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.8rem 0.9rem", borderRadius: 14, background: "#eef5ff" }}>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#1d4ed8" }}>To validate</div>
-                  <div style={{ fontSize: 12, color: "#2563eb", marginTop: 2 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#5b8ccf" }}>To validate</div>
+                  <div style={{ fontSize: 12, color: "#78a2dc", marginTop: 2 }}>
                     {overview.vendor_bills.to_validate_count} draft bills
                   </div>
                 </div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: "#1d4ed8" }}>
+                <div style={{ fontSize: 18, fontWeight: 800, color: "#5b8ccf" }}>
                   {money(overview.vendor_bills.to_validate_amount)}
                 </div>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.8rem 0.9rem", borderRadius: 14, background: "#f5f3ff" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.8rem 0.9rem", borderRadius: 14, background: "#f6f2ff" }}>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#6d28d9" }}>Open bills</div>
-                  <div style={{ fontSize: 12, color: "#7c3aed", marginTop: 2 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#8c6ccc" }}>Open bills</div>
+                  <div style={{ fontSize: 12, color: "#a286d9", marginTop: 2 }}>
                     {overview.vendor_bills.open_count} confirmed or received
                   </div>
                 </div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: "#6d28d9" }}>
+                <div style={{ fontSize: 18, fontWeight: 800, color: "#8c6ccc" }}>
                   {money(overview.vendor_bills.open_amount)}
                 </div>
               </div>
@@ -964,17 +974,17 @@ export default function AccountingPage() {
                 id: "vendor-bills",
                 values: vendorBars,
                 labels: overview.monthly_revenue.map((month) => month.month),
-                stroke: "#7c3aed",
-                fillStart: "#a855f7",
-                fillEnd: "#ede9fe",
-                accent: "#ede9fe",
+                stroke: "#8c6ccc",
+                fillStart: "#c9b2ee",
+                fillEnd: "#f2ecff",
+                accent: "#f2ecff",
                 valueLabel: "Expense trend",
               })}
               {renderDonutChart({
                 id: "vendor-donut",
                 segments: [
-                  { label: "Draft", value: overview.vendor_bills.to_validate_count, color: "#2563eb", accent: "#dbeafe" },
-                  { label: "Open", value: overview.vendor_bills.open_count, color: "#7c3aed", accent: "#ede9fe" },
+                  { label: "Draft", value: overview.vendor_bills.to_validate_count, color: "#6f9bda", accent: "#eaf2ff" },
+                  { label: "Open", value: overview.vendor_bills.open_count, color: "#9e84da", accent: "#f2ecff" },
                 ],
                 centerValue: `${overview.vendor_bills.to_validate_count + overview.vendor_bills.open_count}`,
                 centerLabel: "Bills",
@@ -997,13 +1007,11 @@ export default function AccountingPage() {
                 <div key={journal.id} style={widgetCardStyle}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
                     <div>
-                      <div style={{ fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase", color: "#64748b", fontWeight: 700 }}>
-                        {journal.journal_type === "cash" ? "Cash" : "Bank"}
-                      </div>
-                      <div style={{ fontSize: 24, fontWeight: 800, color: "#0f172a", marginTop: 4 }}>{journal.name}</div>
-                      <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>{journal.code}</div>
+                      <div style={cardLabelStyle}>{journal.journal_type === "cash" ? "Cash" : "Bank"}</div>
+                      <div style={cardTitleStyle}>{journal.name}</div>
+                      <div style={{ fontSize: 12, color: overviewMuted, marginTop: 4 }}>{journal.code}</div>
                     </div>
-                    <span style={statPill(journal.journal_type === "cash" ? "#fef3c7" : "#dbeafe", journal.journal_type === "cash" ? "#92400e" : "#1d4ed8")}>
+                    <span style={statPill(journal.journal_type === "cash" ? "#fff0df" : "#eaf2ff", journal.journal_type === "cash" ? "#cf8b55" : "#6f9bda")}>
                       {journal.journal_type === "cash" ? "Cash journal" : "Bank journal"}
                     </span>
                   </div>
@@ -1023,10 +1031,10 @@ export default function AccountingPage() {
                     id: `journal-${journal.id}`,
                     values: journalSeries,
                     labels: overview.monthly_revenue.map((month) => month.month),
-                    stroke: journal.journal_type === "cash" ? "#d97706" : "#2563eb",
-                    fillStart: journal.journal_type === "cash" ? "#f59e0b" : "#38bdf8",
-                    fillEnd: journal.journal_type === "cash" ? "#fef3c7" : "#dbeafe",
-                    accent: journal.journal_type === "cash" ? "#fef3c7" : "#dbeafe",
+                    stroke: journal.journal_type === "cash" ? "#cf8b55" : "#6f9bda",
+                    fillStart: journal.journal_type === "cash" ? "#f0bf8a" : "#9cc1eb",
+                    fillEnd: journal.journal_type === "cash" ? "#fff0df" : "#eaf2ff",
+                    accent: journal.journal_type === "cash" ? "#fff0df" : "#eaf2ff",
                     valueLabel: "Activity",
                   })}
 
@@ -1047,12 +1055,10 @@ export default function AccountingPage() {
           ) : (
             <div style={widgetCardStyle}>
               <div>
-                <div style={{ fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase", color: "#64748b", fontWeight: 700 }}>
-                  Bank and cash
-                </div>
-                <div style={{ fontSize: 24, fontWeight: 800, color: "#0f172a", marginTop: 4 }}>No payment journals yet</div>
+                <div style={cardLabelStyle}>Bank and cash</div>
+                <div style={cardTitleStyle}>No payment journals yet</div>
               </div>
-              <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
+              <div style={{ color: overviewMuted, fontSize: 13, lineHeight: 1.6 }}>
                 Create at least one bank or cash journal to track balances and payment activity from the overview.
               </div>
               <div style={{ marginTop: "auto" }}>
@@ -1063,64 +1069,11 @@ export default function AccountingPage() {
             </div>
           )}
 
-          <div style={widgetCardStyle}>
-            <div>
-              <div style={{ fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase", color: "#64748b", fontWeight: 700 }}>
-                Shortcuts
-              </div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: "#0f172a", marginTop: 4 }}>Miscellaneous Operations</div>
-            </div>
-
-            <div style={{ display: "grid", gap: 10 }}>
-              <button onClick={() => navigate("/payments")} style={{ ...widgetButton(), justifyContent: "space-between" }}>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><CreditCard size={14} /> Payments</span>
-                <ChevronDown size={14} style={{ transform: "rotate(-90deg)" }} />
-              </button>
-              <button onClick={() => setActiveSection("journal_entries")} style={{ ...widgetButton(), justifyContent: "space-between" }}>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><BookOpen size={14} /> Journal Entries</span>
-                <ChevronDown size={14} style={{ transform: "rotate(-90deg)" }} />
-              </button>
-              <button onClick={() => navigate("/accounting/reports")} style={{ ...widgetButton(), justifyContent: "space-between" }}>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><BarChart3 size={14} /> Reports</span>
-                <ChevronDown size={14} style={{ transform: "rotate(-90deg)" }} />
-              </button>
-              <button onClick={() => navigate("/accounting/configuration")} style={{ ...widgetButton(), justifyContent: "space-between" }}>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Settings size={14} /> Chart of Accounts</span>
-                <ChevronDown size={14} style={{ transform: "rotate(-90deg)" }} />
-              </button>
-            </div>
-
-            <div style={{ marginTop: "auto", padding: "1rem", borderRadius: 16, background: "linear-gradient(135deg, #eff6ff, #f8fafc)", border: "1px solid #dbeafe" }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#1d4ed8", marginBottom: 8 }}>At a glance</div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 }}>
-                <div>
-                  <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.06em" }}>Revenue</div>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", marginTop: 4 }}>{money(overview.ytd_revenue)}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.06em" }}>Net profit</div>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: overview.ytd_net_profit >= 0 ? "#166534" : "#b91c1c", marginTop: 4 }}>
-                    {money(overview.ytd_net_profit)}
-                  </div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.06em" }}>Expenses</div>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", marginTop: 4 }}>{money(overview.ytd_expenses)}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.06em" }}>Cash balance</div>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", marginTop: 4 }}>{money(overview.cash_balance)}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.1fr) minmax(0, 1fr)", gap: 16, alignItems: "start" }}>
           <div style={{ ...widgetCardStyle, minHeight: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
               <div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: "#0f172a" }}>Performance</div>
+                <div style={cardLabelStyle}>Analytics</div>
+                <div style={{ ...cardTitleStyle, fontSize: 18 }}>Performance</div>
                 <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>Receivables, expenses, and payments at a glance</div>
               </div>
               <button onClick={() => navigate("/accounting/reports")} style={widgetButton()}>
@@ -1131,24 +1084,24 @@ export default function AccountingPage() {
               {renderComparisonChart({
                 id: "performance-overview",
                 items: [
-                  { label: "Revenue", value: overview.ytd_revenue, color: "#0f766e" },
-                  { label: "Expenses", value: overview.ytd_expenses, color: "#7c3aed" },
-                  { label: "Cash", value: overview.cash_balance, color: "#2563eb" },
-                  { label: "Receiv.", value: overview.outstanding_receivables, color: "#f97316" },
+                  { label: "Revenue", value: overview.ytd_revenue, color: "#6caea7" },
+                  { label: "Expenses", value: overview.ytd_expenses, color: "#a991dc" },
+                  { label: "Cash", value: overview.cash_balance, color: "#8bb5e8" },
+                  { label: "Receiv.", value: overview.outstanding_receivables, color: "#ebb184" },
                 ],
               })}
               <div style={{ display: "grid", gap: 10 }}>
                 <div style={{ padding: "1rem", borderRadius: 16, background: "#f8fafc", border: "1px solid #e2e8f0" }}>
                   <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>Outstanding receivables</div>
-                  <div style={{ fontSize: 24, fontWeight: 800, marginTop: 6, color: "#0f172a" }}>{money(overview.outstanding_receivables)}</div>
+                  <div style={{ fontSize: 24, fontWeight: 800, marginTop: 6, color: overviewInk }}>{money(overview.outstanding_receivables)}</div>
                 </div>
                 <div style={{ padding: "1rem", borderRadius: 16, background: "#fff7ed", border: "1px solid #fed7aa" }}>
                   <div style={{ fontSize: 12, color: "#9a3412", fontWeight: 700 }}>Overdue receivables</div>
-                  <div style={{ fontSize: 24, fontWeight: 800, marginTop: 6, color: "#9a3412" }}>{money(overview.overdue_receivables)}</div>
+                  <div style={{ fontSize: 24, fontWeight: 800, marginTop: 6, color: "#c67b4a" }}>{money(overview.overdue_receivables)}</div>
                 </div>
                 <div style={{ padding: "1rem", borderRadius: 16, background: "#eff6ff", border: "1px solid #bfdbfe" }}>
                   <div style={{ fontSize: 12, color: "#1d4ed8", fontWeight: 700 }}>Payments this year</div>
-                  <div style={{ fontSize: 24, fontWeight: 800, marginTop: 6, color: "#1d4ed8" }}>{overview.payment_count}</div>
+                  <div style={{ fontSize: 24, fontWeight: 800, marginTop: 6, color: "#5b8ccf" }}>{overview.payment_count}</div>
                 </div>
               </div>
             </div>
@@ -1157,7 +1110,8 @@ export default function AccountingPage() {
           <div style={{ ...widgetCardStyle, minHeight: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
               <div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: "#0f172a" }}>Recent Journal Entries</div>
+                <div style={cardLabelStyle}>Ledger</div>
+                <div style={{ ...cardTitleStyle, fontSize: 18 }}>Recent Journal Entries</div>
                 <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>Latest activity recorded in accounting</div>
               </div>
               <button onClick={() => setActiveSection("journal_entries")} style={widgetButton()}>
