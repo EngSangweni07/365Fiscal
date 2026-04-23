@@ -218,6 +218,7 @@ def _payment_entry_payload_from_values(
     currency: str,
     payment_method: str,
     payment_id: int | None = None,
+    journal_id: int | None = None,
 ) -> dict[str, Any] | None:
     amount = round(float(amount or 0), 2)
     if amount == 0:
@@ -245,6 +246,7 @@ def _payment_entry_payload_from_values(
     return {
         "company_id": company_id,
         "journal_type": "cash" if is_cash else "bank",
+        "journal_id": journal_id,
         "reference": f"PAY/{reference}",
         "entry_date": payment_date,
         "narration": f"Payment {reference}" if sign > 0 else f"Payment refund {reference}",
@@ -265,6 +267,7 @@ def _payment_entry_payload(db: Session, payment) -> dict[str, Any] | None:
         currency=payment.currency,
         payment_method=payment.payment_method,
         payment_id=payment.id,
+        journal_id=getattr(payment, "journal_id", None),
     )
 
 
@@ -531,6 +534,7 @@ def post_entry(
     *,
     company_id: int,
     journal_type: str,
+    journal_id: int | None = None,
     reference: str,
     entry_date: datetime | None,
     narration: str,
@@ -573,7 +577,19 @@ def post_entry(
     if len(prepared) < 2 or round(total_debit - total_credit, 2) != 0:
         return None
 
-    journal = get_journal(db, company_id, journal_type) or get_journal(db, company_id, "general")
+    journal = None
+    if journal_id:
+        journal = (
+            db.query(Journal)
+            .filter(
+                Journal.id == journal_id,
+                Journal.company_id == company_id,
+                Journal.is_active == True,
+            )
+            .first()
+        )
+    if not journal:
+        journal = get_journal(db, company_id, journal_type) or get_journal(db, company_id, "general")
     if not journal:
         return None
 
@@ -602,6 +618,7 @@ def post_invoice_entry(db: Session, invoice, replace_existing: bool = False) -> 
         db,
         company_id=payload["company_id"],
         journal_type=payload["journal_type"],
+        journal_id=payload.get("journal_id"),
         reference=payload["reference"],
         entry_date=payload["entry_date"],
         narration=payload["narration"],

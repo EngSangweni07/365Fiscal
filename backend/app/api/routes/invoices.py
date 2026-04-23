@@ -12,7 +12,7 @@ from app.models.invoice_line import InvoiceLine
 from app.models.quotation import Quotation
 from app.models.contact import Contact
 from app.models.device import Device
-from app.models.account import JournalEntry
+from app.models.account import Journal, JournalEntry
 from app.models.stock_move import StockMove
 from app.models.stock_quant import StockQuant
 from app.models.company_settings import CompanySettings
@@ -546,6 +546,8 @@ def register_payment(
     invoice_id: int,
     amount: float,
     payment_reference: str = "",
+    payment_method: str = "cash",
+    journal_id: int | None = None,
     db: Session = Depends(get_db),
     user=Depends(require_portal_user),
 ):
@@ -562,6 +564,29 @@ def register_payment(
     
     if invoice.status == "draft":
         raise HTTPException(status_code=400, detail="Cannot pay draft invoice")
+
+    normalized_payment_method = (payment_method or "cash").strip().lower()
+    if normalized_payment_method not in {"cash", "bank"}:
+        raise HTTPException(status_code=400, detail="Payment method must be cash or bank")
+
+    selected_journal = None
+    if journal_id is not None:
+        selected_journal = (
+            db.query(Journal)
+            .filter(
+                Journal.id == journal_id,
+                Journal.company_id == invoice.company_id,
+                Journal.is_active == True,
+            )
+            .first()
+        )
+        if not selected_journal:
+            raise HTTPException(status_code=404, detail="Selected journal not found")
+        if (selected_journal.journal_type or "").strip().lower() != normalized_payment_method:
+            raise HTTPException(
+                status_code=400,
+                detail="Selected journal does not match the payment method",
+            )
     
     invoice.amount_paid += amount
     invoice.amount_due = invoice.total_amount - invoice.amount_paid
@@ -579,7 +604,8 @@ def register_payment(
         "payment_date": datetime.utcnow(),
         "amount": amount,
         "currency": invoice.currency,
-        "payment_method": "cash",
+        "payment_method": normalized_payment_method,
+        "journal_id": selected_journal.id if selected_journal else None,
     })
     post_payment_entry(db, payment_stub)
     
@@ -592,8 +618,13 @@ def register_payment(
         resource_id=invoice.id,
         resource_reference=invoice.reference,
         company_id=invoice.company_id,
-        new_values={"amount": amount, "total_paid": invoice.amount_paid},
-        changes_summary=f"Payment of {amount} recorded for {invoice.reference}",
+        new_values={
+            "amount": amount,
+            "total_paid": invoice.amount_paid,
+            "payment_method": normalized_payment_method,
+            "journal_id": selected_journal.id if selected_journal else None,
+        },
+        changes_summary=f"Payment of {amount} recorded for {invoice.reference} via {normalized_payment_method}",
     )
     
     db.commit()

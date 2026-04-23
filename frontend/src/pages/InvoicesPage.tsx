@@ -167,6 +167,17 @@ type PaymentTermItem = {
   is_active: boolean;
 };
 
+type JournalItem = {
+  id: number;
+  company_id: number;
+  name: string;
+  code: string;
+  journal_type: string;
+  default_account_id: number | null;
+  currency_code: string;
+  is_active: boolean;
+};
+
 const currencyOptions = ["USD", "ZWG", "ZAR", "EUR", "GBP"];
 
 const normalizeCurrency = (value: string | null | undefined) => {
@@ -618,6 +629,20 @@ export default function InvoicesPage({
     }
     return paymentTermOptions;
   }, [editPaymentTerms, paymentTermOptions]);
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "bank">(
+    "cash",
+  );
+  const [paymentJournalId, setPaymentJournalId] = useState<number | null>(
+    null,
+  );
+  const [paymentJournals, setPaymentJournals] = useState<JournalItem[]>([]);
+  const paymentJournalOptions = useMemo(() => {
+    return paymentJournals.filter(
+      (journal) =>
+        journal.is_active &&
+        journal.journal_type.trim().toLowerCase() === paymentMethod,
+    );
+  }, [paymentJournals, paymentMethod]);
   const invoiceSidebarSections = useMemo<SidebarSection[]>(() => {
     const statusItems = STATUS_FILTERS.map((filter) => {
       const IconComponent = filter.icon;
@@ -1495,8 +1520,12 @@ export default function InvoicesPage({
       setError("Enter a valid payment amount.");
       return;
     }
+    if (!paymentJournalId) {
+      setError(`Select a ${paymentMethod} journal.`);
+      return;
+    }
     await apiFetch<Invoice>(
-      `/invoices/${selectedInvoiceId}/pay?amount=${amount}&payment_reference=${encodeURIComponent(paymentReference)}`,
+      `/invoices/${selectedInvoiceId}/pay?amount=${amount}&payment_reference=${encodeURIComponent(paymentReference)}&payment_method=${encodeURIComponent(paymentMethod)}&journal_id=${paymentJournalId}`,
       {
         method: "POST",
       },
@@ -1504,8 +1533,47 @@ export default function InvoicesPage({
     setPaymentOpen(false);
     setPaymentAmount("");
     setPaymentReference("");
+    setPaymentMethod("cash");
+    setPaymentJournalId(null);
     await loadAll();
   };
+
+  useEffect(() => {
+    if (!paymentOpen || !companyId) return;
+    let cancelled = false;
+    apiFetch<JournalItem[]>(`/accounting/journals?company_id=${companyId}`)
+      .then((data) => {
+        if (!cancelled) {
+          setPaymentJournals(data);
+        }
+      })
+      .catch((err: Error) => {
+        if (!cancelled) {
+          setError(err.message || "Failed to load payment journals");
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [paymentOpen, companyId]);
+
+  useEffect(() => {
+    if (!paymentOpen) return;
+    if (selectedInvoice?.amount_due && !paymentAmount) {
+      setPaymentAmount(String(selectedInvoice.amount_due));
+    }
+  }, [paymentOpen, paymentAmount, selectedInvoice?.amount_due]);
+
+  useEffect(() => {
+    if (!paymentOpen) return;
+    if (
+      paymentJournalId &&
+      paymentJournalOptions.some((journal) => journal.id === paymentJournalId)
+    ) {
+      return;
+    }
+    setPaymentJournalId(paymentJournalOptions[0]?.id ?? null);
+  }, [paymentOpen, paymentJournalId, paymentJournalOptions]);
 
   const createCreditNote = async () => {
     if (!selectedInvoiceId) return;
@@ -3774,6 +3842,44 @@ export default function InvoicesPage({
                   />
                 </div>
                 <div className="modal-body py-4">
+                  <div className="mb-3">
+                    <label className="form-label fw-semibold">Payment Type</label>
+                    <select
+                      className="form-select"
+                      value={paymentMethod}
+                      onChange={(e) => {
+                        setPaymentMethod(e.target.value === "bank" ? "bank" : "cash");
+                        setPaymentJournalId(null);
+                      }}
+                    >
+                      <option value="cash">Cash</option>
+                      <option value="bank">Bank</option>
+                    </select>
+                  </div>
+                  <div className="mb-3">
+                    <label className="form-label fw-semibold">Journal</label>
+                    <select
+                      className="form-select"
+                      value={paymentJournalId ?? ""}
+                      onChange={(e) =>
+                        setPaymentJournalId(
+                          e.target.value ? Number(e.target.value) : null,
+                        )
+                      }
+                    >
+                      <option value="">Select journal</option>
+                      {paymentJournalOptions.map((journal) => (
+                        <option key={journal.id} value={journal.id}>
+                          {journal.name} ({journal.code})
+                        </option>
+                      ))}
+                    </select>
+                    {!paymentJournalOptions.length && (
+                      <div className="form-text text-danger">
+                        No active {paymentMethod} journals found for this company.
+                      </div>
+                    )}
+                  </div>
                   <div className="mb-3">
                     <label className="form-label fw-semibold">Amount</label>
                     <input
