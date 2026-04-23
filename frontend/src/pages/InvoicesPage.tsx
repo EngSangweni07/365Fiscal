@@ -3839,10 +3839,7 @@ export default function InvoicesPage({
               if (e.target === e.currentTarget) setPaymentOpen(false);
             }}
           >
-            <div
-              className="modal-dialog modal-dialog-centered"
-              style={{ width: "100%", maxWidth: 420, margin: 0 }}
-            >
+            <div style={{ width: "100%", maxWidth: 420 }}>
               <div className="modal-content shadow-lg border-0">
                 <div className="modal-header border-bottom">
                   <h5 className="modal-title fw-semibold">Register Payment</h5>
