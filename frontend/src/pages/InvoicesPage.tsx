@@ -3820,36 +3820,50 @@ export default function InvoicesPage({
       )}
 
       {paymentOpen && (
-        <>
-          <div className="modal-backdrop fade show" style={{ zIndex: 1040 }} />
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 1050,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "1rem",
+            background: "rgba(15, 23, 42, 0.45)",
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setPaymentOpen(false);
+          }}
+        >
           <div
-            className="modal fade show"
-            tabIndex={-1}
-            role="dialog"
             style={{
-              position: "fixed",
-              inset: 0,
-              zIndex: 1050,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "1rem",
-            }}
-            onClick={(e) => {
-              if (e.target === e.currentTarget) setPaymentOpen(false);
+              width: "100%",
+              maxWidth: 420,
+              background: "#fff",
+              borderRadius: 16,
+              boxShadow: "0 24px 64px rgba(15, 23, 42, 0.24)",
+              overflow: "hidden",
             }}
           >
-            <div style={{ width: "100%", maxWidth: 420 }}>
-              <div className="modal-content shadow-lg border-0">
-                <div className="modal-header border-bottom">
-                  <h5 className="modal-title fw-semibold">Register Payment</h5>
-                  <button
-                    type="button"
-                    className="btn-close"
-                    onClick={() => setPaymentOpen(false)}
-                  />
-                </div>
-                <div className="modal-body py-4">
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "16px 20px",
+                borderBottom: "1px solid #e2e8f0",
+              }}
+            >
+              <h5 className="fw-semibold mb-0">Register Payment</h5>
+              <button
+                type="button"
+                className="btn-close"
+                onClick={() => setPaymentOpen(false)}
+              />
+            </div>
+            <div style={{ padding: "20px" }}>
                   <div className="mb-3">
                     <label className="form-label fw-semibold">Payment Type</label>
                     <select
@@ -3907,22 +3921,29 @@ export default function InvoicesPage({
                       onChange={(e) => setPaymentReference(e.target.value)}
                     />
                   </div>
-                </div>
-                <div className="modal-footer border-top">
-                  <button
-                    className="btn btn-light border"
-                    onClick={() => setPaymentOpen(false)}
-                  >
-                    Cancel
-                  </button>
-                  <button className="btn btn-primary" onClick={registerPayment}>
-                    Confirm Payment
-                  </button>
-                </div>
-              </div>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: 12,
+                padding: "14px 20px",
+                borderTop: "1px solid #e2e8f0",
+                background: "#f8fafc",
+              }}
+            >
+              <button
+                className="btn btn-light border"
+                onClick={() => setPaymentOpen(false)}
+              >
+                Cancel
+              </button>
+              <button className="btn btn-primary" onClick={registerPayment}>
+                Confirm Payment
+              </button>
             </div>
           </div>
-        </>
+        </div>
       )}
 
       <JournalEntryPreviewDrawer
