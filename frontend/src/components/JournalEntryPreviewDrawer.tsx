@@ -42,16 +42,20 @@ const overlayStyle: React.CSSProperties = {
   background: "rgba(15, 23, 42, 0.28)",
   zIndex: 1400,
   display: "flex",
-  justifyContent: "flex-end",
+  justifyContent: "center",
+  alignItems: "center",
+  padding: "20px",
 };
 
 const drawerStyle: React.CSSProperties = {
-  width: "min(560px, 100vw)",
-  height: "100%",
+  width: "min(800px, 100vw)",
+  maxHeight: "90vh",
   background: "#fff",
-  boxShadow: "-24px 0 48px rgba(15, 23, 42, 0.18)",
+  boxShadow: "0 20px 60px rgba(15, 23, 42, 0.2)",
+  borderRadius: "14px",
   display: "flex",
   flexDirection: "column",
+  overflow: "hidden",
 };
 
 const headerStyle: React.CSSProperties = {
@@ -68,6 +72,8 @@ const bodyStyle: React.CSSProperties = {
   overflowY: "auto",
   display: "grid",
   gap: 16,
+  flex: 1,
+  minHeight: 0,
 };
 
 const cardStyle: React.CSSProperties = {

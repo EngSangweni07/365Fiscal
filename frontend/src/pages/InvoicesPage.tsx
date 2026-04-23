@@ -3148,6 +3148,71 @@ export default function InvoicesPage({
                   </nav>
                 </div>
 
+                {/* Smart Status Tabs */}
+                <div className="mb-4 d-flex align-items-center justify-content-between gap-3 flex-wrap">
+                  <div className="d-flex gap-2 align-items-center">
+                    {selectedInvoice && (
+                      <>
+                        <button
+                          type="button"
+                          className={`btn btn-sm ${
+                            selectedInvoice.status === "draft"
+                              ? "btn-outline-primary"
+                              : "btn-outline-secondary"
+                          }`}
+                          disabled
+                        >
+                          {selectedInvoice.status === "draft"
+                            ? "✓ Draft"
+                            : "Draft"}
+                        </button>
+                        <button
+                          type="button"
+                          className={`btn btn-sm ${
+                            selectedInvoice.status === "posted"
+                              ? "btn-outline-info"
+                              : "btn-outline-secondary"
+                          }`}
+                          disabled
+                        >
+                          {selectedInvoice.status === "posted"
+                            ? "✓ Posted"
+                            : "Posted"}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-secondary"
+                          onClick={() => setJournalPreviewOpen(true)}
+                        >
+                          📋 View Journal Entry
+                        </button>
+                      </>
+                    )}
+                  </div>
+                  {selectedInvoice && (
+                    <span
+                      className={`badge fs-6 ${
+                        getPaymentStatus(
+                          selectedInvoice.amount_paid,
+                          selectedInvoice.amount_due,
+                        ) === "Paid"
+                          ? "bg-success"
+                          : getPaymentStatus(
+                                selectedInvoice.amount_paid,
+                                selectedInvoice.amount_due,
+                              ) === "Partial"
+                            ? "bg-warning"
+                            : "bg-secondary"
+                      }`}
+                    >
+                      {getPaymentStatus(
+                        selectedInvoice.amount_paid,
+                        selectedInvoice.amount_due,
+                      )}
+                    </span>
+                  )}
+                </div>
+
                 {companySettings?.logo_data && (
                   <div className="mb-3">
                     <img
