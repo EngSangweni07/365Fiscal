@@ -19,17 +19,13 @@ from app.schemas.payment import (
     PaymentMethodCreate, PaymentMethodUpdate, PaymentMethodRead
 )
 from app.services.accounting import create_reversal_entry, post_payment_entry
+from app.services.payment_records import (
+    backfill_company_payments,
+    create_payment_record,
+    next_payment_reference,
+)
 
 router = APIRouter(prefix="/payments", tags=["payments"])
-
-
-def next_payment_reference(db: Session, prefix: str = "PAY") -> str:
-    """Generate next payment reference."""
-    today = datetime.utcnow().strftime("%Y%m%d")
-    full_prefix = f"{prefix}-{today}-"
-    count = db.query(Payment).filter(Payment.reference.like(f"{full_prefix}%")).count()
-    return f"{full_prefix}{count + 1:04d}"
-
 
 @router.get("")
 def list_payments(
@@ -49,6 +45,7 @@ def list_payments(
 ):
     """List payments for a company."""
     ensure_company_access(db, user, company_id)
+    backfill_company_payments(db, company_id)
     
     query = db.query(Payment).filter(Payment.company_id == company_id)
     
@@ -124,23 +121,20 @@ def create_payment(
         if not payload.contact_id and invoice.customer_id:
             payload.contact_id = invoice.customer_id
     
-    payment = Payment(
+    payment = create_payment_record(
+        db,
         company_id=payload.company_id,
         invoice_id=payload.invoice_id,
         contact_id=payload.contact_id,
-        reference=next_payment_reference(db),
         amount=payload.amount,
         currency=payload.currency,
         payment_method=payload.payment_method,
+        created_by_id=user.id,
+        payment_date=payload.payment_date,
         payment_account=payload.payment_account,
         transaction_reference=payload.transaction_reference,
-        payment_date=payload.payment_date or datetime.utcnow(),
         notes=payload.notes,
-        status="posted",
-        created_by_id=user.id,
     )
-    db.add(payment)
-    db.flush()
     
     # Update invoice if linked
     if invoice:
@@ -177,6 +171,7 @@ def payment_summary(
 ):
     """Get payment summary for a company."""
     ensure_company_access(db, user, company_id)
+    backfill_company_payments(db, company_id)
     
     base = db.query(Payment).filter(
         Payment.company_id == company_id,

@@ -33,6 +33,7 @@ interface PaymentSummary {
 const paymentMethods = [
   { value: "cash", label: "Cash" },
   { value: "bank_transfer", label: "Bank Transfer" },
+  { value: "bank", label: "Bank" },
   { value: "mobile_money", label: "Mobile Money" },
   { value: "card", label: "Card" },
   { value: "cheque", label: "Cheque" },

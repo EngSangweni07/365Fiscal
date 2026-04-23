@@ -17,8 +17,10 @@ from app.models.stock_move import StockMove
 from app.models.stock_quant import StockQuant
 from app.models.company_settings import CompanySettings
 from app.models.audit_log import AuditAction, ResourceType
+from app.models.payment import Payment
 from app.schemas.invoice import InvoiceCreate, InvoiceRead, InvoiceUpdate
 from app.services.accounting import create_reversal_entry, post_invoice_entry, post_payment_entry, post_stock_move_entry
+from app.services.payment_records import create_payment_record
 from app.services.fdms import submit_invoice
 
 router = APIRouter(prefix="/invoices", tags=["invoices"])
@@ -595,19 +597,23 @@ def register_payment(
     if invoice.amount_due <= 0:
         invoice.status = "paid"
     
-    payment_stub = type("InvoicePayment", (), {
-        "id": None,
-        "company_id": invoice.company_id,
-        "invoice_id": invoice.id,
-        "contact_id": invoice.customer_id,
-        "reference": payment_reference or f"{invoice.reference}-PAY-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}",
-        "payment_date": datetime.utcnow(),
-        "amount": amount,
-        "currency": invoice.currency,
-        "payment_method": normalized_payment_method,
-        "journal_id": selected_journal.id if selected_journal else None,
-    })
-    post_payment_entry(db, payment_stub)
+    stored_payment_method = "cash" if normalized_payment_method == "cash" else "bank_transfer"
+    payment = create_payment_record(
+        db,
+        company_id=invoice.company_id,
+        invoice_id=invoice.id,
+        contact_id=invoice.customer_id,
+        amount=amount,
+        currency=invoice.currency,
+        payment_method=stored_payment_method,
+        created_by_id=user.id,
+        payment_date=datetime.utcnow(),
+        reference=payment_reference or f"{invoice.reference}-PAY-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}",
+        transaction_reference=payment_reference,
+        notes=f"Invoice payment for {invoice.reference}",
+        journal_id=selected_journal.id if selected_journal else None,
+    )
+    post_payment_entry(db, payment)
     
     # Audit log
     log_audit(

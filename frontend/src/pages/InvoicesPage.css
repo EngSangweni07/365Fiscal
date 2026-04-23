@@ -732,7 +732,6 @@ button.invoice-detail-btn:disabled {
 .invoice-customer-history-card {
   position: sticky;
   top: 16px;
-  max-height: 82vh;
   overflow: hidden;
 }
 
@@ -740,7 +739,6 @@ button.invoice-detail-btn:disabled {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  max-height: 82vh;
 }
 
 .invoice-customer-history-header p {
@@ -775,7 +773,6 @@ button.invoice-detail-btn:disabled {
   display: flex;
   flex-direction: column;
   gap: 0;
-  overflow-y: auto;
   padding-right: 4px;
 }
 

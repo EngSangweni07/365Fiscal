@@ -34,6 +34,7 @@ from app.models.location import Location
 from app.models.audit_log import AuditAction, ResourceType
 from app.models.pos_employee import POSEmployee
 from app.models.pos_till import POSTill
+from app.models.account import Journal
 from app.schemas.pos import (
     POSSessionOpen, POSSessionClose, POSSessionRead, POSSessionSummary,
     POSOrderCreate, POSOrderRead, POSOrderRefund,
@@ -41,6 +42,7 @@ from app.schemas.pos import (
     POSTillCreate, POSTillUpdate, POSTillRead,
 )
 from app.services.accounting import post_invoice_entry, post_payment_entry
+from app.services.payment_records import create_payment_record
 from app.services.fdms import submit_invoice
 
 router = APIRouter(prefix="/pos", tags=["pos"])
@@ -658,18 +660,35 @@ def create_order(
     db.flush()
 
     post_invoice_entry(db, invoice)
-    pos_payment = type("POSPayment", (), {
-        "id": None,
-        "company_id": order.company_id,
-        "invoice_id": invoice.id,
-        "contact_id": order.customer_id,
-        "reference": order.reference,
-        "payment_date": order.order_date,
-        "amount": order.total_amount,
-        "currency": order.currency,
-        "payment_method": order.payment_method,
-    })
-    post_payment_entry(db, pos_payment)
+    journal_id = None
+    if order.payment_method == "cash":
+        journal = (
+            db.query(Journal)
+            .filter(
+                Journal.company_id == order.company_id,
+                Journal.is_active == True,
+                Journal.journal_type == "cash",
+            )
+            .order_by(Journal.id.asc())
+            .first()
+        )
+        journal_id = journal.id if journal else None
+    payment = create_payment_record(
+        db,
+        company_id=order.company_id,
+        invoice_id=invoice.id,
+        contact_id=order.customer_id,
+        amount=order.total_amount,
+        currency=order.currency,
+        payment_method=order.payment_method,
+        created_by_id=user.id,
+        payment_date=order.order_date,
+        reference=order.reference,
+        transaction_reference=order.payment_reference,
+        notes=f"POS payment for order {order.reference}",
+        journal_id=journal_id,
+    )
+    post_payment_entry(db, payment)
 
     # Auto-fiscalize
     if payload.auto_fiscalize and device:
