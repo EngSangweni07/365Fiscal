@@ -2989,6 +2989,8 @@ export default function InvoicesPage({
                       </tbody>
                     </table>
                   </div>
+                </div>
+              </div>
 
               <aside className="card shadow-sm invoice-customer-history-card">
                 <div className="card-body">
