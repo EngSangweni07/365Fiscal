@@ -3096,10 +3096,11 @@ export default function InvoicesPage({
 
           {/* ── Existing Invoice Detail ── */}
           {selectedInvoice && !newMode && (
-            <div
-              className="card shadow-sm"
-              style={{ maxHeight: "82vh", overflowY: "auto" }}
-            >
+            <div className="invoice-create-layout">
+              <div
+                className="card shadow-sm invoice-create-form-card"
+                style={{ maxHeight: "82vh", overflowY: "auto" }}
+              >
               <div className="card-body invoice-form">
                 {companySettings?.logo_data && (
                   <div className="mb-3">
@@ -3622,6 +3623,107 @@ export default function InvoicesPage({
                   </table>
                 </div>
               </div>
+            </div>
+
+              <aside className="card shadow-sm invoice-customer-history-card">
+                <div className="card-body">
+                  <div className="invoice-customer-history-header">
+                    <div>
+                      <h6 className="fw-semibold mb-1">Customer's Invoices</h6>
+                    </div>
+                  </div>
+
+                  {customer ? (
+                    <>
+                      <div className="invoice-customer-history-stats">
+                        <div className="invoice-customer-history-stat">
+                          <span className="invoice-customer-history-stat-label">
+                            Total invoices
+                          </span>
+                          <strong>{customerHistoryInvoices.length}</strong>
+                        </div>
+                        <div className="invoice-customer-history-stat">
+                          <span className="invoice-customer-history-stat-label">
+                            Outstanding
+                          </span>
+                          <strong>
+                            {formatCurrency(
+                              customerHistoryOutstandingTotal,
+                              invoiceCurrency || "USD",
+                            )}
+                          </strong>
+                        </div>
+                      </div>
+
+                      {recentCustomerHistory.length ? (
+                        <div className="invoice-customer-history-list">
+                          {recentCustomerHistory.map((historyInvoice) => {
+                            const paymentState = getPaymentStatus(
+                              historyInvoice.amount_paid,
+                              historyInvoice.amount_due,
+                            );
+                            const statusClass =
+                              historyInvoice.status === "paid"
+                                ? "bg-success"
+                                : historyInvoice.status === "posted"
+                                  ? "bg-info"
+                                  : historyInvoice.status === "fiscalized"
+                                    ? "bg-primary"
+                                    : "bg-secondary";
+                            const paymentClass =
+                              paymentState === "Paid"
+                                ? "bg-success"
+                                : paymentState === "Partial"
+                                  ? "bg-warning"
+                                  : "bg-secondary";
+
+                            return (
+                              <button
+                                key={historyInvoice.id}
+                                type="button"
+                                className="invoice-customer-history-item"
+                                onClick={() => {
+                                  setSelectedInvoiceId(historyInvoice.id);
+                                }}
+                              >
+                                <div className="invoice-customer-history-item-top">
+                                  <strong>{historyInvoice.reference}</strong>
+                                  <span className={`badge ${statusClass}`}>
+                                    {historyInvoice.status}
+                                  </span>
+                                </div>
+                                <div className="invoice-customer-history-item-meta">
+                                  <span>
+                                    {formatDateTime(historyInvoice.invoice_date) || "—"}
+                                  </span>
+                                  <span>
+                                    {formatCurrency(
+                                      historyInvoice.total_amount,
+                                      historyInvoice.currency || invoiceCurrency || "USD",
+                                    )}
+                                  </span>
+                                </div>
+                                <div className="invoice-customer-history-item-bottom">
+                                  <span className={`badge ${paymentClass}`}>
+                                    {paymentState}
+                                  </span>
+                                  <span className="text-muted">
+                                    Due {formatCurrency(historyInvoice.amount_due || 0, historyInvoice.currency || invoiceCurrency || "USD")}
+                                  </span>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="invoice-customer-history-empty">
+                          No previous invoices found for this customer.
+                        </div>
+                      )}
+                    </>
+                  ) : null}
+                </div>
+              </aside>
             </div>
           )}
         </div>
