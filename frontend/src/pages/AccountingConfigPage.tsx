@@ -123,11 +123,105 @@ const SECTION_LABELS: Record<SectionKey, string> = {
 
 const ACCOUNT_TYPES = [
   { value: "asset", label: "Asset" },
+  { value: "current_asset", label: "Current Asset" },
+  { value: "fixed_asset", label: "Fixed Asset" },
+  { value: "non_current_asset", label: "Non-Current Asset" },
+  { value: "bank_cash", label: "Bank and Cash" },
+  { value: "receivable", label: "Accounts Receivable" },
+  { value: "prepayment", label: "Prepayments" },
   { value: "liability", label: "Liability" },
+  { value: "current_liability", label: "Current Liability" },
+  { value: "non_current_liability", label: "Non-Current Liability" },
+  { value: "payable", label: "Accounts Payable" },
+  { value: "credit_card", label: "Credit Card" },
   { value: "equity", label: "Equity" },
+  { value: "current_year_earnings", label: "Current Year Earnings" },
   { value: "income", label: "Income" },
+  { value: "other_income", label: "Other Income" },
   { value: "expense", label: "Expense" },
+  { value: "direct_cost", label: "Direct Cost / Cost of Sales" },
+  { value: "depreciation", label: "Depreciation" },
+  { value: "off_balance", label: "Off-Balance" },
 ];
+
+const ACCOUNT_TYPE_LABELS = new Map(
+  ACCOUNT_TYPES.map((option) => [option.value, option.label]),
+);
+
+const accountTypeFamily = (accountType: string): "asset" | "liability" | "equity" | "income" | "expense" | "other" => {
+  const normalized = (accountType || "").toLowerCase().trim();
+  if (
+    [
+      "asset",
+      "current_asset",
+      "fixed_asset",
+      "non_current_asset",
+      "bank_cash",
+      "receivable",
+      "prepayment",
+    ].includes(normalized)
+  ) {
+    return "asset";
+  }
+  if (
+    [
+      "liability",
+      "current_liability",
+      "non_current_liability",
+      "payable",
+      "credit_card",
+    ].includes(normalized)
+  ) {
+    return "liability";
+  }
+  if (["equity", "current_year_earnings"].includes(normalized)) {
+    return "equity";
+  }
+  if (["income", "other_income"].includes(normalized)) {
+    return "income";
+  }
+  if (["expense", "direct_cost", "depreciation"].includes(normalized)) {
+    return "expense";
+  }
+  return "other";
+};
+
+const accountTypeBadgeStyle = (accountType: string): React.CSSProperties => {
+  const family = accountTypeFamily(accountType);
+  return {
+    padding: "2px 8px",
+    borderRadius: 4,
+    fontSize: 11,
+    fontWeight: 600,
+    background:
+      family === "asset"
+        ? "#dbeafe"
+        : family === "liability"
+          ? "#fde68a"
+          : family === "equity"
+            ? "#ede9fe"
+            : family === "income"
+              ? "#d1fae5"
+              : family === "expense"
+                ? "#fee2e2"
+                : "#e5e7eb",
+    color:
+      family === "asset"
+        ? "#1e40af"
+        : family === "liability"
+          ? "#92400e"
+          : family === "equity"
+            ? "#6d28d9"
+            : family === "income"
+              ? "#065f46"
+              : family === "expense"
+                ? "#991b1b"
+                : "#374151",
+  };
+};
+
+const accountTypeLabel = (accountType: string) =>
+  ACCOUNT_TYPE_LABELS.get(accountType) ?? accountType.replace(/_/g, " ");
 
 const JOURNAL_TYPES = [
   { value: "sale", label: "Sales" },
@@ -977,35 +1071,8 @@ export default function AccountingConfigPage() {
             <td style={{ ...tdStyle, fontWeight: 600 }}>{a.code}</td>
             <td style={tdStyle}>{a.name}</td>
             <td style={tdStyle}>
-              <span
-                style={{
-                  padding: "2px 8px",
-                  borderRadius: 4,
-                  fontSize: 11,
-                  fontWeight: 600,
-                  background:
-                    a.account_type === "asset"
-                      ? "#dbeafe"
-                      : a.account_type === "liability"
-                      ? "#fde68a"
-                      : a.account_type === "income"
-                      ? "#d1fae5"
-                      : a.account_type === "expense"
-                      ? "#fee2e2"
-                      : "#e5e7eb",
-                  color:
-                    a.account_type === "asset"
-                      ? "#1e40af"
-                      : a.account_type === "liability"
-                      ? "#92400e"
-                      : a.account_type === "income"
-                      ? "#065f46"
-                      : a.account_type === "expense"
-                      ? "#991b1b"
-                      : "#374151",
-                }}
-              >
-                {a.account_type}
+              <span style={accountTypeBadgeStyle(a.account_type)}>
+                {accountTypeLabel(a.account_type)}
               </span>
             </td>
             <td style={tdStyle}>{a.currency_code}</td>

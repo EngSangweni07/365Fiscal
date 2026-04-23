@@ -2540,7 +2540,7 @@ export default function InvoicesPage({
                   </h4>
               </div>
             )}
-            {!newMode && !isEditing && selectedInvoice ? (
+            {!newMode && !isEditing && selectedInvoice && statusLabel !== "draft" ? (
               <div className="invoice-status-rail" aria-label="Invoice workflow status">
                 <button
                   type="button"
@@ -2626,9 +2626,14 @@ export default function InvoicesPage({
                   >
                     Print PDF
                   </button>
-                  {statusLabel !== "draft" && (
+                  {statusLabel !== "draft" &&
+                    selectedInvoice &&
+                    getPaymentStatus(
+                      selectedInvoice.amount_paid,
+                      selectedInvoice.amount_due,
+                    ) !== "Paid" && (
                     <button
-                      className="btn btn-sm btn-light border"
+                      className="btn btn-light border invoice-register-payment-btn"
                       onClick={() => setPaymentOpen(true)}
                     >
                       Register Payment

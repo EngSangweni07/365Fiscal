@@ -675,6 +675,14 @@ button.invoice-detail-btn:disabled {
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
 }
 
+.invoice-register-payment-btn {
+  min-height: 40px;
+  padding: 0 18px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 10px;
+}
+
 .invoice-create-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
