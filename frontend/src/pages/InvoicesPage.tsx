@@ -2467,40 +2467,42 @@ export default function InvoicesPage({
                 </div>
               </div>
             ) : (
-              <div className="d-flex align-items-center gap-2">
-                <button
-                  className="btn btn-sm btn-light border"
-                  onClick={goBackToList}
-                >
-                  ← Back
-                </button>
-                <h4 className="fw-bold mb-0" style={invoiceHeadingStyle}>
-                  {newMode
-                    ? "New Invoice"
-                    : selectedInvoice?.reference || "Invoice"}
-                </h4>
+              <div className="d-flex flex-column align-items-start gap-1">
+                {!newMode && selectedInvoice && (
+                  <nav aria-label="breadcrumb">
+                    <ol className="breadcrumb mb-0 invoice-top-breadcrumb">
+                      <li className="breadcrumb-item">
+                        <button
+                          type="button"
+                          className="btn btn-link p-0 text-decoration-none"
+                          onClick={goBackToList}
+                        >
+                          Invoices
+                        </button>
+                      </li>
+                      <li className="breadcrumb-item active" aria-current="page">
+                        {selectedInvoice.reference || "Invoice"}
+                      </li>
+                    </ol>
+                  </nav>
+                )}
+                <div className="d-flex align-items-center gap-2">
+                  <button
+                    className="btn btn-sm btn-light border"
+                    onClick={goBackToList}
+                  >
+                    ← Back
+                  </button>
+                  <h4 className="fw-bold mb-0" style={invoiceHeadingStyle}>
+                    {newMode
+                      ? "New Invoice"
+                      : selectedInvoice?.reference || "Invoice"}
+                  </h4>
+                </div>
               </div>
             )}
             {!newMode && !isEditing && selectedInvoice ? (
               <div className="invoice-status-rail" aria-label="Invoice workflow status">
-                <span
-                  className={`invoice-status-chip ${
-                    selectedInvoice.status === "draft"
-                      ? "is-active is-draft"
-                      : ""
-                  }`}
-                >
-                  Draft
-                </span>
-                <span
-                  className={`invoice-status-chip ${
-                    selectedInvoice.status === "posted"
-                      ? "is-active is-posted"
-                      : ""
-                  }`}
-                >
-                  Posted
-                </span>
                 <button
                   type="button"
                   className="invoice-status-chip invoice-status-action"
@@ -2508,17 +2510,6 @@ export default function InvoicesPage({
                 >
                   View Journal Entry
                 </button>
-                <span
-                  className={`invoice-status-chip payment-status ${
-                    paymentStatus === "Paid"
-                      ? "is-paid"
-                      : paymentStatus === "Partial"
-                        ? "is-partial"
-                        : "is-unpaid"
-                  }`}
-                >
-                  {paymentStatus}
-                </span>
               </div>
             ) : (
               <div></div>
@@ -3163,26 +3154,6 @@ export default function InvoicesPage({
                 style={{ maxHeight: "82vh", overflowY: "auto" }}
               >
               <div className="card-body invoice-form">
-                {/* Breadcrumbs */}
-                <div className="mb-4">
-                  <nav aria-label="breadcrumb">
-                    <ol className="breadcrumb mb-0">
-                      <li className="breadcrumb-item">
-                        <button
-                          type="button"
-                          className="btn btn-link p-0 text-decoration-none"
-                          onClick={goBackToList}
-                        >
-                          Invoices
-                        </button>
-                      </li>
-                      <li className="breadcrumb-item active" aria-current="page">
-                        {selectedInvoice?.reference || "Invoice"}
-                      </li>
-                    </ol>
-                  </nav>
-                </div>
-
                 {companySettings?.logo_data && (
                   <div className="mb-3">
                     <img
