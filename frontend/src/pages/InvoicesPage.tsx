@@ -1620,6 +1620,37 @@ export default function InvoicesPage({
 
   const canEdit = isEditing && statusLabel === "draft" && !isCreditNote;
 
+  const newInvoiceTaxBreakdown = useMemo(() => {
+    const map = new Map<number, number>();
+    editLines.forEach((line) => {
+      const quantity = line.quantity || 0;
+      const unitPrice = line.unit_price || 0;
+      const discount = line.discount || 0;
+      const rate = line.vat_rate || 0;
+      const taxable = quantity * unitPrice * (1 - discount / 100);
+      const taxAmount = taxable * (rate / 100);
+      map.set(rate, (map.get(rate) || 0) + taxAmount);
+    });
+    return Array.from(map.entries()).sort((a, b) => a[0] - b[0]);
+  }, [editLines]);
+
+  const newInvoiceSubtotal = useMemo(() => {
+    return editLines.reduce((sum, line) => {
+      const quantity = line.quantity || 0;
+      const unitPrice = line.unit_price || 0;
+      const discount = line.discount || 0;
+      return sum + quantity * unitPrice * (1 - discount / 100);
+    }, 0);
+  }, [editLines]);
+
+  const newInvoiceTaxTotal = useMemo(() => {
+    return newInvoiceTaxBreakdown.reduce((sum, [, amount]) => sum + amount, 0);
+  }, [newInvoiceTaxBreakdown]);
+
+  const newInvoiceGrandTotal = useMemo(() => {
+    return newInvoiceSubtotal + newInvoiceTaxTotal;
+  }, [newInvoiceSubtotal, newInvoiceTaxTotal]);
+
   const taxBreakdown = useMemo(() => {
     const map = new Map<number, number>();
     displayLines.forEach((line) => {
@@ -2550,231 +2581,229 @@ export default function InvoicesPage({
               >
                 <div className="card-body invoice-form">
                   <div className="row g-3">
-                  <div className="col-md-6">
-                    <label
-                      className={`form-label ${
-                        invalidFields.includes("newCustomer")
-                          ? "form-label-error"
-                          : ""
-                      }`}
-                    >
-                      Customer <span className="text-danger">*</span>
-                    </label>
-                    <div
-                      className="position-relative"
-                      ref={customerDropdownRef}
-                    >
-                      <input
-                        className={`form-control input-underline ${
+                    <div className="col-md-6">
+                      <label
+                        className={`form-label ${
                           invalidFields.includes("newCustomer")
+                            ? "form-label-error"
+                            : ""
+                        }`}
+                      >
+                        Customer <span className="text-danger">*</span>
+                      </label>
+                      <div
+                        className="position-relative"
+                        ref={customerDropdownRef}
+                      >
+                        <input
+                          className={`form-control input-underline ${
+                            invalidFields.includes("newCustomer")
+                              ? "input-field-error"
+                              : ""
+                          }`}
+                          placeholder="Search or select customer…"
+                          value={customerSearch}
+                          onChange={(e) => {
+                            setCustomerSearch(e.target.value);
+                            setCustomerDropdownOpen(true);
+                            if (!e.target.value) setNewCustomerId(null);
+                          }}
+                          onFocus={() => setCustomerDropdownOpen(true)}
+                        />
+                        {customerDropdownOpen && (
+                          <ul
+                            className="list-group position-absolute w-100 shadow-sm"
+                            style={{
+                              zIndex: 1050,
+                              maxHeight: 220,
+                              overflowY: "auto",
+                            }}
+                          >
+                            {displayContacts.map((c) => (
+                              <li
+                                key={c.id}
+                                className={`list-group-item list-group-item-action${newCustomerId === c.id ? " active" : ""}`}
+                                role="button"
+                                onClick={() => selectCustomer(c.id, c.name, "new")}
+                              >
+                                {c.name}
+                              </li>
+                            ))}
+                            {customerSearch.trim() &&
+                              !filteredContacts.some(
+                                (c) =>
+                                  c.name.toLowerCase() ===
+                                  customerSearch.trim().toLowerCase(),
+                              ) && (
+                                <li
+                                  className="list-group-item list-group-item-action text-primary"
+                                  role="button"
+                                  onClick={() => createCustomerFromSearch("new")}
+                                >
+                                  {customerCreating
+                                    ? "Creating..."
+                                    : `Create "${customerSearch.trim()}"`}
+                                </li>
+                              )}
+                            {!displayContacts.length &&
+                              !customerSearch.trim() && (
+                                <li className="list-group-item text-muted">
+                                  No customers
+                                </li>
+                              )}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label">Quotation</label>
+                      <div
+                        className="position-relative"
+                        ref={quotationDropdownRef}
+                      >
+                        <input
+                          className="form-control input-underline"
+                          placeholder="Search or select quotation…"
+                          value={quotationSearch}
+                          onChange={(e) => {
+                            setQuotationSearch(e.target.value);
+                            setQuotationDropdownOpen(true);
+                            if (!e.target.value) setNewQuotationId(null);
+                          }}
+                          onFocus={() => setQuotationDropdownOpen(true)}
+                        />
+                        {quotationDropdownOpen && (
+                          <ul
+                            className="list-group position-absolute w-100 shadow-sm"
+                            style={{
+                              zIndex: 1050,
+                              maxHeight: 220,
+                              overflowY: "auto",
+                            }}
+                          >
+                            {displayQuotations.map((q) => (
+                              <li
+                                key={q.id}
+                                className={`list-group-item list-group-item-action${newQuotationId === q.id ? " active" : ""}`}
+                                role="button"
+                                onClick={() => {
+                                  setNewQuotationId(q.id);
+                                  setQuotationSearch(q.reference);
+                                  setQuotationDropdownOpen(false);
+                                }}
+                              >
+                                {q.reference}
+                              </li>
+                            ))}
+                            {!displayQuotations.length &&
+                              !quotationSearch.trim() && (
+                                <li className="list-group-item text-muted">
+                                  No quotations
+                                </li>
+                              )}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label">Reference</label>
+                      <input
+                        className="form-control input-underline bg-light"
+                        value="Auto-generated"
+                        readOnly
+                      />
+                    </div>
+                    <div className="col-md-6">
+                      <label
+                        className={`form-label ${
+                          invalidFields.includes("newCurrency")
+                            ? "form-label-error"
+                            : ""
+                        }`}
+                      >
+                        Currency
+                      </label>
+                      <select
+                        className={`form-select input-underline ${
+                          invalidFields.includes("newCurrency")
                             ? "input-field-error"
                             : ""
                         }`}
-                        placeholder="Search or select customer…"
-                        value={customerSearch}
+                        value={newCurrency}
                         onChange={(e) => {
-                          setCustomerSearch(e.target.value);
-                          setCustomerDropdownOpen(true);
-                          if (!e.target.value) setNewCustomerId(null);
+                          const { value } = e.target;
+                          setNewCurrency(value);
+                          clearInvalidField("newCurrency", value);
                         }}
-                        onFocus={() => setCustomerDropdownOpen(true)}
-                      />
-                      {customerDropdownOpen && (
-                        <ul
-                          className="list-group position-absolute w-100 shadow-sm"
-                          style={{
-                            zIndex: 1050,
-                            maxHeight: 220,
-                            overflowY: "auto",
-                          }}
-                        >
-                          {displayContacts.map((c) => (
-                            <li
-                              key={c.id}
-                              className={`list-group-item list-group-item-action${newCustomerId === c.id ? " active" : ""}`}
-                              role="button"
-                              onClick={() =>
-                                selectCustomer(c.id, c.name, "new")
-                              }
-                            >
-                              {c.name}
-                            </li>
-                          ))}
-                          {customerSearch.trim() &&
-                            !filteredContacts.some(
-                              (c) =>
-                                c.name.toLowerCase() ===
-                                customerSearch.trim().toLowerCase(),
-                            ) && (
-                              <li
-                                className="list-group-item list-group-item-action text-primary"
-                                role="button"
-                                onClick={() => createCustomerFromSearch("new")}
-                              >
-                                {customerCreating
-                                  ? "Creating..."
-                                  : `Create "${customerSearch.trim()}"`}
-                              </li>
-                            )}
-                          {!displayContacts.length &&
-                            !customerSearch.trim() && (
-                              <li className="list-group-item text-muted">
-                                No customers
-                              </li>
-                            )}
-                        </ul>
-                      )}
+                      >
+                        {currencyOptions.map((cur) => (
+                          <option key={cur} value={cur}>
+                            {cur}
+                          </option>
+                        ))}
+                      </select>
                     </div>
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Quotation</label>
-                    <div
-                      className="position-relative"
-                      ref={quotationDropdownRef}
-                    >
+                    <div className="col-md-6">
+                      <label className="form-label">Invoice Date</label>
                       <input
                         className="form-control input-underline"
-                        placeholder="Search or select quotation…"
-                        value={quotationSearch}
-                        onChange={(e) => {
-                          setQuotationSearch(e.target.value);
-                          setQuotationDropdownOpen(true);
-                          if (!e.target.value) setNewQuotationId(null);
-                        }}
-                        onFocus={() => setQuotationDropdownOpen(true)}
+                        type="date"
+                        value={newInvoiceDate}
+                        onChange={(e) => setNewInvoiceDate(e.target.value)}
                       />
-                      {quotationDropdownOpen && (
-                        <ul
-                          className="list-group position-absolute w-100 shadow-sm"
-                          style={{
-                            zIndex: 1050,
-                            maxHeight: 220,
-                            overflowY: "auto",
-                          }}
-                        >
-                          {displayQuotations.map((q) => (
-                            <li
-                              key={q.id}
-                              className={`list-group-item list-group-item-action${newQuotationId === q.id ? " active" : ""}`}
-                              role="button"
-                              onClick={() => {
-                                setNewQuotationId(q.id);
-                                setQuotationSearch(q.reference);
-                                setQuotationDropdownOpen(false);
-                              }}
-                            >
-                              {q.reference}
-                            </li>
-                          ))}
-                          {!displayQuotations.length &&
-                            !quotationSearch.trim() && (
-                              <li className="list-group-item text-muted">
-                                No quotations
-                              </li>
-                            )}
-                        </ul>
-                      )}
                     </div>
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Reference</label>
-                    <input
-                      className="form-control input-underline bg-light"
-                      value="Auto-generated"
-                      readOnly
-                    />
-                  </div>
-                  <div className="col-md-6">
-                    <label
-                      className={`form-label ${
-                        invalidFields.includes("newCurrency")
-                          ? "form-label-error"
-                          : ""
-                      }`}
-                    >
-                      Currency
-                    </label>
-                    <select
-                      className={`form-select input-underline ${
-                        invalidFields.includes("newCurrency")
-                          ? "input-field-error"
-                          : ""
-                      }`}
-                      value={newCurrency}
-                      onChange={(e) => {
-                        const { value } = e.target;
-                        setNewCurrency(value);
-                        clearInvalidField("newCurrency", value);
-                      }}
-                    >
-                      {currencyOptions.map((cur) => (
-                        <option key={cur} value={cur}>
-                          {cur}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Invoice Date</label>
-                    <input
-                      className="form-control input-underline"
-                      type="date"
-                      value={newInvoiceDate}
-                      onChange={(e) => setNewInvoiceDate(e.target.value)}
-                    />
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Due Date</label>
-                    <input
-                      className="form-control input-underline"
-                      type="date"
-                      value={newDueDate}
-                      onChange={(e) => setNewDueDate(e.target.value)}
-                    />
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Fiscal Device</label>
-                    <select
-                      className="form-select input-underline"
-                      value={newDeviceId ?? ""}
-                      onChange={(e) =>
-                        setNewDeviceId(
-                          e.target.value ? Number(e.target.value) : null,
-                        )
-                      }
-                    >
-                      <option value="">— None —</option>
-                      {devices.map((d) => (
-                        <option key={d.id} value={d.id}>
-                          {d.device_id || d.serial_number || `Device ${d.id}`}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Payment Terms</label>
-                    <select
-                      className="form-select input-underline"
-                      value={newPaymentTerms}
-                      onChange={(e) => setNewPaymentTerms(e.target.value)}
-                    >
-                      <option value="">Select terms</option>
-                      {newPaymentTermOptions.map((termName) => (
-                        <option key={termName} value={termName}>
-                          {termName}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="col-md-12">
-                    <label className="form-label">Notes</label>
-                    <textarea
-                      className="form-control input-underline"
-                      rows={2}
-                      value={newNotes}
-                      onChange={(e) => setNewNotes(e.target.value)}
-                    />
-                  </div>
+                    <div className="col-md-6">
+                      <label className="form-label">Due Date</label>
+                      <input
+                        className="form-control input-underline"
+                        type="date"
+                        value={newDueDate}
+                        onChange={(e) => setNewDueDate(e.target.value)}
+                      />
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label">Fiscal Device</label>
+                      <select
+                        className="form-select input-underline"
+                        value={newDeviceId ?? ""}
+                        onChange={(e) =>
+                          setNewDeviceId(
+                            e.target.value ? Number(e.target.value) : null,
+                          )
+                        }
+                      >
+                        <option value="">— None —</option>
+                        {devices.map((d) => (
+                          <option key={d.id} value={d.id}>
+                            {d.device_id || d.serial_number || `Device ${d.id}`}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label">Payment Terms</label>
+                      <select
+                        className="form-select input-underline"
+                        value={newPaymentTerms}
+                        onChange={(e) => setNewPaymentTerms(e.target.value)}
+                      >
+                        <option value="">Select terms</option>
+                        {newPaymentTermOptions.map((termName) => (
+                          <option key={termName} value={termName}>
+                            {termName}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="col-md-12">
+                      <label className="form-label">Notes</label>
+                      <textarea
+                        className="form-control input-underline"
+                        rows={2}
+                        value={newNotes}
+                        onChange={(e) => setNewNotes(e.target.value)}
+                      />
+                    </div>
                   </div>
 
                   <hr className="my-4" />
@@ -2822,112 +2851,103 @@ export default function InvoicesPage({
                           );
                           return (
                             <tr key={`new-${index}`}>
-                            <td>
-                              <select
-                                className="form-select form-select-sm"
-                                value={line.product_id ?? ""}
-                                onChange={(e) => {
-                                  const prod = products.find(
-                                    (p) => p.id === Number(e.target.value),
-                                  );
-                                  updateLine(index, {
-                                    product_id: e.target.value
-                                      ? Number(e.target.value)
-                                      : null,
-                                    description: prod?.name ?? "",
-                                    unit_price: prod
-                                      ? toInvoiceCurrency(prod.sale_price)
-                                      : 0,
-                                    vat_rate: prod?.tax_rate ?? 0,
-                                    uom: prod?.uom || "",
-                                  });
-                                }}
-                              >
-                                <option value="">Select product</option>
-                                {products.map((p) => (
-                                  <option key={p.id} value={p.id}>
-                                    {p.name}
-                                  </option>
-                                ))}
-                              </select>
-                            </td>
-                            <td>
-                              <input
-                                className="form-control form-control-sm"
-                                value={line.description || ""}
-                                onChange={(e) =>
-                                  updateLine(index, {
-                                    description: e.target.value,
-                                  })
-                                }
-                              />
-                            </td>
-                            <td>
-                              <input
-                                className="form-control form-control-sm text-end"
-                                type="number"
-                                value={line.quantity || 0}
-                                onChange={(e) =>
-                                  updateLine(index, {
-                                    quantity: Number(e.target.value),
-                                  })
-                                }
-                              />
-                            </td>
-                            <td>
-                              <input
-                                className="form-control form-control-sm bg-light"
-                                value={displayUom}
-                                readOnly
-                              />
-                            </td>
-                            <td>
-                              <input
-                                className="form-control form-control-sm text-end"
-                                type="number"
-                                value={line.unit_price || 0}
-                                onChange={(e) =>
-                                  updateLine(index, {
-                                    unit_price: Number(e.target.value),
-                                  })
-                                }
-                              />
-                            </td>
-                            <td className="text-end ">
-                              {formatCurrency(lineTotal, newCurrency)}
-                            </td>
-                            <td className="text-center">
-                              <button
-                                className="btn btn-sm btn-light border"
-                                onClick={() => removeLine(index)}
-                                disabled={editLines.length === 1}
-                              >
-                                ✕
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                      {!editLines.length && (
-                        <tr>
-                          <td
-                            colSpan={7}
-                            className="text-center py-4 text-muted"
-                          >
-                            No invoice lines yet.
-                          </td>
-                        </tr>
-                      )}
-                      <tr className="invoice-lines-action-row">
-                        <td colSpan={7}>
-                          <div className="invoice-lines-actions-inline">
+                              <td>
+                                <select
+                                  className="form-select form-select-sm"
+                                  value={line.product_id ?? ""}
+                                  onChange={(e) => {
+                                    const prod = products.find(
+                                      (p) => p.id === Number(e.target.value),
+                                    );
+                                    updateLine(index, {
+                                      product_id: e.target.value
+                                        ? Number(e.target.value)
+                                        : null,
+                                      description: prod?.name ?? "",
+                                      unit_price: prod
+                                        ? toInvoiceCurrency(prod.sale_price)
+                                        : 0,
+                                      vat_rate: prod?.tax_rate ?? 0,
+                                      uom: prod?.uom || "",
+                                    });
+                                  }}
+                                >
+                                  <option value="">Select product</option>
+                                  {products.map((p) => (
+                                    <option key={p.id} value={p.id}>
+                                      {p.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              </td>
+                              <td>
+                                <input
+                                  className="form-control form-control-sm"
+                                  value={line.description || ""}
+                                  onChange={(e) =>
+                                    updateLine(index, {
+                                      description: e.target.value,
+                                    })
+                                  }
+                                />
+                              </td>
+                              <td>
+                                <input
+                                  className="form-control form-control-sm text-end"
+                                  type="number"
+                                  value={line.quantity || 0}
+                                  onChange={(e) =>
+                                    updateLine(index, {
+                                      quantity: Number(e.target.value),
+                                    })
+                                  }
+                                />
+                              </td>
+                              <td>
+                                <input
+                                  className="form-control form-control-sm bg-light"
+                                  value={displayUom}
+                                  readOnly
+                                />
+                              </td>
+                              <td>
+                                <input
+                                  className="form-control form-control-sm text-end"
+                                  type="number"
+                                  value={line.unit_price || 0}
+                                  onChange={(e) =>
+                                    updateLine(index, {
+                                      unit_price: Number(e.target.value),
+                                    })
+                                  }
+                                />
+                              </td>
+                              <td className="text-end fw-semibold">
+                                {formatCurrency(lineTotal, newCurrency)}
+                              </td>
+                              <td className="text-center">
+                                <button
+                                  className="btn btn-sm btn-light border"
+                                  onClick={() => removeLine(index)}
+                                  disabled={editLines.length === 1}
+                                >
+                                  ✕
+                                </button>
+                              </td>
                             </tr>
                           );
                         })}
+                        {!editLines.length && (
+                          <tr>
+                            <td colSpan={7} className="text-center py-4 text-muted">
+                              No invoice lines yet.
+                            </td>
+                          </tr>
+                        )}
                       </tbody>
                     </table>
                   </div>
-                            <button
+
                   <div className="d-flex gap-3 mt-3">
                     <button
                       className="btn btn-link btn-sm px-0"
@@ -2942,17 +2962,17 @@ export default function InvoicesPage({
                       + New Product
                     </button>
                   </div>
-                        <td className="text-end fw-semibold">
+
                   <div className="d-flex justify-content-end mt-3">
                     <table className="table table-sm w-auto mb-0">
                       <tbody>
                         <tr>
                           <th className="text-end">Untaxed Amount:</th>
                           <td className="text-end">
-                            {formatCurrency(lineSubtotal, newCurrency)}
+                            {formatCurrency(newInvoiceSubtotal, newCurrency)}
                           </td>
                         </tr>
-                        {taxBreakdown.map(([rate, amount]) => (
+                        {newInvoiceTaxBreakdown.map(([rate, amount]) => (
                           <tr key={rate}>
                             <th className="text-end">Tax {rate}%:</th>
                             <td className="text-end">
@@ -2963,14 +2983,13 @@ export default function InvoicesPage({
                         <tr>
                           <th className="text-end fs-5">Total:</th>
                           <td className="text-end fs-5 fw-bold">
-                            {formatCurrency(lineGrandTotal, newCurrency)}
+                            {formatCurrency(newInvoiceGrandTotal, newCurrency)}
                           </td>
                         </tr>
                       </tbody>
                     </table>
                   </div>
-                            selectedInvoice?.total_amount || 0,
-                            invoiceCurrency,
+
               <aside className="card shadow-sm invoice-customer-history-card">
                 <div className="card-body">
                   <div className="invoice-customer-history-header">
@@ -3102,7 +3121,7 @@ export default function InvoicesPage({
                       style={{
                         maxWidth: 180,
                         maxHeight: 70,
-                        width: "auto",
+                            {formatCurrency(newInvoiceGrandTotal, newCurrency)}
                         height: "auto",
                         objectFit: "contain",
                         display: "block",
@@ -3111,14 +3130,124 @@ export default function InvoicesPage({
                   </div>
                 )}
 
-                {/* Fields */}
-                <div className="row g-3 mb-4">
-                  <div className="col-md-4">
-                    <label
-                      className={`form-label ${
-                        invalidFields.includes("editCustomer")
-                          ? "form-label-error"
-                          : ""
+
+                <div className="card-body">
+                  <div className="invoice-customer-history-header">
+                    <div>
+                      <h6 className="fw-semibold mb-1">Customer Invoice History</h6>
+                      <p className="text-muted mb-0">
+                        {newInvoiceCustomer
+                          ? `Previous invoices for ${newInvoiceCustomer.name}`
+                          : "Select a customer to see their previous invoices."}
+                      </p>
+                    </div>
+                  </div>
+
+                  {newInvoiceCustomer ? (
+                    <>
+                      <div className="invoice-customer-history-stats">
+                        <div className="invoice-customer-history-stat">
+                          <span className="invoice-customer-history-stat-label">
+                            Total invoices
+                          </span>
+                          <strong>{customerHistoryInvoices.length}</strong>
+                        </div>
+                        <div className="invoice-customer-history-stat">
+                          <span className="invoice-customer-history-stat-label">
+                            Outstanding
+                          </span>
+                          <strong>
+                            {formatCurrency(
+                              customerHistoryOutstandingTotal,
+                              newCurrency || "USD",
+                            )}
+                          </strong>
+                        </div>
+                      </div>
+
+                      {recentCustomerHistory.length ? (
+                        <div className="invoice-customer-history-list">
+                          {recentCustomerHistory.map((historyInvoice) => {
+                            const paymentState = getPaymentStatus(
+                              historyInvoice.amount_paid,
+                              historyInvoice.amount_due,
+                            );
+                            const statusClass =
+                              historyInvoice.status === "paid"
+                                ? "bg-success"
+                                : historyInvoice.status === "posted"
+                                  ? "bg-info"
+                                  : historyInvoice.status === "fiscalized"
+                                    ? "bg-primary"
+                                    : "bg-secondary";
+                            const paymentClass =
+                              paymentState === "Paid"
+                                ? "bg-success"
+                                : paymentState === "Partial"
+                                  ? "bg-warning"
+                                  : "bg-secondary";
+
+                            return (
+                              <button
+                                key={historyInvoice.id}
+                                type="button"
+                                className="invoice-customer-history-item"
+                                onClick={() =>
+                                  navigate(`/invoices/${historyInvoice.id}`)
+                                }
+                              >
+                                <div className="invoice-customer-history-item-top">
+                                  <strong>{historyInvoice.reference}</strong>
+                                  <span className={`badge ${statusClass}`}>
+                                    {historyInvoice.status}
+                                  </span>
+                                </div>
+                                <div className="invoice-customer-history-item-meta">
+                                  <span>
+                                    {formatDateTime(historyInvoice.invoice_date) ||
+                                      "—"}
+                                  </span>
+                                  <span>
+                                    {formatCurrency(
+                                      historyInvoice.total_amount,
+                                      historyInvoice.currency ||
+                                        newCurrency ||
+                                        "USD",
+                                    )}
+                                  </span>
+                                </div>
+                                <div className="invoice-customer-history-item-bottom">
+                                  <span className={`badge ${paymentClass}`}>
+                                    {paymentState}
+                                  </span>
+                                  <span className="text-muted">
+                                    Due{" "}
+                                    {formatCurrency(
+                                      historyInvoice.amount_due || 0,
+                                      historyInvoice.currency ||
+                                        newCurrency ||
+                                        "USD",
+                                    )}
+                                  </span>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="invoice-customer-history-empty">
+                          No previous invoices found for this customer.
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="invoice-customer-history-empty">
+                      Choose a customer first. Their recent invoice history will
+                      appear here.
+                    </div>
+                  )}
+                </div>
+              </aside>
                       }`}
                     >
                       Customer
