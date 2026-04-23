@@ -161,6 +161,12 @@ type CompanySettings = {
   document_watermark_opacity?: string;
 };
 
+type PaymentTermItem = {
+  id: number;
+  name: string;
+  is_active: boolean;
+};
+
 const currencyOptions = ["USD", "ZWG", "ZAR", "EUR", "GBP"];
 
 const normalizeCurrency = (value: string | null | undefined) => {
@@ -530,6 +536,7 @@ export default function InvoicesPage({
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [devices, setDevices] = useState<Device[]>([]);
+  const [paymentTerms, setPaymentTerms] = useState<PaymentTermItem[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [companySettings, setCompanySettings] =
@@ -586,6 +593,31 @@ export default function InvoicesPage({
     }
     return currencyOptions;
   }, [currencyList]);
+  const paymentTermOptions = useMemo(() => {
+    const options = paymentTerms
+      .filter((term) => term.is_active)
+      .map((term) => term.name.trim())
+      .filter((name) => Boolean(name));
+    return Array.from(new Set(options));
+  }, [paymentTerms]);
+  const newPaymentTermOptions = useMemo(() => {
+    if (
+      newPaymentTerms.trim() &&
+      !paymentTermOptions.includes(newPaymentTerms.trim())
+    ) {
+      return [newPaymentTerms.trim(), ...paymentTermOptions];
+    }
+    return paymentTermOptions;
+  }, [newPaymentTerms, paymentTermOptions]);
+  const editPaymentTermOptions = useMemo(() => {
+    if (
+      editPaymentTerms.trim() &&
+      !paymentTermOptions.includes(editPaymentTerms.trim())
+    ) {
+      return [editPaymentTerms.trim(), ...paymentTermOptions];
+    }
+    return paymentTermOptions;
+  }, [editPaymentTerms, paymentTermOptions]);
   const invoiceSidebarSections = useMemo<SidebarSection[]>(() => {
     const statusItems = STATUS_FILTERS.map((filter) => {
       const IconComponent = filter.icon;
@@ -869,6 +901,7 @@ export default function InvoicesPage({
         quotationData,
         contactData,
         productData,
+        paymentTermData,
         warehouseData,
         deviceData,
         settingsData,
@@ -878,6 +911,9 @@ export default function InvoicesPage({
         apiFetch<Quotation[]>(`/quotations?company_id=${companyId}`),
         apiFetch<Contact[]>(`/contacts?company_id=${companyId}`),
         apiFetch<Product[]>(`/products/with-stock?company_id=${companyId}`),
+        apiFetch<PaymentTermItem[]>(
+          `/accounting/payment-terms?company_id=${companyId}`,
+        ),
         apiFetch<Warehouse[]>(`/warehouses?company_id=${companyId}`),
         apiFetch<Device[]>(`/devices?company_id=${companyId}`),
         apiFetch<CompanySettings>(`/company-settings?company_id=${companyId}`),
@@ -889,6 +925,7 @@ export default function InvoicesPage({
       setQuotations(quotationData);
       setContacts(contactData);
       setProducts(productData);
+      setPaymentTerms(paymentTermData);
       setDevices(deviceData);
       setWarehouses(warehouseData);
       setCompanySettings(settingsData ?? null);
@@ -2694,12 +2731,11 @@ export default function InvoicesPage({
                       onChange={(e) => setNewPaymentTerms(e.target.value)}
                     >
                       <option value="">Select terms</option>
-                      <option value="7 Days">7 Days</option>
-                      <option value="14 Days">14 Days</option>
-                      <option value="30 Days">30 Days</option>
-                      <option value="2 Weeks">2 Weeks</option>
-                      <option value="1 Month">1 Month</option>
-                      <option value="6 Months">6 Months</option>
+                      {newPaymentTermOptions.map((termName) => (
+                        <option key={termName} value={termName}>
+                          {termName}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div className="col-md-12">
@@ -3195,12 +3231,11 @@ export default function InvoicesPage({
                         onChange={(e) => setEditPaymentTerms(e.target.value)}
                       >
                         <option value="">Select terms</option>
-                        <option value="7 Days">7 Days</option>
-                        <option value="14 Days">14 Days</option>
-                        <option value="30 Days">30 Days</option>
-                        <option value="2 Weeks">2 Weeks</option>
-                        <option value="1 Month">1 Month</option>
-                        <option value="6 Months">6 Months</option>
+                        {editPaymentTermOptions.map((termName) => (
+                          <option key={termName} value={termName}>
+                            {termName}
+                          </option>
+                        ))}
                       </select>
                     ) : (
                       <div className="form-control-plaintext">
