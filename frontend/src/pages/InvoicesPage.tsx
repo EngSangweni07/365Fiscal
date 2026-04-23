@@ -2996,12 +2996,7 @@ export default function InvoicesPage({
                 <div className="card-body">
                   <div className="invoice-customer-history-header">
                     <div>
-                      <h6 className="fw-semibold mb-1">Customer Invoice History</h6>
-                      <p className="text-muted mb-0">
-                        {newInvoiceCustomer
-                          ? `Previous invoices for ${newInvoiceCustomer.name}`
-                          : "Select a customer to see their previous invoices."}
-                      </p>
+                      <h6 className="fw-semibold mb-1">Customer's Invoices</h6>
                     </div>
                   </div>
 
