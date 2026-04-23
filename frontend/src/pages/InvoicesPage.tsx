@@ -1177,6 +1177,32 @@ export default function InvoicesPage({
     return customerHistoryInvoices.slice(0, 6);
   }, [customerHistoryInvoices]);
 
+  const selectedInvoiceCustomerHistoryInvoices = useMemo(() => {
+    if (!selectedInvoice?.customer_id) return [];
+    return invoices
+      .filter((invoice) => invoice.customer_id === selectedInvoice.customer_id)
+      .sort((left, right) => {
+        const leftDate =
+          left.invoice_date || left.fiscalized_at || new Date(0).toISOString();
+        const rightDate =
+          right.invoice_date || right.fiscalized_at || new Date(0).toISOString();
+        const byDate =
+          new Date(rightDate).getTime() - new Date(leftDate).getTime();
+        return byDate || right.id - left.id;
+      });
+  }, [invoices, selectedInvoice?.customer_id]);
+
+  const selectedInvoiceCustomerHistoryOutstandingTotal = useMemo(() => {
+    return selectedInvoiceCustomerHistoryInvoices.reduce(
+      (sum, invoice) => sum + (invoice.amount_due || 0),
+      0,
+    );
+  }, [selectedInvoiceCustomerHistoryInvoices]);
+
+  const selectedInvoiceRecentHistory = useMemo(() => {
+    return selectedInvoiceCustomerHistoryInvoices.slice(0, 6);
+  }, [selectedInvoiceCustomerHistoryInvoices]);
+
   const invoiceDateLabel = selectedInvoice?.invoice_date
     ? formatDateTime(selectedInvoice.invoice_date)
     : selectedInvoice?.fiscalized_at
@@ -3102,6 +3128,26 @@ export default function InvoicesPage({
                 style={{ maxHeight: "82vh", overflowY: "auto" }}
               >
               <div className="card-body invoice-form">
+                {/* Breadcrumbs */}
+                <div className="mb-4">
+                  <nav aria-label="breadcrumb">
+                    <ol className="breadcrumb mb-0">
+                      <li className="breadcrumb-item">
+                        <button
+                          type="button"
+                          className="btn btn-link p-0 text-decoration-none"
+                          onClick={goBackToList}
+                        >
+                          Invoices
+                        </button>
+                      </li>
+                      <li className="breadcrumb-item active" aria-current="page">
+                        {selectedInvoice?.reference || "Invoice"}
+                      </li>
+                    </ol>
+                  </nav>
+                </div>
+
                 {companySettings?.logo_data && (
                   <div className="mb-3">
                     <img
@@ -3640,7 +3686,7 @@ export default function InvoicesPage({
                           <span className="invoice-customer-history-stat-label">
                             Total invoices
                           </span>
-                          <strong>{customerHistoryInvoices.length}</strong>
+                          <strong>{selectedInvoiceCustomerHistoryInvoices.length}</strong>
                         </div>
                         <div className="invoice-customer-history-stat">
                           <span className="invoice-customer-history-stat-label">
@@ -3648,16 +3694,16 @@ export default function InvoicesPage({
                           </span>
                           <strong>
                             {formatCurrency(
-                              customerHistoryOutstandingTotal,
+                              selectedInvoiceCustomerHistoryOutstandingTotal,
                               invoiceCurrency || "USD",
                             )}
                           </strong>
                         </div>
                       </div>
 
-                      {recentCustomerHistory.length ? (
+                      {selectedInvoiceRecentHistory.length ? (
                         <div className="invoice-customer-history-list">
-                          {recentCustomerHistory.map((historyInvoice) => {
+                          {selectedInvoiceRecentHistory.map((historyInvoice) => {
                             const paymentState = getPaymentStatus(
                               historyInvoice.amount_paid,
                               historyInvoice.amount_due,
