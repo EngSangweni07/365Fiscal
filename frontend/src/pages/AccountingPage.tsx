@@ -843,32 +843,11 @@ export default function AccountingPage() {
 
     return (
       <>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            alignItems: "center",
-            gap: 16,
-            flexWrap: "wrap",
-            marginBottom: 18,
-          }}
-        >
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button onClick={() => navigate("/accounting/configuration")} style={widgetButton()}>
-              <Settings size={14} /> Configuration
-            </button>
-            <button onClick={runBackfill} disabled={backfilling} style={widgetButton("primary")}>
-              <BookOpen size={14} /> {backfilling ? "Backfilling..." : "Backfill Entries"}
-            </button>
-          </div>
-        </div>
-
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 16, marginBottom: 18, alignItems: "start" }}>
           <div style={widgetCardStyle}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
               <div>
                 <div style={cardLabelStyle}>Customers</div>
-                <div style={cardTitleStyle}>Customer Invoices</div>
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <button onClick={() => navigate("/invoices/new")} style={widgetButton("primary")}>
@@ -932,7 +911,6 @@ export default function AccountingPage() {
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
               <div>
                 <div style={cardLabelStyle}>Vendors</div>
-                <div style={cardTitleStyle}>Vendor Bills</div>
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <button onClick={() => navigate("/purchases")} style={widgetButton("primary")}>
@@ -1008,7 +986,6 @@ export default function AccountingPage() {
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
                     <div>
                       <div style={cardLabelStyle}>{journal.journal_type === "cash" ? "Cash" : "Bank"}</div>
-                      <div style={cardTitleStyle}>{journal.name}</div>
                       <div style={{ fontSize: 12, color: overviewMuted, marginTop: 4 }}>{journal.code}</div>
                     </div>
                     <span style={statPill(journal.journal_type === "cash" ? "#fff0df" : "#eaf2ff", journal.journal_type === "cash" ? "#cf8b55" : "#6f9bda")}>
@@ -1056,7 +1033,6 @@ export default function AccountingPage() {
             <div style={widgetCardStyle}>
               <div>
                 <div style={cardLabelStyle}>Bank and cash</div>
-                <div style={cardTitleStyle}>No payment journals yet</div>
               </div>
               <div style={{ color: overviewMuted, fontSize: 13, lineHeight: 1.6 }}>
                 Create at least one bank or cash journal to track balances and payment activity from the overview.
@@ -1070,16 +1046,6 @@ export default function AccountingPage() {
           )}
 
           <div style={{ ...widgetCardStyle, minHeight: "auto" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-              <div>
-                <div style={cardLabelStyle}>Analytics</div>
-                <div style={{ ...cardTitleStyle, fontSize: 18 }}>Performance</div>
-                <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>Receivables, expenses, and payments at a glance</div>
-              </div>
-              <button onClick={() => navigate("/accounting/reports")} style={widgetButton()}>
-                <BarChart3 size={14} /> View reports
-              </button>
-            </div>
             <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.2fr) minmax(220px, 0.8fr)", gap: 12, alignItems: "stretch" }}>
               {renderComparisonChart({
                 id: "performance-overview",
@@ -1108,17 +1074,6 @@ export default function AccountingPage() {
           </div>
 
           <div style={{ ...widgetCardStyle, minHeight: "auto" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-              <div>
-                <div style={cardLabelStyle}>Ledger</div>
-                <div style={{ ...cardTitleStyle, fontSize: 18 }}>Recent Journal Entries</div>
-                <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>Latest activity recorded in accounting</div>
-              </div>
-              <button onClick={() => setActiveSection("journal_entries")} style={widgetButton()}>
-                <BookOpen size={14} /> Open ledger
-              </button>
-            </div>
-
             <div style={{ display: "grid", gap: 10 }}>
               {overview.recent_journal_entries.length > 0 ? (
                 overview.recent_journal_entries.slice(0, 5).map((entry) => (
