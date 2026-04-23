@@ -1542,6 +1542,54 @@ def accounting_overview(
         .scalar() or 0
     )
 
+    overdue_invoice_count = (
+        db.query(func.count(Invoice.id))
+        .filter(
+            Invoice.company_id == company_id,
+            Invoice.status.in_(["posted", "partial"]),
+            Invoice.invoice_type == "invoice",
+            Invoice.amount_due > 0,
+            Invoice.due_date < now,
+        )
+        .scalar() or 0
+    )
+
+    vendor_bills_to_validate_count = (
+        db.query(func.count(PurchaseOrder.id))
+        .filter(
+            PurchaseOrder.company_id == company_id,
+            PurchaseOrder.status == "draft",
+        )
+        .scalar() or 0
+    )
+
+    vendor_bills_to_validate_amount = float(
+        db.query(func.coalesce(func.sum(PurchaseOrder.total_amount), 0))
+        .filter(
+            PurchaseOrder.company_id == company_id,
+            PurchaseOrder.status == "draft",
+        )
+        .scalar() or 0
+    )
+
+    vendor_bills_open_count = (
+        db.query(func.count(PurchaseOrder.id))
+        .filter(
+            PurchaseOrder.company_id == company_id,
+            PurchaseOrder.status.in_(["confirmed", "received"]),
+        )
+        .scalar() or 0
+    )
+
+    vendor_bills_open_amount = float(
+        db.query(func.coalesce(func.sum(PurchaseOrder.total_amount), 0))
+        .filter(
+            PurchaseOrder.company_id == company_id,
+            PurchaseOrder.status.in_(["confirmed", "received"]),
+        )
+        .scalar() or 0
+    )
+
     expense_count = (
         db.query(func.count(Expense.id))
         .filter(
@@ -1651,11 +1699,24 @@ def accounting_overview(
             )
             .scalar() or 0
         )
+        payment_total = float(
+            db.query(func.coalesce(func.sum(Payment.amount), 0))
+            .join(JournalEntry, JournalEntry.payment_id == Payment.id)
+            .filter(
+                Payment.company_id == company_id,
+                Payment.status.in_(["posted", "reconciled"]),
+                JournalEntry.journal_id == j.id,
+                JournalEntry.status == "posted",
+            )
+            .scalar() or 0
+        )
         bank_journals.append({
             "id": j.id,
             "name": j.name,
             "code": j.code,
+            "journal_type": j.journal_type,
             "balance": round(balance, 2),
+            "payment_total": round(payment_total, 2),
         })
 
     return {
@@ -1669,8 +1730,21 @@ def accounting_overview(
         "cash_balance": round(cash_balance, 2),
         "invoice_count": invoice_count,
         "unpaid_invoice_count": unpaid_invoice_count,
+        "overdue_invoice_count": overdue_invoice_count,
         "expense_count": expense_count,
         "payment_count": payment_count,
+        "customer_invoices": {
+            "unpaid_count": unpaid_invoice_count,
+            "unpaid_amount": round(outstanding_receivables, 2),
+            "overdue_count": overdue_invoice_count,
+            "overdue_amount": round(overdue_receivables, 2),
+        },
+        "vendor_bills": {
+            "to_validate_count": vendor_bills_to_validate_count,
+            "to_validate_amount": round(vendor_bills_to_validate_amount, 2),
+            "open_count": vendor_bills_open_count,
+            "open_amount": round(vendor_bills_open_amount, 2),
+        },
         "recent_journal_entries": recent_journal_entries,
         "monthly_revenue": monthly_revenue,
         "bank_journals": bank_journals,

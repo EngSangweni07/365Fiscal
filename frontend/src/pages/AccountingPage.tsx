@@ -42,8 +42,21 @@ interface AccountingOverview {
   cash_balance: number;
   invoice_count: number;
   unpaid_invoice_count: number;
+  overdue_invoice_count: number;
   expense_count: number;
   payment_count: number;
+  customer_invoices: {
+    unpaid_count: number;
+    unpaid_amount: number;
+    overdue_count: number;
+    overdue_amount: number;
+  };
+  vendor_bills: {
+    to_validate_count: number;
+    to_validate_amount: number;
+    open_count: number;
+    open_amount: number;
+  };
   recent_journal_entries: {
     id: number;
     reference: string;
@@ -53,7 +66,14 @@ interface AccountingOverview {
     status: string;
   }[];
   monthly_revenue: { month: string; revenue: number; expenses: number }[];
-  bank_journals: { id: number; name: string; code: string; balance: number }[];
+  bank_journals: {
+    id: number;
+    name: string;
+    code: string;
+    journal_type: string;
+    balance: number;
+    payment_total: number;
+  }[];
 }
 
 type Account = {
@@ -549,296 +569,435 @@ export default function AccountingPage() {
 
     if (!overview) return null;
 
-    return (
-      <>
-        {/* KPI Cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 12, marginBottom: 20 }}>
-          <div style={kpiCard}>
-            <TrendingUp size={22} color="#16a34a" />
-            <div style={kpiValue}>{fmt(overview.ytd_revenue)}</div>
-            <div style={kpiLabel}>YTD Revenue</div>
-          </div>
-          <div style={kpiCard}>
-            <DollarSign size={22} color="#dc2626" />
-            <div style={kpiValue}>{fmt(overview.ytd_expenses)}</div>
-            <div style={kpiLabel}>YTD Expenses</div>
-          </div>
-          <div style={kpiCard}>
-            <PieChart size={22} color={overview.ytd_net_profit >= 0 ? "#16a34a" : "#dc2626"} />
-            <div style={{ ...kpiValue, color: overview.ytd_net_profit >= 0 ? "#16a34a" : "#dc2626" }}>
-              {fmt(overview.ytd_net_profit)}
-            </div>
-            <div style={kpiLabel}>Net Profit</div>
-          </div>
-          <div style={kpiCard}>
-            <FileText size={22} color="#2563eb" />
-            <div style={kpiValue}>{fmt(overview.outstanding_receivables)}</div>
-            <div style={kpiLabel}>Receivables</div>
-          </div>
-          <div style={kpiCard}>
-            <Clock size={22} color="#ea580c" />
-            <div style={{ ...kpiValue, color: overview.overdue_receivables > 0 ? "#ea580c" : undefined }}>
-              {fmt(overview.overdue_receivables)}
-            </div>
-            <div style={kpiLabel}>Overdue</div>
-          </div>
-          <div style={kpiCard}>
-            <Users size={22} color="#7c3aed" />
-            <div style={kpiValue}>{fmt(overview.total_payables)}</div>
-            <div style={kpiLabel}>Payables</div>
-          </div>
-          <div style={kpiCard}>
-            <CreditCard size={22} color="#0891b2" />
-            <div style={kpiValue}>{fmt(overview.cash_balance)}</div>
-            <div style={kpiLabel}>Cash Balance</div>
-          </div>
-        </div>
+    const money = (value: number) =>
+      new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(value || 0);
 
-        {/* Bank & Cash Journals */}
-        {overview.bank_journals.length > 0 && (
-          <div style={{ marginBottom: 20 }}>
-            <div style={sectionTitle}>Bank & Cash</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
-              {overview.bank_journals.map((j) => (
-                <div key={j.id} style={journalCard}>
+    const renderMiniBars = (values: number[], color: string, background: string) => {
+      const normalized = values.map((value) => Math.abs(value || 0));
+      const maxValue = Math.max(...normalized, 1);
+
+      return (
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 88 }}>
+          {normalized.map((value, index) => {
+            const height = Math.max((value / maxValue) * 72, 10);
+            return (
+              <div key={`${color}-${index}`} style={{ flex: 1, display: "flex", alignItems: "flex-end", height: "100%" }}>
+                <div
+                  style={{
+                    width: "100%",
+                    height,
+                    borderRadius: 999,
+                    background,
+                    overflow: "hidden",
+                    display: "flex",
+                    alignItems: "flex-end",
+                  }}
+                >
                   <div
                     style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 10,
-                      background: "linear-gradient(135deg, #4a7de6, #5b8def)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
+                      width: "100%",
+                      height: "100%",
+                      borderRadius: 999,
+                      background: color,
+                      opacity: 0.95,
                     }}
-                  >
-                    <DollarSign size={20} color="#fff" />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 600 }}>{j.name}</div>
-                    <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{j.code}</div>
-                  </div>
-                  <div style={{ marginLeft: "auto", textAlign: "right" }}>
-                    <div style={{ fontSize: 16, fontWeight: 700 }}>{fmt(j.balance)}</div>
-                  </div>
+                  />
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
+              </div>
+            );
+          })}
+        </div>
+      );
+    };
 
-        {/* Monthly Revenue vs Expenses Chart (simple bar) */}
-        {overview.monthly_revenue.length > 0 && (
-          <div style={card}>
-            <div style={sectionTitle}>Monthly Revenue vs Expenses</div>
-            <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 160, padding: "0 8px" }}>
-              {overview.monthly_revenue.map((m) => {
-                const maxVal = Math.max(
-                  ...overview.monthly_revenue.map((x) => Math.max(x.revenue, x.expenses)),
-                  1,
-                );
-                const revH = (m.revenue / maxVal) * 140;
-                const expH = (m.expenses / maxVal) * 140;
-                return (
-                  <div
-                    key={m.month}
-                    style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}
-                  >
-                    <div style={{ display: "flex", alignItems: "flex-end", gap: 2, height: 140 }}>
-                      <div
-                        style={{
-                          width: 14,
-                          height: revH,
-                          background: "#16a34a",
-                          borderRadius: "3px 3px 0 0",
-                        }}
-                        title={`Revenue: ${fmt(m.revenue)}`}
-                      />
-                      <div
-                        style={{
-                          width: 14,
-                          height: expH,
-                          background: "#dc2626",
-                          borderRadius: "3px 3px 0 0",
-                        }}
-                        title={`Expenses: ${fmt(m.expenses)}`}
-                      />
-                    </div>
-                    <div style={{ fontSize: 10, color: "var(--text-muted)" }}>{m.month}</div>
-                  </div>
-                );
-              })}
-            </div>
-            <div style={{ display: "flex", gap: 16, justifyContent: "center", marginTop: 12, fontSize: 11 }}>
-              <span>
-                <span style={{ display: "inline-block", width: 10, height: 10, background: "#16a34a", borderRadius: 2, marginRight: 4 }} />
-                Revenue
-              </span>
-              <span>
-                <span style={{ display: "inline-block", width: 10, height: 10, background: "#dc2626", borderRadius: 2, marginRight: 4 }} />
-                Expenses
-              </span>
-            </div>
-          </div>
-        )}
+    const widgetCardStyle: React.CSSProperties = {
+      background: "#ffffff",
+      border: "1px solid #d6dde8",
+      borderRadius: 20,
+      padding: "1.2rem 1.2rem 1.1rem",
+      boxShadow: "0 18px 40px rgba(15, 23, 42, 0.06)",
+      display: "flex",
+      flexDirection: "column",
+      gap: 16,
+      minHeight: 320,
+    };
 
-        {/* Quick Stats */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 12, marginBottom: 20 }}>
-          <div style={{ ...card, textAlign: "center" }}>
-            <div style={{ fontSize: 28, fontWeight: 700 }}>{overview.invoice_count}</div>
-            <div style={kpiLabel}>Total Invoices</div>
+    const widgetButton = (tone: "primary" | "secondary" = "secondary"): React.CSSProperties => ({
+      border: tone === "primary" ? "1px solid #164e63" : "1px solid #d6dde8",
+      background: tone === "primary" ? "#164e63" : "#f8fafc",
+      color: tone === "primary" ? "#ffffff" : "#0f172a",
+      borderRadius: 999,
+      padding: "0.48rem 0.9rem",
+      fontSize: 12,
+      fontWeight: 700,
+      cursor: "pointer",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+    });
+
+    const statPill = (background: string, color: string): React.CSSProperties => ({
+      padding: "0.2rem 0.55rem",
+      borderRadius: 999,
+      background,
+      color,
+      fontSize: 11,
+      fontWeight: 700,
+    });
+
+    const invoiceBars = overview.monthly_revenue.map((month) => month.revenue);
+    const vendorBars = overview.monthly_revenue.map((month) => month.expenses);
+
+    return (
+      <>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            gap: 16,
+            flexWrap: "wrap",
+            marginBottom: 18,
+          }}
+        >
+          <div>
+            <div style={{ fontSize: 28, fontWeight: 800, color: "#0f172a", marginBottom: 4 }}>
+              Accounting overview
+            </div>
+            <div style={{ color: "#64748b", fontSize: 13 }}>
+              Follow receivables, vendor bills, cash journals, and accounting operations from one board.
+            </div>
           </div>
-          <div style={{ ...card, textAlign: "center" }}>
-            <div style={{ fontSize: 28, fontWeight: 700, color: "#ea580c" }}>{overview.unpaid_invoice_count}</div>
-            <div style={kpiLabel}>Unpaid Invoices</div>
-          </div>
-          <div style={{ ...card, textAlign: "center" }}>
-            <div style={{ fontSize: 28, fontWeight: 700 }}>{overview.expense_count}</div>
-            <div style={kpiLabel}>Expenses Posted</div>
-          </div>
-          <div style={{ ...card, textAlign: "center" }}>
-            <div style={{ fontSize: 28, fontWeight: 700, color: "#16a34a" }}>{overview.payment_count}</div>
-            <div style={kpiLabel}>Payments</div>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button onClick={() => navigate("/accounting/configuration")} style={widgetButton()}>
+              <Settings size={14} /> Configuration
+            </button>
+            <button onClick={runBackfill} disabled={backfilling} style={widgetButton("primary")}>
+              <BookOpen size={14} /> {backfilling ? "Backfilling..." : "Backfill Entries"}
+            </button>
           </div>
         </div>
 
-        {/* Recent Journal Entries */}
-        {overview.recent_journal_entries.length > 0 && (
-          <div style={card}>
-            <div style={sectionTitle}>Recent Journal Entries</div>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr>
-                  <th style={thStyle}>Date</th>
-                  <th style={thStyle}>Reference</th>
-                  <th style={thStyle}>Journal</th>
-                  <th style={{ ...thStyle, textAlign: "right" }}>Debit</th>
-                  <th style={thStyle}>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {overview.recent_journal_entries.map((je) => (
-                  <tr key={je.id}>
-                    <td style={tdStyle}>
-                      {je.entry_date ? new Date(je.entry_date).toLocaleDateString() : "—"}
-                    </td>
-                    <td style={tdStyle}>{je.reference}</td>
-                    <td style={tdStyle}>{je.journal_name}</td>
-                    <td style={{ ...tdStyle, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-                      {fmt(je.total_debit)}
-                    </td>
-                    <td style={tdStyle}>
-                      <span
-                        style={statusBadge(
-                          je.status === "posted" ? "green" : je.status === "draft" ? "orange" : "gray",
-                        )}
-                      >
-                        {je.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16, marginBottom: 18 }}>
+          <div style={widgetCardStyle}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
+              <div>
+                <div style={{ fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase", color: "#64748b", fontWeight: 700 }}>
+                  Customers
+                </div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: "#0f172a", marginTop: 4 }}>Customer Invoices</div>
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button onClick={() => navigate("/invoices/new")} style={widgetButton("primary")}>
+                  <Plus size={14} /> New
+                </button>
+                <button onClick={() => navigate("/invoices")} style={widgetButton()}>
+                  <FileText size={14} /> Open
+                </button>
+              </div>
+            </div>
 
-        {/* Quick Actions */}
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <button
-            onClick={() => navigate("/invoices/new")}
-            style={{
-              padding: "8px 18px",
-              fontSize: 13,
-              fontWeight: 600,
-              color: "#fff",
-              background: "var(--primary, #4a7de6)",
-              border: "none",
-              borderRadius: 6,
-              cursor: "pointer",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-            }}
-          >
-            <FileText size={14} /> New Invoice
-          </button>
-          <button
-            onClick={() =>
-              navigate(companyId ? `/payments?company_id=${companyId}` : "/payments")
-            }
-            style={{
-              padding: "8px 18px",
-              fontSize: 13,
-              fontWeight: 600,
-              color: "var(--text-primary, #111)",
-              background: "transparent",
-              border: "1px solid var(--border, #e5e7eb)",
-              borderRadius: 6,
-              cursor: "pointer",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-            }}
-          >
-            <CreditCard size={14} /> Register Payment
-          </button>
-          <button
-            onClick={() => navigate("/accounting/reports")}
-            style={{
-              padding: "8px 18px",
-              fontSize: 13,
-              fontWeight: 600,
-              color: "var(--text-primary, #111)",
-              background: "transparent",
-              border: "1px solid var(--border, #e5e7eb)",
-              borderRadius: 6,
-              cursor: "pointer",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-            }}
-          >
-            <BarChart3 size={14} /> View Reports
-          </button>
-          <button
-            onClick={() => navigate("/accounting/configuration")}
-            style={{
-              padding: "8px 18px",
-              fontSize: 13,
-              fontWeight: 600,
-              color: "var(--text-primary, #111)",
-              background: "transparent",
-              border: "1px solid var(--border, #e5e7eb)",
-              borderRadius: 6,
-              cursor: "pointer",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-            }}
-          >
-            <Settings size={14} /> Configuration
-          </button>
-          <button
-            onClick={runBackfill}
-            disabled={backfilling}
-            style={{
-              padding: "8px 18px",
-              fontSize: 13,
-              fontWeight: 600,
-              color: "var(--text-primary, #111)",
-              background: "transparent",
-              border: "1px solid var(--border, #e5e7eb)",
-              borderRadius: 6,
-              cursor: "pointer",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-            }}
-          >
-            <BookOpen size={14} /> {backfilling ? "Backfilling..." : "Backfill Entries"}
-          </button>
+            <div style={{ display: "grid", gap: 10 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.8rem 0.9rem", borderRadius: 14, background: "#ecfeff" }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#155e75" }}>To collect</div>
+                  <div style={{ fontSize: 12, color: "#0f766e", marginTop: 2 }}>
+                    {overview.customer_invoices.unpaid_count} unpaid invoices
+                  </div>
+                </div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: "#155e75" }}>
+                  {money(overview.customer_invoices.unpaid_amount)}
+                </div>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.8rem 0.9rem", borderRadius: 14, background: "#fff7ed" }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#9a3412" }}>Late</div>
+                  <div style={{ fontSize: 12, color: "#c2410c", marginTop: 2 }}>
+                    {overview.customer_invoices.overdue_count} overdue invoices
+                  </div>
+                </div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: "#9a3412" }}>
+                  {money(overview.customer_invoices.overdue_amount)}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>Last 6 months</span>
+                <span style={statPill("#e0f2fe", "#0c4a6e")}>{overview.invoice_count} posted</span>
+              </div>
+              {renderMiniBars(invoiceBars, "linear-gradient(180deg, #0f766e 0%, #14b8a6 100%)", "#ccfbf1")}
+              <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.max(overview.monthly_revenue.length, 1)}, 1fr)`, gap: 8, marginTop: 8 }}>
+                {overview.monthly_revenue.map((month) => (
+                  <div key={month.month} style={{ textAlign: "center", fontSize: 11, color: "#64748b" }}>{month.month}</div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div style={widgetCardStyle}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
+              <div>
+                <div style={{ fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase", color: "#64748b", fontWeight: 700 }}>
+                  Vendors
+                </div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: "#0f172a", marginTop: 4 }}>Vendor Bills</div>
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button onClick={() => navigate("/purchases")} style={widgetButton("primary")}>
+                  <Plus size={14} /> New
+                </button>
+                <button onClick={() => navigate("/purchases")} style={widgetButton()}>
+                  <Download size={14} /> Open
+                </button>
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gap: 10 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.8rem 0.9rem", borderRadius: 14, background: "#eff6ff" }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#1d4ed8" }}>To validate</div>
+                  <div style={{ fontSize: 12, color: "#2563eb", marginTop: 2 }}>
+                    {overview.vendor_bills.to_validate_count} draft bills
+                  </div>
+                </div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: "#1d4ed8" }}>
+                  {money(overview.vendor_bills.to_validate_amount)}
+                </div>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.8rem 0.9rem", borderRadius: 14, background: "#f5f3ff" }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#6d28d9" }}>Open bills</div>
+                  <div style={{ fontSize: 12, color: "#7c3aed", marginTop: 2 }}>
+                    {overview.vendor_bills.open_count} confirmed or received
+                  </div>
+                </div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: "#6d28d9" }}>
+                  {money(overview.vendor_bills.open_amount)}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>Expense activity</span>
+                <span style={statPill("#ede9fe", "#5b21b6")}>{money(overview.total_payables)} open</span>
+              </div>
+              {renderMiniBars(vendorBars, "linear-gradient(180deg, #7c3aed 0%, #a855f7 100%)", "#ede9fe")}
+              <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.max(overview.monthly_revenue.length, 1)}, 1fr)`, gap: 8, marginTop: 8 }}>
+                {overview.monthly_revenue.map((month) => (
+                  <div key={month.month} style={{ textAlign: "center", fontSize: 11, color: "#64748b" }}>{month.month}</div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {overview.bank_journals.length > 0 ? (
+            overview.bank_journals.map((journal) => {
+              const journalSeries = [
+                journal.balance * 0.32,
+                journal.payment_total * 0.58,
+                journal.balance * 0.46,
+                journal.payment_total * 0.82,
+                journal.balance * 0.68,
+                Math.max(journal.balance, journal.payment_total),
+              ];
+
+              return (
+                <div key={journal.id} style={widgetCardStyle}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
+                    <div>
+                      <div style={{ fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase", color: "#64748b", fontWeight: 700 }}>
+                        {journal.journal_type === "cash" ? "Cash" : "Bank"}
+                      </div>
+                      <div style={{ fontSize: 24, fontWeight: 800, color: "#0f172a", marginTop: 4 }}>{journal.name}</div>
+                      <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>{journal.code}</div>
+                    </div>
+                    <span style={statPill(journal.journal_type === "cash" ? "#fef3c7" : "#dbeafe", journal.journal_type === "cash" ? "#92400e" : "#1d4ed8")}>
+                      {journal.journal_type === "cash" ? "Cash journal" : "Bank journal"}
+                    </span>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
+                    <div style={{ padding: "0.9rem", borderRadius: 14, background: "#f8fafc", border: "1px solid #e2e8f0" }}>
+                      <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>Balance</div>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: "#0f172a", marginTop: 6 }}>{money(journal.balance)}</div>
+                    </div>
+                    <div style={{ padding: "0.9rem", borderRadius: 14, background: "#f8fafc", border: "1px solid #e2e8f0" }}>
+                      <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>Payments</div>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: "#0f172a", marginTop: 6 }}>{money(journal.payment_total)}</div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>Activity</span>
+                      <span style={statPill("#dcfce7", "#166534")}>{overview.payment_count} payments</span>
+                    </div>
+                    {renderMiniBars(
+                      journalSeries,
+                      journal.journal_type === "cash"
+                        ? "linear-gradient(180deg, #d97706 0%, #f59e0b 100%)"
+                        : "linear-gradient(180deg, #2563eb 0%, #38bdf8 100%)",
+                      journal.journal_type === "cash" ? "#fef3c7" : "#dbeafe",
+                    )}
+                  </div>
+
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <button
+                      onClick={() => navigate(companyId ? `/payments?company_id=${companyId}` : "/payments")}
+                      style={widgetButton("primary")}
+                    >
+                      <CreditCard size={14} /> New payment
+                    </button>
+                    <button onClick={() => setActiveSection("journal_entries")} style={widgetButton()}>
+                      <BookOpen size={14} /> Journal entries
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div style={widgetCardStyle}>
+              <div>
+                <div style={{ fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase", color: "#64748b", fontWeight: 700 }}>
+                  Bank and cash
+                </div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: "#0f172a", marginTop: 4 }}>No payment journals yet</div>
+              </div>
+              <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
+                Create at least one bank or cash journal to track balances and payment activity from the overview.
+              </div>
+              <div style={{ marginTop: "auto" }}>
+                <button onClick={() => navigate("/accounting/configuration")} style={widgetButton("primary")}>
+                  <Settings size={14} /> Open configuration
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div style={widgetCardStyle}>
+            <div>
+              <div style={{ fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase", color: "#64748b", fontWeight: 700 }}>
+                Shortcuts
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: "#0f172a", marginTop: 4 }}>Miscellaneous Operations</div>
+            </div>
+
+            <div style={{ display: "grid", gap: 10 }}>
+              <button onClick={() => navigate("/payments")} style={{ ...widgetButton(), justifyContent: "space-between" }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><CreditCard size={14} /> Payments</span>
+                <ChevronDown size={14} style={{ transform: "rotate(-90deg)" }} />
+              </button>
+              <button onClick={() => setActiveSection("journal_entries")} style={{ ...widgetButton(), justifyContent: "space-between" }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><BookOpen size={14} /> Journal Entries</span>
+                <ChevronDown size={14} style={{ transform: "rotate(-90deg)" }} />
+              </button>
+              <button onClick={() => navigate("/accounting/reports")} style={{ ...widgetButton(), justifyContent: "space-between" }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><BarChart3 size={14} /> Reports</span>
+                <ChevronDown size={14} style={{ transform: "rotate(-90deg)" }} />
+              </button>
+              <button onClick={() => navigate("/accounting/configuration")} style={{ ...widgetButton(), justifyContent: "space-between" }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Settings size={14} /> Chart of Accounts</span>
+                <ChevronDown size={14} style={{ transform: "rotate(-90deg)" }} />
+              </button>
+            </div>
+
+            <div style={{ marginTop: "auto", padding: "1rem", borderRadius: 16, background: "linear-gradient(135deg, #eff6ff, #f8fafc)", border: "1px solid #dbeafe" }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#1d4ed8", marginBottom: 8 }}>At a glance</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 }}>
+                <div>
+                  <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.06em" }}>Revenue</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", marginTop: 4 }}>{money(overview.ytd_revenue)}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.06em" }}>Net profit</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: overview.ytd_net_profit >= 0 ? "#166534" : "#b91c1c", marginTop: 4 }}>
+                    {money(overview.ytd_net_profit)}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.06em" }}>Expenses</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", marginTop: 4 }}>{money(overview.ytd_expenses)}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.06em" }}>Cash balance</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", marginTop: 4 }}>{money(overview.cash_balance)}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.1fr) minmax(0, 1fr)", gap: 16, alignItems: "start" }}>
+          <div style={{ ...widgetCardStyle, minHeight: "auto" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: "#0f172a" }}>Performance</div>
+                <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>Receivables, expenses, and payments at a glance</div>
+              </div>
+              <button onClick={() => navigate("/accounting/reports")} style={widgetButton()}>
+                <BarChart3 size={14} /> View reports
+              </button>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
+              <div style={{ padding: "1rem", borderRadius: 16, background: "#f8fafc", border: "1px solid #e2e8f0" }}>
+                <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>Outstanding receivables</div>
+                <div style={{ fontSize: 24, fontWeight: 800, marginTop: 6, color: "#0f172a" }}>{money(overview.outstanding_receivables)}</div>
+              </div>
+              <div style={{ padding: "1rem", borderRadius: 16, background: "#fff7ed", border: "1px solid #fed7aa" }}>
+                <div style={{ fontSize: 12, color: "#9a3412", fontWeight: 700 }}>Overdue receivables</div>
+                <div style={{ fontSize: 24, fontWeight: 800, marginTop: 6, color: "#9a3412" }}>{money(overview.overdue_receivables)}</div>
+              </div>
+              <div style={{ padding: "1rem", borderRadius: 16, background: "#eff6ff", border: "1px solid #bfdbfe" }}>
+                <div style={{ fontSize: 12, color: "#1d4ed8", fontWeight: 700 }}>Payments this year</div>
+                <div style={{ fontSize: 24, fontWeight: 800, marginTop: 6, color: "#1d4ed8" }}>{overview.payment_count}</div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ ...widgetCardStyle, minHeight: "auto" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: "#0f172a" }}>Recent Journal Entries</div>
+                <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>Latest activity recorded in accounting</div>
+              </div>
+              <button onClick={() => setActiveSection("journal_entries")} style={widgetButton()}>
+                <BookOpen size={14} /> Open ledger
+              </button>
+            </div>
+
+            <div style={{ display: "grid", gap: 10 }}>
+              {overview.recent_journal_entries.length > 0 ? (
+                overview.recent_journal_entries.slice(0, 5).map((entry) => (
+                  <div key={entry.id} style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", padding: "0.85rem 0.9rem", borderRadius: 14, border: "1px solid #e2e8f0", background: "#f8fafc" }}>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>{entry.reference || `Entry #${entry.id}`}</div>
+                      <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>
+                        {entry.journal_name} • {entry.entry_date ? new Date(entry.entry_date).toLocaleDateString() : "—"}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: "#0f172a" }}>{money(entry.total_debit)}</div>
+                      <div style={{ marginTop: 4 }}>
+                        <span style={statusBadge(entry.status === "posted" ? "green" : entry.status === "draft" ? "orange" : "gray")}>{entry.status}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div style={{ padding: "1rem", borderRadius: 14, background: "#f8fafc", color: "#64748b", fontSize: 13 }}>
+                  No journal entries have been posted yet.
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </>
     );
