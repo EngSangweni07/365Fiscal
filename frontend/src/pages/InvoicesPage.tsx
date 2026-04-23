@@ -3048,7 +3048,10 @@ export default function InvoicesPage({
                                 key={historyInvoice.id}
                                 type="button"
                                 className="invoice-customer-history-item"
-                                onClick={() => navigate(`/invoices/${historyInvoice.id}`)}
+                                onClick={() => {
+                                  setSelectedInvoiceId(historyInvoice.id);
+                                  setNewMode(false);
+                                }}
                               >
                                 <div className="invoice-customer-history-item-top">
                                   <strong>{historyInvoice.reference}</strong>
