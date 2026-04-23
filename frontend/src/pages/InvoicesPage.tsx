@@ -3095,14 +3095,6 @@ export default function InvoicesPage({
                   )}
                 </div>
               </aside>
-                          )}
-                        </td>
-                        {canEdit && <td></td>}
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-              </div>
             </div>
           )}
 
@@ -3121,7 +3113,7 @@ export default function InvoicesPage({
                       style={{
                         maxWidth: 180,
                         maxHeight: 70,
-                            {formatCurrency(newInvoiceGrandTotal, newCurrency)}
+                        width: "auto",
                         height: "auto",
                         objectFit: "contain",
                         display: "block",
@@ -3130,128 +3122,10 @@ export default function InvoicesPage({
                   </div>
                 )}
 
-
-                <div className="card-body">
-                  <div className="invoice-customer-history-header">
-                    <div>
-                      <h6 className="fw-semibold mb-1">Customer Invoice History</h6>
-                      <p className="text-muted mb-0">
-                        {newInvoiceCustomer
-                          ? `Previous invoices for ${newInvoiceCustomer.name}`
-                          : "Select a customer to see their previous invoices."}
-                      </p>
-                    </div>
-                  </div>
-
-                  {newInvoiceCustomer ? (
-                    <>
-                      <div className="invoice-customer-history-stats">
-                        <div className="invoice-customer-history-stat">
-                          <span className="invoice-customer-history-stat-label">
-                            Total invoices
-                          </span>
-                          <strong>{customerHistoryInvoices.length}</strong>
-                        </div>
-                        <div className="invoice-customer-history-stat">
-                          <span className="invoice-customer-history-stat-label">
-                            Outstanding
-                          </span>
-                          <strong>
-                            {formatCurrency(
-                              customerHistoryOutstandingTotal,
-                              newCurrency || "USD",
-                            )}
-                          </strong>
-                        </div>
-                      </div>
-
-                      {recentCustomerHistory.length ? (
-                        <div className="invoice-customer-history-list">
-                          {recentCustomerHistory.map((historyInvoice) => {
-                            const paymentState = getPaymentStatus(
-                              historyInvoice.amount_paid,
-                              historyInvoice.amount_due,
-                            );
-                            const statusClass =
-                              historyInvoice.status === "paid"
-                                ? "bg-success"
-                                : historyInvoice.status === "posted"
-                                  ? "bg-info"
-                                  : historyInvoice.status === "fiscalized"
-                                    ? "bg-primary"
-                                    : "bg-secondary";
-                            const paymentClass =
-                              paymentState === "Paid"
-                                ? "bg-success"
-                                : paymentState === "Partial"
-                                  ? "bg-warning"
-                                  : "bg-secondary";
-
-                            return (
-                              <button
-                                key={historyInvoice.id}
-                                type="button"
-                                className="invoice-customer-history-item"
-                                onClick={() =>
-                                  navigate(`/invoices/${historyInvoice.id}`)
-                                }
-                              >
-                                <div className="invoice-customer-history-item-top">
-                                  <strong>{historyInvoice.reference}</strong>
-                                  <span className={`badge ${statusClass}`}>
-                                    {historyInvoice.status}
-                                  </span>
-                                </div>
-                                <div className="invoice-customer-history-item-meta">
-                                  <span>
-                                    {formatDateTime(historyInvoice.invoice_date) ||
-                                      "—"}
-                                  </span>
-                                  <span>
-                                    {formatCurrency(
-                                      historyInvoice.total_amount,
-                                      historyInvoice.currency ||
-                                        newCurrency ||
-                                        "USD",
-                                    )}
-                                  </span>
-                                </div>
-                                <div className="invoice-customer-history-item-bottom">
-                                  <span className={`badge ${paymentClass}`}>
-                                    {paymentState}
-                                  </span>
-                                  <span className="text-muted">
-                                    Due{" "}
-                                    {formatCurrency(
-                                      historyInvoice.amount_due || 0,
-                                      historyInvoice.currency ||
-                                        newCurrency ||
-                                        "USD",
-                                    )}
-                                  </span>
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div className="invoice-customer-history-empty">
-                          No previous invoices found for this customer.
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div className="invoice-customer-history-empty">
-                      Choose a customer first. Their recent invoice history will
-                      appear here.
-                    </div>
-                  )}
-                </div>
-              </aside>
-                      }`}
-                    >
-                      Customer
-                    </label>
+                {/* Fields */}
+                <div className="row g-3 mb-4">
+                  <div className="col-md-6">
+                    <label className="form-label">Customer</label>
                     {canEdit ? (
                       <div
                         className="position-relative"
