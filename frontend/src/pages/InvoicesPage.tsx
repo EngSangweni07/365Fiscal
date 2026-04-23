@@ -3826,12 +3826,23 @@ export default function InvoicesPage({
             className="modal fade show"
             tabIndex={-1}
             role="dialog"
-            style={{ display: "block", zIndex: 1050 }}
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 1050,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "1rem",
+            }}
             onClick={(e) => {
               if (e.target === e.currentTarget) setPaymentOpen(false);
             }}
           >
-            <div className="modal-dialog modal-dialog-centered">
+            <div
+              className="modal-dialog modal-dialog-centered"
+              style={{ width: "100%", maxWidth: 420, margin: 0 }}
+            >
               <div className="modal-content shadow-lg border-0">
                 <div className="modal-header border-bottom">
                   <h5 className="modal-title fw-semibold">Register Payment</h5>
