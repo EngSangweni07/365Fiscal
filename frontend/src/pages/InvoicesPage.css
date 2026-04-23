@@ -619,6 +619,92 @@ button.invoice-detail-btn:disabled {
   border-color: #d8dfeb;
 }
 
+.invoice-detail-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(260px, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+}
+
+.invoice-status-rail {
+  display: inline-flex;
+  align-items: center;
+  justify-self: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 7px 12px;
+  border: 1px solid #dbe3f0;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+}
+
+.invoice-status-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #6b778f;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.invoice-status-chip.is-active.is-draft {
+  color: #155eef;
+  background: #eef4ff;
+  border-color: #cdddff;
+}
+
+.invoice-status-chip.is-active.is-posted {
+  color: #0f766e;
+  background: #ecfeff;
+  border-color: #a5f3fc;
+}
+
+.invoice-status-action {
+  border-color: #dbe3f0;
+  background: #ffffff;
+  color: #334155;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.invoice-status-action:hover {
+  background: #f8fbff;
+  border-color: #b7c7e6;
+  color: #0f172a;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+}
+
+.invoice-status-chip.payment-status.is-paid {
+  color: #15803d;
+  background: #ecfdf3;
+  border-color: #bbf7d0;
+}
+
+.invoice-status-chip.payment-status.is-partial {
+  color: #b45309;
+  background: #fff7ed;
+  border-color: #fed7aa;
+}
+
+.invoice-status-chip.payment-status.is-unpaid {
+  color: #64748b;
+  background: #f8fafc;
+  border-color: #dbe3f0;
+}
+
 .invoice-create-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
@@ -750,6 +836,18 @@ button.invoice-detail-btn:disabled {
 }
 
 @media (max-width: 900px) {
+  .invoice-detail-toolbar {
+    grid-template-columns: 1fr;
+    justify-items: stretch;
+  }
+
+  .invoice-status-rail {
+    justify-self: stretch;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    border-radius: 18px;
+  }
+
   .invoice-top-panel {
     grid-template-columns: 1fr;
   }

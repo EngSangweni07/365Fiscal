@@ -2429,7 +2429,7 @@ export default function InvoicesPage({
       {showForm && (
         <div>
           {/* Top toolbar */}
-          <div className="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+          <div className="invoice-detail-toolbar mb-3">
             {isAdmin && companyId ? (
               <div
                 className="o-control-panel"
@@ -2479,16 +2479,51 @@ export default function InvoicesPage({
                     ? "New Invoice"
                     : selectedInvoice?.reference || "Invoice"}
                 </h4>
-                {!newMode && selectedInvoice && (
-                  <span
-                    className={`badge ms-2 ${statusLabel === "paid" ? "bg-success" : statusLabel === "posted" ? "bg-info" : statusLabel === "fiscalized" ? "bg-primary" : "bg-secondary"}`}
-                  >
-                    {statusLabel}
-                  </span>
-                )}
               </div>
             )}
-            <div className="d-flex flex-wrap gap-1 align-items-center">
+            {!newMode && !isEditing && selectedInvoice ? (
+              <div className="invoice-status-rail" aria-label="Invoice workflow status">
+                <span
+                  className={`invoice-status-chip ${
+                    selectedInvoice.status === "draft"
+                      ? "is-active is-draft"
+                      : ""
+                  }`}
+                >
+                  Draft
+                </span>
+                <span
+                  className={`invoice-status-chip ${
+                    selectedInvoice.status === "posted"
+                      ? "is-active is-posted"
+                      : ""
+                  }`}
+                >
+                  Posted
+                </span>
+                <button
+                  type="button"
+                  className="invoice-status-chip invoice-status-action"
+                  onClick={() => setJournalPreviewOpen(true)}
+                >
+                  View Journal Entry
+                </button>
+                <span
+                  className={`invoice-status-chip payment-status ${
+                    paymentStatus === "Paid"
+                      ? "is-paid"
+                      : paymentStatus === "Partial"
+                        ? "is-partial"
+                        : "is-unpaid"
+                  }`}
+                >
+                  {paymentStatus}
+                </span>
+              </div>
+            ) : (
+              <div></div>
+            )}
+            <div className="d-flex flex-wrap gap-1 align-items-center justify-content-end">
               {newMode ? (
                 <>
                   <button
@@ -2523,54 +2558,6 @@ export default function InvoicesPage({
                 </>
               ) : (
                 <>
-                  {selectedInvoice && (
-                    <>
-                      <div className="d-flex gap-1 border-end pe-2">
-                        <button
-                          type="button"
-                          className={`btn btn-sm ${
-                            selectedInvoice.status === "draft"
-                              ? "btn-outline-primary"
-                              : "btn-outline-secondary text-muted"
-                          }`}
-                          disabled
-                        >
-                          {selectedInvoice.status === "draft" ? "✓ " : ""}Draft
-                        </button>
-                        <button
-                          type="button"
-                          className={`btn btn-sm ${
-                            selectedInvoice.status === "posted"
-                              ? "btn-outline-info"
-                              : "btn-outline-secondary text-muted"
-                          }`}
-                          disabled
-                        >
-                          {selectedInvoice.status === "posted" ? "✓ " : ""}Posted
-                        </button>
-                        <span
-                          className={`badge ms-1 align-self-center ${
-                            getPaymentStatus(
-                              selectedInvoice.amount_paid,
-                              selectedInvoice.amount_due,
-                            ) === "Paid"
-                              ? "bg-success"
-                              : getPaymentStatus(
-                                    selectedInvoice.amount_paid,
-                                    selectedInvoice.amount_due,
-                                  ) === "Partial"
-                                ? "bg-warning"
-                                : "bg-secondary"
-                          }`}
-                        >
-                          {getPaymentStatus(
-                            selectedInvoice.amount_paid,
-                            selectedInvoice.amount_due,
-                          )}
-                        </span>
-                      </div>
-                    </>
-                  )}
                   {statusLabel === "draft" && (
                     <button
                       className="btn btn-sm btn-light border"
