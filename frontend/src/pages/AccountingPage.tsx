@@ -1045,60 +1045,6 @@ export default function AccountingPage() {
             </div>
           )}
 
-          <div style={{ ...widgetCardStyle, minHeight: "auto" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.2fr) minmax(220px, 0.8fr)", gap: 12, alignItems: "stretch" }}>
-              {renderComparisonChart({
-                id: "performance-overview",
-                items: [
-                  { label: "Revenue", value: overview.ytd_revenue, color: "#6caea7" },
-                  { label: "Expenses", value: overview.ytd_expenses, color: "#a991dc" },
-                  { label: "Cash", value: overview.cash_balance, color: "#8bb5e8" },
-                  { label: "Receiv.", value: overview.outstanding_receivables, color: "#ebb184" },
-                ],
-              })}
-              <div style={{ display: "grid", gap: 10 }}>
-                <div style={{ padding: "1rem", borderRadius: 16, background: "#f8fafc", border: "1px solid #e2e8f0" }}>
-                  <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>Outstanding receivables</div>
-                  <div style={{ fontSize: 24, fontWeight: 800, marginTop: 6, color: overviewInk }}>{money(overview.outstanding_receivables)}</div>
-                </div>
-                <div style={{ padding: "1rem", borderRadius: 16, background: "#fff7ed", border: "1px solid #fed7aa" }}>
-                  <div style={{ fontSize: 12, color: "#9a3412", fontWeight: 700 }}>Overdue receivables</div>
-                  <div style={{ fontSize: 24, fontWeight: 800, marginTop: 6, color: "#c67b4a" }}>{money(overview.overdue_receivables)}</div>
-                </div>
-                <div style={{ padding: "1rem", borderRadius: 16, background: "#eff6ff", border: "1px solid #bfdbfe" }}>
-                  <div style={{ fontSize: 12, color: "#1d4ed8", fontWeight: 700 }}>Payments this year</div>
-                  <div style={{ fontSize: 24, fontWeight: 800, marginTop: 6, color: "#5b8ccf" }}>{overview.payment_count}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div style={{ ...widgetCardStyle, minHeight: "auto" }}>
-            <div style={{ display: "grid", gap: 10 }}>
-              {overview.recent_journal_entries.length > 0 ? (
-                overview.recent_journal_entries.slice(0, 5).map((entry) => (
-                  <div key={entry.id} style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", padding: "0.85rem 0.9rem", borderRadius: 14, border: "1px solid #e2e8f0", background: "#f8fafc" }}>
-                    <div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>{entry.reference || `Entry #${entry.id}`}</div>
-                      <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>
-                        {entry.journal_name} • {entry.entry_date ? new Date(entry.entry_date).toLocaleDateString() : "—"}
-                      </div>
-                    </div>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: 15, fontWeight: 800, color: "#0f172a" }}>{money(entry.total_debit)}</div>
-                      <div style={{ marginTop: 4 }}>
-                        <span style={statusBadge(entry.status === "posted" ? "green" : entry.status === "draft" ? "orange" : "gray")}>{entry.status}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div style={{ padding: "1rem", borderRadius: 14, background: "#f8fafc", color: "#64748b", fontSize: 13 }}>
-                  No journal entries have been posted yet.
-                </div>
-              )}
-            </div>
-          </div>
         </div>
       </>
     );
