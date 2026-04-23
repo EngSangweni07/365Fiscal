@@ -843,7 +843,7 @@ export default function AccountingPage() {
 
     return (
       <>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 16, marginBottom: 18, alignItems: "start" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 18, marginBottom: 18, alignItems: "start" }}>
           <div style={widgetCardStyle}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
               <div>
@@ -884,7 +884,7 @@ export default function AccountingPage() {
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.25fr) minmax(180px, 0.9fr)", gap: 12, alignItems: "stretch" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "minmax(220px, 1.45fr) minmax(260px, 1fr)", gap: 14, alignItems: "stretch" }}>
               {renderTrendChart({
                 id: "customer-invoices",
                 values: invoiceBars,
@@ -947,7 +947,7 @@ export default function AccountingPage() {
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.25fr) minmax(180px, 0.9fr)", gap: 12, alignItems: "stretch" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "minmax(220px, 1.45fr) minmax(260px, 1fr)", gap: 14, alignItems: "stretch" }}>
               {renderTrendChart({
                 id: "vendor-bills",
                 values: vendorBars,
