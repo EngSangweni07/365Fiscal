@@ -1266,15 +1266,6 @@ export default function InvoicesPage({
       : "-";
 
   const statusLabel = selectedInvoice?.status ?? "draft";
-  const paymentStatus = selectedInvoice
-    ? getPaymentStatus(selectedInvoice.amount_paid, selectedInvoice.amount_due)
-    : "-";
-  const paymentBadge =
-    paymentStatus === "Paid"
-      ? "success"
-      : paymentStatus === "Partial"
-        ? "warning"
-        : "secondary";
   const fiscalStatus = (selectedInvoice?.zimra_status || "not_submitted")
     .toLowerCase()
     .trim();
@@ -2467,26 +2458,7 @@ export default function InvoicesPage({
                 </div>
               </div>
             ) : (
-              <div className="d-flex flex-column align-items-start gap-1">
-                {!newMode && selectedInvoice && (
-                  <nav aria-label="breadcrumb">
-                    <ol className="breadcrumb mb-0 invoice-top-breadcrumb">
-                      <li className="breadcrumb-item">
-                        <button
-                          type="button"
-                          className="btn btn-link p-0 text-decoration-none"
-                          onClick={goBackToList}
-                        >
-                          Invoices
-                        </button>
-                      </li>
-                      <li className="breadcrumb-item active" aria-current="page">
-                        {selectedInvoice.reference || "Invoice"}
-                      </li>
-                    </ol>
-                  </nav>
-                )}
-                <div className="d-flex align-items-center gap-2">
+              <div className="d-flex align-items-center gap-2">
                   <button
                     className="btn btn-sm btn-light border"
                     onClick={goBackToList}
@@ -2498,7 +2470,6 @@ export default function InvoicesPage({
                       ? "New Invoice"
                       : selectedInvoice?.reference || "Invoice"}
                   </h4>
-                </div>
               </div>
             )}
             {!newMode && !isEditing && selectedInvoice ? (
@@ -2560,65 +2531,64 @@ export default function InvoicesPage({
                   <button
                     className="btn btn-sm btn-light border"
                     onClick={postInvoice}
-                    disabled={statusLabel !== "draft"}
                   >
                     Post
                   </button>
-                  <button
-                    className="btn btn-sm btn-light border"
-                    onClick={fiscalizeInvoice}
-                    disabled={
-                      statusLabel !== "posted" && statusLabel !== "paid"
-                    }
-                  >
-                    Fiscalize
-                  </button>
-                  <button
-                    className="btn btn-sm btn-light border"
-                    onClick={resetInvoice}
-                    disabled={
-                      statusLabel !== "posted" && statusLabel !== "fiscalized"
-                    }
-                  >
-                    Reset
-                  </button>
+                  {(statusLabel === "posted" || statusLabel === "paid") && (
+                    <button
+                      className="btn btn-sm btn-light border"
+                      onClick={fiscalizeInvoice}
+                    >
+                      Fiscalize
+                    </button>
+                  )}
+                  {(statusLabel === "posted" || statusLabel === "fiscalized") && (
+                    <button
+                      className="btn btn-sm btn-light border"
+                      onClick={resetInvoice}
+                    >
+                      Reset
+                    </button>
+                  )}
                   <button
                     className="btn btn-sm btn-light border"
                     onClick={printInvoice}
                   >
                     Print PDF
                   </button>
-                  <button
-                    className="btn btn-sm btn-light border"
-                    onClick={() => setPaymentOpen(true)}
-                    disabled={statusLabel === "draft"}
-                  >
-                    Register Payment
-                  </button>
-                  <button
-                    className="btn btn-sm btn-light border"
-                    onClick={createCreditNote}
-                    disabled={statusLabel === "draft" || isCreditNote}
-                  >
-                    Credit Note
-                  </button>
+                  {statusLabel !== "draft" && (
+                    <button
+                      className="btn btn-sm btn-light border"
+                      onClick={() => setPaymentOpen(true)}
+                    >
+                      Register Payment
+                    </button>
+                  )}
+                  {statusLabel !== "draft" && !isCreditNote && (
+                    <button
+                      className="btn btn-sm btn-light border"
+                      onClick={createCreditNote}
+                    >
+                      Credit Note
+                    </button>
+                  )}
                   <button
                     className="btn btn-sm btn-light border"
                     onClick={() => setJournalPreviewOpen(true)}
-                    disabled={!selectedInvoice}
                   >
                     Journal Preview
                   </button>
-                  <button
-                    className="btn btn-sm btn-light border"
-                    onClick={() =>
-                      selectedInvoice &&
-                      navigate(`/accounting?section=journal_entries&reference=${encodeURIComponent(`INV/${selectedInvoice.reference}`)}`)
-                    }
-                    disabled={statusLabel === "draft"}
-                  >
-                    Journal Entry
-                  </button>
+                  {statusLabel !== "draft" && (
+                    <button
+                      className="btn btn-sm btn-light border"
+                      onClick={() =>
+                        selectedInvoice &&
+                        navigate(`/accounting?section=journal_entries&reference=${encodeURIComponent(`INV/${selectedInvoice.reference}`)}`)
+                      }
+                    >
+                      Journal Entry
+                    </button>
+                  )}
                 </>
               )}
             </div>

@@ -675,20 +675,6 @@ button.invoice-detail-btn:disabled {
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
 }
 
-.invoice-top-breadcrumb {
-  font-size: 12px;
-}
-
-.invoice-top-breadcrumb .breadcrumb-item,
-.invoice-top-breadcrumb .breadcrumb-item.active {
-  color: #6b778f;
-}
-
-.invoice-top-breadcrumb .btn.btn-link {
-  font-size: 12px;
-  color: #2563eb;
-}
-
 .invoice-create-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
