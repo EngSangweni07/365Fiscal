@@ -459,7 +459,6 @@ export default function AccountingPage() {
 
   const sidebarItems: SidebarMenuItem[] = [
     { key: "overview", label: "OVERVIEW", icon: Layers, color: "#4a7de6" },
-    { key: "journal_entries", label: "JOURNAL ENTRIES", icon: BookOpen, color: "#4a7de6" },
     { key: "payments", label: "PAYMENTS", icon: CreditCard, color: "#4a7de6" },
     { key: "reports", label: "REPORTS", icon: BarChart3, color: "#4a7de6" },
     { key: "configuration", label: "CONFIGURATION", icon: Settings, color: "#4a7de6" },
@@ -522,14 +521,6 @@ export default function AccountingPage() {
               ))}
             </div>
           )}
-        </div>
-      )}
-      {companyId && (
-        <div style={{ fontSize: 12, color: "var(--text-muted, #6b7280)" }}>
-          Company:{" "}
-          <strong>
-            {companies.find((c) => c.id === companyId)?.name ?? companyId}
-          </strong>
         </div>
       )}
     </div>
@@ -1575,14 +1566,14 @@ export default function AccountingPage() {
   };
 
   return (
-    <div style={{ display: "flex", gap: 0, minHeight: "100%" }}>
+    <div style={{ display: "flex", gap: 0, minHeight: 0, height: "100%" }}>
       <SidebarMenu
         title="Accounting"
         items={sidebarItems}
         activeKey={activeSection}
         onSelect={handleSectionSelect}
       />
-      <div style={{ flex: 1, padding: "1.5rem", overflowY: "auto" }}>
+      <div style={{ flex: 1, minHeight: 0, padding: "1.5rem", overflowY: "auto" }}>
         <div
           className="o-control-panel"
           style={{

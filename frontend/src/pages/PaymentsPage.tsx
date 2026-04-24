@@ -238,7 +238,7 @@ export default function PaymentsPage() {
   }, [methodFilter, reconciledFilter, searchFilter, companyId, pageSize]);
 
   return (
-    <div className="content-area">
+    <div className="content-area" style={{ minHeight: 0, height: "100%", overflowY: "auto" }}>
       <div
         className="o-control-panel"
         style={{

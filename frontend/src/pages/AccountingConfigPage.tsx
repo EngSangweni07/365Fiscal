@@ -1344,7 +1344,7 @@ export default function AccountingConfigPage() {
 
   /* ── Render ── */
   return (
-    <div style={{ display: "flex", height: "100%", overflow: "hidden" }}>
+    <div style={{ display: "flex", height: "100%", minHeight: 0, overflow: "hidden" }}>
       {/* Sidebar */}
       <div
         style={{
@@ -1368,7 +1368,7 @@ export default function AccountingConfigPage() {
       </div>
 
       {/* Main Content */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "1.25rem" }}>
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "1.25rem" }}>
         <div
           className="o-control-panel"
           style={{
