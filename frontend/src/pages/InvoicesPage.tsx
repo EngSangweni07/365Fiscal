@@ -2491,9 +2491,15 @@ export default function InvoicesPage({
           <div className="invoice-dashboard-main">
             {/* Top toolbar */}
             <div className="invoice-detail-toolbar mb-3">
-              {/* Row 1: breadcrumb / back + title */}
               {isAdmin && companyId ? (
-                <div className="d-flex align-items-center gap-2">
+                <div
+                  className="o-control-panel"
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    marginBottom: 16,
+                  }}
+                >
                   <div className="o-breadcrumb">
                     <span
                       className="o-breadcrumb-item"
@@ -2523,165 +2529,139 @@ export default function InvoicesPage({
                 </div>
               ) : (
                 <div className="d-flex align-items-center gap-2">
-                  <button
-                    className="btn btn-sm btn-light border"
-                    onClick={goBackToList}
-                  >
-                    ← Back
-                  </button>
-                  <h4 className="fw-bold mb-0" style={invoiceHeadingStyle}>
-                    {newMode
-                      ? "New Invoice"
-                      : selectedInvoice?.reference || "Invoice"}
-                  </h4>
+                    <button
+                      className="btn btn-sm btn-light border"
+                      onClick={goBackToList}
+                    >
+                      ← Back
+                    </button>
+                    <h4 className="fw-bold mb-0" style={invoiceHeadingStyle}>
+                      {newMode
+                        ? "New Invoice"
+                        : selectedInvoice?.reference || "Invoice"}
+                    </h4>
                 </div>
               )}
-
-              {/* Row 2: action buttons (left) + stage pipeline (right) */}
-              <div className="invoice-toolbar-actions">
-                {/* LEFT: action buttons */}
-                <div className="d-flex flex-wrap gap-2 align-items-center">
-                  {newMode ? (
-                    <>
-                      <button
-                        className="btn"
-                        style={{ background: "var(--color-brand-primary)", color: "#fff", borderColor: "var(--color-brand-primary)", padding: "8px 20px", fontWeight: 600 }}
-                        onClick={createInvoice}
-                        disabled={loading}
-                      >
-                        {loading ? "Saving…" : "Save Draft"}
-                      </button>
-                      <button
-                        className="btn btn-light border"
-                        style={{ padding: "8px 20px", fontWeight: 600 }}
-                        onClick={goBackToList}
-                      >
-                        Discard
-                      </button>
-                    </>
-                  ) : isEditing ? (
-                    <>
-                      <button
-                        className="btn"
-                        style={{ background: "var(--color-brand-primary)", color: "#fff", borderColor: "var(--color-brand-primary)", padding: "8px 20px", fontWeight: 600 }}
-                        onClick={saveInvoice}
-                        disabled={loading}
-                      >
-                        {loading ? "Saving…" : "Save"}
-                      </button>
-                      <button
-                        className="btn btn-light border"
-                        style={{ padding: "8px 20px", fontWeight: 600 }}
-                        onClick={() => setIsEditing(false)}
-                      >
-                        Discard
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      {statusLabel === "draft" && (
-                        <button
-                          className="btn"
-                          style={{ background: "var(--color-brand-primary)", color: "#fff", borderColor: "var(--color-brand-primary)", padding: "8px 20px", fontWeight: 600 }}
-                          onClick={() => setIsEditing(true)}
-                        >
-                          Edit
-                        </button>
-                      )}
-                      {statusLabel === "draft" && (
-                        <button
-                          className="btn"
-                          style={{ background: "var(--color-brand-primary)", color: "#fff", borderColor: "var(--color-brand-primary)", padding: "8px 20px", fontWeight: 600 }}
-                          onClick={postInvoice}
-                        >
-                          Post
-                        </button>
-                      )}
-                      {(statusLabel === "posted" || statusLabel === "paid") && (
-                        <button
-                          className="btn"
-                          style={{ background: "var(--color-brand-primary)", color: "#fff", borderColor: "var(--color-brand-primary)", padding: "8px 20px", fontWeight: 600 }}
-                          onClick={fiscalizeInvoice}
-                        >
-                          Fiscalize
-                        </button>
-                      )}
-                      {(statusLabel === "posted" || statusLabel === "fiscalized") && (
-                        <button
-                          className="btn btn-light border"
-                          style={{ padding: "8px 20px", fontWeight: 600 }}
-                          onClick={resetInvoice}
-                        >
-                          Reset
-                        </button>
-                      )}
-                      <button
-                        className="btn btn-light border"
-                        style={{ padding: "8px 20px", fontWeight: 600 }}
-                        onClick={printInvoice}
-                      >
-                        Print PDF
-                      </button>
-                      {statusLabel !== "draft" &&
-                        selectedInvoice &&
-                        getPaymentStatus(
-                          selectedInvoice.amount_paid,
-                          selectedInvoice.amount_due,
-                        ) !== "Paid" && (
-                        <button
-                          className="btn"
-                          style={{ background: "var(--color-brand-primary)", color: "#fff", borderColor: "var(--color-brand-primary)", padding: "8px 20px", fontWeight: 600 }}
-                          onClick={() => setPaymentOpen(true)}
-                        >
-                          Register Payment
-                        </button>
-                      )}
-                      {statusLabel !== "draft" && !isCreditNote && (
-                        <button
-                          className="btn btn-light border"
-                          style={{ padding: "8px 20px", fontWeight: 600 }}
-                          onClick={createCreditNote}
-                        >
-                          Credit Note
-                        </button>
-                      )}
-                      {!newMode && !isEditing && selectedInvoice && statusLabel !== "draft" && (
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-light border"
-                          style={{ padding: "6px 14px" }}
-                          onClick={() => setJournalPreviewOpen(true)}
-                        >
-                          Journal Entry
-                        </button>
-                      )}
-                    </>
-                  )}
+              {!newMode && !isEditing && selectedInvoice && statusLabel !== "draft" ? (
+                <div className="invoice-status-rail" aria-label="Invoice workflow status">
+                  <button
+                    type="button"
+                    className="invoice-status-chip invoice-status-action"
+                    onClick={() => setJournalPreviewOpen(true)}
+                  >
+                    View Journal Entry
+                  </button>
                 </div>
-
-                {/* RIGHT: Odoo-style stage pipeline */}
-                {!newMode && selectedInvoice && (() => {
-                  const stageKeys = ["draft", "posted", "paid"];
-                  const stageLabels = ["Draft", "Posted", "Paid"];
-                  const rawIdx = ["draft", "posted", "fiscalized", "paid"].indexOf(statusLabel ?? "");
-                  const currentIdx = rawIdx >= 2 ? rawIdx - (rawIdx === 2 ? 1 : 1) : rawIdx;
-                  return (
-                    <div className="invoice-statusbar">
-                      {stageKeys.map((key, i) => {
-                        const isActive = i === currentIdx;
-                        const isDone = currentIdx > i;
-                        return (
-                          <div
-                            key={key}
-                            className={`invoice-stage${isActive ? " invoice-stage--active" : isDone ? " invoice-stage--done" : ""}`}
-                          >
-                            {stageLabels[i]}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })()}
+              ) : (
+                <div></div>
+              )}
+              <div className="d-flex flex-wrap gap-2 align-items-center justify-content-end">
+                {newMode ? (
+                  <>
+                    <button
+                      className="btn"
+                      style={{ background: "var(--color-brand-primary)", color: "#fff", borderColor: "var(--color-brand-primary)", padding: "8px 20px", fontWeight: 600 }}
+                      onClick={createInvoice}
+                      disabled={loading}
+                    >
+                      {loading ? "Saving…" : "Save Draft"}
+                    </button>
+                    <button
+                      className="btn btn-light border"
+                      style={{ padding: "8px 20px", fontWeight: 600 }}
+                      onClick={goBackToList}
+                    >
+                      Discard
+                    </button>
+                  </>
+                ) : isEditing ? (
+                  <>
+                    <button
+                      className="btn"
+                      style={{ background: "var(--color-brand-primary)", color: "#fff", borderColor: "var(--color-brand-primary)", padding: "8px 20px", fontWeight: 600 }}
+                      onClick={saveInvoice}
+                      disabled={loading}
+                    >
+                      {loading ? "Saving…" : "Save"}
+                    </button>
+                    <button
+                      className="btn btn-light border"
+                      style={{ padding: "8px 20px", fontWeight: 600 }}
+                      onClick={() => setIsEditing(false)}
+                    >
+                      Discard
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    {statusLabel === "draft" && (
+                      <button
+                        className="btn"
+                        style={{ background: "var(--color-brand-primary)", color: "#fff", borderColor: "var(--color-brand-primary)", padding: "8px 20px", fontWeight: 600 }}
+                        onClick={() => setIsEditing(true)}
+                      >
+                        Edit
+                      </button>
+                    )}
+                    {statusLabel === "draft" && (
+                      <button
+                        className="btn"
+                        style={{ background: "var(--color-brand-primary)", color: "#fff", borderColor: "var(--color-brand-primary)", padding: "8px 20px", fontWeight: 600 }}
+                        onClick={postInvoice}
+                      >
+                        Post
+                      </button>
+                    )}
+                    {(statusLabel === "posted" || statusLabel === "paid") && (
+                      <button
+                        className="btn"
+                        style={{ background: "var(--color-brand-primary)", color: "#fff", borderColor: "var(--color-brand-primary)", padding: "8px 20px", fontWeight: 600 }}
+                        onClick={fiscalizeInvoice}
+                      >
+                        Fiscalize
+                      </button>
+                    )}
+                    {(statusLabel === "posted" || statusLabel === "fiscalized") && (
+                      <button
+                        className="btn btn-light border"
+                        style={{ padding: "8px 20px", fontWeight: 600 }}
+                        onClick={resetInvoice}
+                      >
+                        Reset
+                      </button>
+                    )}
+                    <button
+                      className="btn btn-light border"
+                      style={{ padding: "8px 20px", fontWeight: 600 }}
+                      onClick={printInvoice}
+                    >
+                      Print PDF
+                    </button>
+                    {statusLabel !== "draft" &&
+                      selectedInvoice &&
+                      getPaymentStatus(
+                        selectedInvoice.amount_paid,
+                        selectedInvoice.amount_due,
+                      ) !== "Paid" && (
+                      <button
+                        className="btn"
+                        style={{ background: "var(--color-brand-primary)", color: "#fff", borderColor: "var(--color-brand-primary)", padding: "8px 20px", fontWeight: 600 }}
+                        onClick={() => setPaymentOpen(true)}
+                      >
+                        Register Payment
+                      </button>
+                    )}
+                    {statusLabel !== "draft" && !isCreditNote && (
+                      <button
+                        className="btn btn-light border"
+                        style={{ padding: "8px 20px", fontWeight: 600 }}
+                        onClick={createCreditNote}
+                      >
+                        Credit Note
+                      </button>
+                    )}
+                  </>
+                )}
               </div>
             </div>
 
