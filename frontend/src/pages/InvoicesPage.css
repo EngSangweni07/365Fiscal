@@ -684,10 +684,8 @@ button.invoice-detail-btn:disabled {
 }
 
 .invoice-create-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 18px;
-  align-items: start;
+  display: block;
+  width: 100%;
 }
 
 .invoice-create-form-card {

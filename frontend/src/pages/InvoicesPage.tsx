@@ -2670,7 +2670,6 @@ export default function InvoicesPage({
             <div className="invoice-create-layout">
               <div
                 className="card shadow-sm invoice-create-form-card"
-                style={{ maxHeight: "82vh", overflowY: "auto" }}
               >
                 <div className="card-body invoice-form">
                   <div className="row g-3">
@@ -3092,7 +3091,6 @@ export default function InvoicesPage({
             <div className="invoice-create-layout">
               <div
                 className="card shadow-sm invoice-create-form-card"
-                style={{ maxHeight: "82vh", overflowY: "auto" }}
               >
               <div className="card-body invoice-form">
                 {/* Fields */}
