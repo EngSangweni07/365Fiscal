@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { apiFetch } from "../api";
 import JournalEntryPreviewDrawer from "../components/JournalEntryPreviewDrawer";
+import { SidebarMenu } from "../components/SidebarMenu";
 import { TablePagination } from "../components/TablePagination";
 import { useMe } from "../hooks/useMe";
+import type { SidebarMenuItem } from "../components/SidebarMenu";
 
 interface Payment {
   id: number;
@@ -74,6 +76,30 @@ const ClockIcon = () => (
   </svg>
 );
 
+const OverviewIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 3h7v7H3z"/>
+    <path d="M14 3h7v4h-7z"/>
+    <path d="M14 10h7v11h-7z"/>
+    <path d="M3 14h7v7H3z"/>
+  </svg>
+);
+
+const ReportsIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="18" y1="20" x2="18" y2="10"/>
+    <line x1="12" y1="20" x2="12" y2="4"/>
+    <line x1="6" y1="20" x2="6" y2="14"/>
+  </svg>
+);
+
+const SettingsIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="3"/>
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33h.01A1.65 1.65 0 0 0 10.93 3V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+  </svg>
+);
+
 export default function PaymentsPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -94,7 +120,15 @@ export default function PaymentsPage() {
   const [pageSize, setPageSize] = useState(10);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [exportingSelected, setExportingSelected] = useState(false);
+  const [reconcilingSelected, setReconcilingSelected] = useState(false);
   const [previewPaymentId, setPreviewPaymentId] = useState<number | null>(null);
+
+  const sidebarItems: SidebarMenuItem[] = [
+    { key: "overview", label: "OVERVIEW", icon: OverviewIcon, color: "#4a7de6" },
+    { key: "payments", label: "PAYMENTS", icon: PaymentIcon, color: "#4a7de6" },
+    { key: "reports", label: "REPORTS", icon: ReportsIcon, color: "#4a7de6" },
+    { key: "configuration", label: "CONFIGURATION", icon: SettingsIcon, color: "#4a7de6" },
+  ];
 
   useEffect(() => {
     const requestedCompanyId = Number(searchParams.get("company_id") || 0);
@@ -229,6 +263,30 @@ export default function PaymentsPage() {
     }
   };
 
+  const handleReconcileSelected = async () => {
+    const pendingPayments = selectedPayments.filter((payment) => !payment.is_reconciled);
+    if (!pendingPayments.length) return;
+
+    setReconcilingSelected(true);
+    setError(null);
+    try {
+      const results = await Promise.allSettled(
+        pendingPayments.map((payment) =>
+          apiFetch(`/payments/${payment.id}/reconcile`, { method: "POST" }),
+        ),
+      );
+      const failed = results.filter((result) => result.status === "rejected");
+      await loadData();
+      if (failed.length > 0) {
+        setError(`Reconciled ${pendingPayments.length - failed.length} payments. ${failed.length} failed.`);
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to reconcile selected payments");
+    } finally {
+      setReconcilingSelected(false);
+    }
+  };
+
   useEffect(() => {
     setPage((prev) => Math.min(prev, totalPages));
   }, [totalPages]);
@@ -237,40 +295,58 @@ export default function PaymentsPage() {
     setPage(1);
   }, [methodFilter, reconciledFilter, searchFilter, companyId, pageSize]);
 
-  return (
-    <div className="content-area" style={{ minHeight: 0, height: "100%", overflowY: "auto" }}>
-      <div
-        className="o-control-panel"
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          marginBottom: 16,
-          padding: "8px 0",
-        }}
-      >
-        <div className="o-breadcrumb">
-          <span
-            className="o-breadcrumb-item"
-            style={{ cursor: "pointer" }}
-            onClick={() => navigate(companyId ? `/accounting?company_id=${companyId}` : "/accounting")}
-          >
-            Accounting
-          </span>
-          <span className="o-breadcrumb-separator">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-          </span>
-          <span className="o-breadcrumb-current">Payments</span>
-        </div>
-      </div>
+  const handleSidebarSelect = (key: string) => {
+    if (key === "overview") {
+      navigate(companyId ? `/accounting?company_id=${companyId}` : "/accounting");
+      return;
+    }
+    if (key === "payments") {
+      navigate(companyId ? `/payments?company_id=${companyId}` : "/payments");
+      return;
+    }
+    if (key === "reports") {
+      navigate("/accounting/reports");
+      return;
+    }
+    if (key === "configuration") {
+      navigate("/accounting/configuration");
+    }
+  };
 
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Payments</h1>
-          <p className="page-subtitle">Track all payment transactions</p>
+  return (
+    <div style={{ display: "flex", gap: 0, minHeight: 0, height: "100%" }}>
+      <SidebarMenu
+        title="Accounting"
+        items={sidebarItems}
+        activeKey="payments"
+        onSelect={handleSidebarSelect}
+      />
+      <div className="content-area" style={{ flex: 1, minHeight: 0, height: "100%", overflowY: "auto" }}>
+        <div
+          className="o-control-panel"
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginBottom: 16,
+            padding: "8px 0",
+          }}
+        >
+          <div className="o-breadcrumb">
+            <span
+              className="o-breadcrumb-item"
+              style={{ cursor: "pointer" }}
+              onClick={() => navigate(companyId ? `/accounting?company_id=${companyId}` : "/accounting")}
+            >
+              Accounting
+            </span>
+            <span className="o-breadcrumb-separator">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </span>
+            <span className="o-breadcrumb-current">Payments</span>
+          </div>
         </div>
-      </div>
 
       {error && (
         <div className="alert alert-error" style={{ marginBottom: 16 }}>
@@ -366,6 +442,13 @@ export default function PaymentsPage() {
                 disabled={exportingSelected}
               >
                 {exportingSelected ? "Exporting..." : "Export Selected"}
+              </button>
+              <button
+                className="batch-btn"
+                onClick={handleReconcileSelected}
+                disabled={reconcilingSelected || !selectedPayments.some((payment) => !payment.is_reconciled)}
+              >
+                {reconcilingSelected ? "Reconciling..." : "Reconcile Selected"}
               </button>
               <button
                 className="batch-btn clear-btn"
@@ -501,7 +584,7 @@ export default function PaymentsPage() {
         sourceId={previewPaymentId}
       />
 
-      <style>{`
+        <style>{`
         .alert-error {
           background: var(--red-100);
           color: var(--red-600);
@@ -516,6 +599,7 @@ export default function PaymentsPage() {
           font-size: 12px;
         }
       `}</style>
+      </div>
     </div>
   );
 }
