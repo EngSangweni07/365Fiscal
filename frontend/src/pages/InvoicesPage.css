@@ -2,8 +2,8 @@
 
 .invoice-page-shell .invoice-dashboard-layout {
   display: grid;
-  grid-template-columns: minmax(220px, 220px) minmax(0, 1fr);
-  gap: 18px;
+  grid-template-columns: minmax(180px, 180px) minmax(0, 1fr);
+  gap: 10px;
   align-items: flex-start;
 }
 

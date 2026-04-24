@@ -2661,9 +2661,10 @@ export default function InvoicesPage({
 
                 {/* RIGHT: Odoo-style stage pipeline */}
                 {!newMode && selectedInvoice && (() => {
-                  const stageKeys = ["draft", "posted", "fiscalized", "paid"];
-                  const stageLabels = ["Draft", "Posted", "Fiscalized", "Paid"];
-                  const currentIdx = stageKeys.indexOf(statusLabel ?? "");
+                  const stageKeys = ["draft", "posted", "paid"];
+                  const stageLabels = ["Draft", "Posted", "Paid"];
+                  const rawIdx = ["draft", "posted", "fiscalized", "paid"].indexOf(statusLabel ?? "");
+                  const currentIdx = rawIdx >= 2 ? rawIdx - (rawIdx === 2 ? 1 : 1) : rawIdx;
                   return (
                     <div className="invoice-statusbar">
                       {stageKeys.map((key, i) => {
