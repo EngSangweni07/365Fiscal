@@ -3581,6 +3581,7 @@ export default function InvoicesPage({
                   </table>
                 </div>
               </div>
+              </div>
             </div>
           )}
           </div>
