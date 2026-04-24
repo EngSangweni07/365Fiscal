@@ -3085,6 +3085,98 @@ export default function InvoicesPage({
               >
               <div className="card-body invoice-form">
                 {/* Fields */}
+                <div className="row g-3 mb-4 invoice-detail-fields">
+                  <div className="col-md-6">
+                    <label className="form-label">Customer</label>
+                    {canEdit ? (
+                      <div
+                        className="position-relative"
+                        ref={customerDropdownRef}
+                      >
+                        <input
+                          className={`form-control input-underline ${
+                            invalidFields.includes("editCustomer")
+                              ? "input-field-error"
+                              : ""
+                          }`}
+                          placeholder="Search or select customer…"
+                          value={customerSearch}
+                          onChange={(e) => {
+                            setCustomerSearch(e.target.value);
+                            setCustomerDropdownOpen(true);
+                            if (!e.target.value) setEditCustomerId(null);
+                          }}
+                          onFocus={() => setCustomerDropdownOpen(true)}
+                        />
+                        {customerDropdownOpen && (
+                          <ul
+                            className="list-group position-absolute w-100 shadow-sm"
+                            style={{
+                              zIndex: 1050,
+                              maxHeight: 220,
+                              overflowY: "auto",
+                            }}
+                          >
+                            {displayContacts.map((c) => (
+                              <li
+                                key={c.id}
+                                className={`list-group-item list-group-item-action${editCustomerId === c.id ? " active" : ""}`}
+                                role="button"
+                                onClick={() => selectCustomer(c.id, c.name, "edit")}
+                              >
+                                {c.name}
+                              </li>
+                            ))}
+                            {customerSearch.trim() &&
+                              !filteredContacts.some(
+                                (c) =>
+                                  c.name.toLowerCase() ===
+                                  customerSearch.trim().toLowerCase(),
+                              ) && (
+                                <li
+                                  className="list-group-item list-group-item-action text-primary"
+                                  role="button"
+                                  onClick={() => createCustomerFromSearch("edit")}
+                                >
+                                  {customerCreating ? "Creating..." : `Create "${customerSearch.trim()}"`}
+                                </li>
+                              )}
+                            {!displayContacts.length && !customerSearch.trim() && (
+                              <li className="list-group-item text-muted">
+                                No customers
+                              </li>
+                            )}
+                          </ul>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="form-control-plaintext">
+                        {customer?.name || "—"}
+                      </div>
+                    )}
+                  </div>
+                  <div className="col-md-4">
+                    <label className="form-label">Invoice Date</label>
+                    {canEdit ? (
+                      <input
+                        className="form-control input-underline"
+                        type="date"
+                        value={editInvoiceDate}
+                        onChange={(e) => setEditInvoiceDate(e.target.value)}
+                      />
+                    ) : (
+                      <div className="form-control-plaintext">
+                        {invoiceDateLabel}
+                      </div>
+                    )}
+                  </div>
+                  <div className="col-md-4">
+                    <label className="form-label">Due Date</label>
+                    {canEdit ? (
+                      <input
+                        className="form-control input-underline"
+                        type="date"
+                        value={editDueDate}
                         onChange={(e) => setEditDueDate(e.target.value)}
                       />
                     ) : (
