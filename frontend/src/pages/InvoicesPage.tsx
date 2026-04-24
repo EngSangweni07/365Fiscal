@@ -3119,6 +3119,7 @@ export default function InvoicesPage({
               <div className="card-body invoice-form">
                 {/* Fields */}
                 <div className="row g-3 mb-4 invoice-detail-fields">
+                  {/* Row 1: Customer + Invoice Date */}
                   <div className="col-md-6">
                     <label className="form-label">Customer</label>
                     {canEdit ? (
@@ -3188,7 +3189,7 @@ export default function InvoicesPage({
                       </div>
                     )}
                   </div>
-                  <div className="col-md-4">
+                  <div className="col-md-6">
                     <label className="form-label">Invoice Date</label>
                     {canEdit ? (
                       <input
@@ -3203,7 +3204,9 @@ export default function InvoicesPage({
                       </div>
                     )}
                   </div>
-                  <div className="col-md-4">
+
+                  {/* Row 2: Due Date + Quotation */}
+                  <div className="col-md-6">
                     <label className="form-label">Due Date</label>
                     {canEdit ? (
                       <input
@@ -3215,14 +3218,12 @@ export default function InvoicesPage({
                     ) : (
                       <div className="form-control-plaintext">
                         {selectedInvoice?.due_date
-                          ? new Date(
-                              selectedInvoice.due_date,
-                            ).toLocaleDateString()
+                          ? new Date(selectedInvoice.due_date).toLocaleDateString()
                           : "—"}
                       </div>
                     )}
                   </div>
-                  <div className="col-md-4">
+                  <div className="col-md-6">
                     <label className="form-label">Quotation</label>
                     {canEdit ? (
                       <div
@@ -3263,12 +3264,11 @@ export default function InvoicesPage({
                                 {q.reference}
                               </li>
                             ))}
-                            {!displayQuotations.length &&
-                              !quotationSearch.trim() && (
-                                <li className="list-group-item text-muted">
-                                  No quotations
-                                </li>
-                              )}
+                            {!displayQuotations.length && !quotationSearch.trim() && (
+                              <li className="list-group-item text-muted">
+                                No quotations
+                              </li>
+                            )}
                           </ul>
                         )}
                       </div>
@@ -3278,18 +3278,12 @@ export default function InvoicesPage({
                       </div>
                     )}
                   </div>
-                  <div className="col-md-4">
-                    <label className="form-label">Reference</label>
-                    <div className="form-control-plaintext fw-semibold">
-                      {selectedInvoice?.reference || "—"}
-                    </div>
-                  </div>
-                  <div className="col-md-4">
+
+                  {/* Row 3: Currency + Reference */}
+                  <div className="col-md-6">
                     <label
                       className={`form-label ${
-                        invalidFields.includes("editCurrency")
-                          ? "form-label-error"
-                          : ""
+                        invalidFields.includes("editCurrency") ? "form-label-error" : ""
                       }`}
                     >
                       Currency
@@ -3297,9 +3291,7 @@ export default function InvoicesPage({
                     {canEdit ? (
                       <select
                         className={`form-select input-underline ${
-                          invalidFields.includes("editCurrency")
-                            ? "input-field-error"
-                            : ""
+                          invalidFields.includes("editCurrency") ? "input-field-error" : ""
                         }`}
                         value={editCurrency}
                         onChange={(e) => {
@@ -3320,7 +3312,15 @@ export default function InvoicesPage({
                       </div>
                     )}
                   </div>
-                  <div className="col-md-4">
+                  <div className="col-md-6">
+                    <label className="form-label">Reference</label>
+                    <div className="form-control-plaintext fw-semibold">
+                      {selectedInvoice?.reference || "—"}
+                    </div>
+                  </div>
+
+                  {/* Row 4: Fiscal Device + Payment Terms */}
+                  <div className="col-md-6">
                     <label className="form-label">Fiscal Device</label>
                     {canEdit ? (
                       <select
@@ -3341,13 +3341,11 @@ export default function InvoicesPage({
                       </select>
                     ) : (
                       <div className="form-control-plaintext">
-                        {devices.find(
-                          (d) => d.id === selectedInvoice?.device_id,
-                        )?.device_id || "—"}
+                        {devices.find((d) => d.id === selectedInvoice?.device_id)?.device_id || "—"}
                       </div>
                     )}
                   </div>
-                  <div className="col-md-4">
+                  <div className="col-md-6">
                     <label className="form-label">Payment Terms</label>
                     {canEdit ? (
                       <select
@@ -3368,12 +3366,16 @@ export default function InvoicesPage({
                       </div>
                     )}
                   </div>
-                  <div className="col-md-4">
+
+                  {/* Row 5: Payment Reference */}
+                  <div className="col-md-6">
                     <label className="form-label">Payment Reference</label>
                     <div className="form-control-plaintext">
                       {selectedInvoice?.payment_reference || "—"}
                     </div>
                   </div>
+
+                  {/* Row 6: Notes (full width) */}
                   <div className="col-12">
                     <label className="form-label">Notes</label>
                     {canEdit ? (
