@@ -620,10 +620,61 @@ button.invoice-detail-btn:disabled {
 }
 
 .invoice-detail-toolbar {
-  display: grid;
-  grid-template-columns: minmax(0, auto) minmax(260px, 1fr) auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.invoice-toolbar-actions {
+  display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* ── Odoo-style stage pipeline ── */
+.invoice-statusbar {
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+}
+
+.invoice-stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 22px 7px 30px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #94a3b8;
+  background: #f1f5f9;
+  white-space: nowrap;
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%, 12px 50%);
+  margin-right: 3px;
+  min-width: 80px;
+  user-select: none;
+  letter-spacing: 0.02em;
+}
+
+.invoice-stage:first-child {
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%);
+  padding-left: 18px;
+}
+
+.invoice-stage:last-child {
+  margin-right: 0;
+}
+
+.invoice-stage--active {
+  background: var(--color-brand-primary);
+  color: #fff;
+}
+
+.invoice-stage--done {
+  background: #d1fae5;
+  color: #065f46;
 }
 
 .invoice-status-rail {
@@ -853,8 +904,16 @@ button.invoice-detail-btn:disabled {
 
 @media (max-width: 900px) {
   .invoice-detail-toolbar {
-    grid-template-columns: 1fr;
-    justify-items: stretch;
+    gap: 8px;
+  }
+
+  .invoice-toolbar-actions {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .invoice-statusbar {
+    flex-wrap: wrap;
   }
 
   .invoice-status-rail {
