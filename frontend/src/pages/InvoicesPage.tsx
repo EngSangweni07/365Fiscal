@@ -2555,18 +2555,20 @@ export default function InvoicesPage({
               ) : (
                 <div></div>
               )}
-              <div className="d-flex flex-wrap gap-1 align-items-center justify-content-end">
+              <div className="d-flex flex-wrap gap-2 align-items-center justify-content-end">
                 {newMode ? (
                   <>
                     <button
-                      className="btn btn-sm btn-primary"
+                      className="btn"
+                      style={{ background: "var(--color-brand-primary)", color: "#fff", borderColor: "var(--color-brand-primary)", padding: "8px 20px", fontWeight: 600 }}
                       onClick={createInvoice}
                       disabled={loading}
                     >
                       {loading ? "Saving…" : "Save Draft"}
                     </button>
                     <button
-                      className="btn btn-sm btn-light border"
+                      className="btn btn-light border"
+                      style={{ padding: "8px 20px", fontWeight: 600 }}
                       onClick={goBackToList}
                     >
                       Discard
@@ -2575,14 +2577,16 @@ export default function InvoicesPage({
                 ) : isEditing ? (
                   <>
                     <button
-                      className="btn btn-sm btn-primary"
+                      className="btn"
+                      style={{ background: "var(--color-brand-primary)", color: "#fff", borderColor: "var(--color-brand-primary)", padding: "8px 20px", fontWeight: 600 }}
                       onClick={saveInvoice}
                       disabled={loading}
                     >
                       {loading ? "Saving…" : "Save"}
                     </button>
                     <button
-                      className="btn btn-sm btn-light border"
+                      className="btn btn-light border"
+                      style={{ padding: "8px 20px", fontWeight: 600 }}
                       onClick={() => setIsEditing(false)}
                     >
                       Discard
@@ -2592,7 +2596,8 @@ export default function InvoicesPage({
                   <>
                     {statusLabel === "draft" && (
                       <button
-                        className="btn btn-sm btn-light border"
+                        className="btn"
+                        style={{ background: "var(--color-brand-primary)", color: "#fff", borderColor: "var(--color-brand-primary)", padding: "8px 20px", fontWeight: 600 }}
                         onClick={() => setIsEditing(true)}
                       >
                         Edit
@@ -2600,7 +2605,8 @@ export default function InvoicesPage({
                     )}
                     {statusLabel === "draft" && (
                       <button
-                        className="btn btn-sm btn-light border"
+                        className="btn"
+                        style={{ background: "var(--color-brand-primary)", color: "#fff", borderColor: "var(--color-brand-primary)", padding: "8px 20px", fontWeight: 600 }}
                         onClick={postInvoice}
                       >
                         Post
@@ -2608,7 +2614,8 @@ export default function InvoicesPage({
                     )}
                     {(statusLabel === "posted" || statusLabel === "paid") && (
                       <button
-                        className="btn btn-sm btn-light border"
+                        className="btn"
+                        style={{ background: "var(--color-brand-primary)", color: "#fff", borderColor: "var(--color-brand-primary)", padding: "8px 20px", fontWeight: 600 }}
                         onClick={fiscalizeInvoice}
                       >
                         Fiscalize
@@ -2616,14 +2623,16 @@ export default function InvoicesPage({
                     )}
                     {(statusLabel === "posted" || statusLabel === "fiscalized") && (
                       <button
-                        className="btn btn-sm btn-light border"
+                        className="btn btn-light border"
+                        style={{ padding: "8px 20px", fontWeight: 600 }}
                         onClick={resetInvoice}
                       >
                         Reset
                       </button>
                     )}
                     <button
-                      className="btn btn-sm btn-light border"
+                      className="btn btn-light border"
+                      style={{ padding: "8px 20px", fontWeight: 600 }}
                       onClick={printInvoice}
                     >
                       Print PDF
@@ -2635,7 +2644,8 @@ export default function InvoicesPage({
                         selectedInvoice.amount_due,
                       ) !== "Paid" && (
                       <button
-                        className="btn btn-light border invoice-register-payment-btn"
+                        className="btn"
+                        style={{ background: "var(--color-brand-primary)", color: "#fff", borderColor: "var(--color-brand-primary)", padding: "8px 20px", fontWeight: 600 }}
                         onClick={() => setPaymentOpen(true)}
                       >
                         Register Payment
@@ -2643,7 +2653,8 @@ export default function InvoicesPage({
                     )}
                     {statusLabel !== "draft" && !isCreditNote && (
                       <button
-                        className="btn btn-sm btn-light border"
+                        className="btn btn-light border"
+                        style={{ padding: "8px 20px", fontWeight: 600 }}
                         onClick={createCreditNote}
                       >
                         Credit Note
