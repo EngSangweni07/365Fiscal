@@ -781,6 +781,23 @@ button.invoice-detail-btn:disabled {
   border-radius: 12px;
 }
 
+/* Override underline-only style inside invoice-detail-fields */
+.invoice-detail-fields .input-underline,
+.invoice-detail-fields .input-underline.form-control,
+.invoice-detail-fields .input-underline.form-select {
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+  box-shadow: none !important;
+}
+
+.invoice-detail-fields .input-underline:focus,
+.invoice-detail-fields .input-underline.form-control:focus,
+.invoice-detail-fields .input-underline.form-select:focus {
+  border-color: var(--color-brand-primary) !important;
+  box-shadow: 0 0 0 3px rgba(11, 69, 80, 0.12) !important;
+}
+
 .invoice-detail-fields textarea.form-control,
 .invoice-detail-fields textarea.input-underline {
   min-height: 88px;
