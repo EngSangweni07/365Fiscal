@@ -2486,171 +2486,173 @@ export default function InvoicesPage({
 
       {/* ───────────── FORM VIEW (New / Detail) ───────────── */}
       {showForm && (
-        <div>
-          {/* Top toolbar */}
-          <div className="invoice-detail-toolbar mb-3">
-            {isAdmin && companyId ? (
-              <div
-                className="o-control-panel"
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  marginBottom: 16,
-                }}
-              >
-                <div className="o-breadcrumb">
-                  <span
-                    className="o-breadcrumb-item"
-                    style={{ cursor: "pointer" }}
-                    onClick={goBackToCompanies}
-                  >
-                    Invoices
-                  </span>
-                  <span className="o-breadcrumb-separator">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <polyline points="9 18 15 12 9 6" />
-                    </svg>
-                  </span>
-                  <span className="o-breadcrumb-current">
-                    {company?.name || "Company"}
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <div className="d-flex align-items-center gap-2">
-                  <button
-                    className="btn btn-sm btn-light border"
-                    onClick={goBackToList}
-                  >
-                    ← Back
-                  </button>
-                  <h4 className="fw-bold mb-0" style={invoiceHeadingStyle}>
-                    {newMode
-                      ? "New Invoice"
-                      : selectedInvoice?.reference || "Invoice"}
-                  </h4>
-              </div>
-            )}
-            {!newMode && !isEditing && selectedInvoice && statusLabel !== "draft" ? (
-              <div className="invoice-status-rail" aria-label="Invoice workflow status">
-                <button
-                  type="button"
-                  className="invoice-status-chip invoice-status-action"
-                  onClick={() => setJournalPreviewOpen(true)}
+        <div className="invoice-dashboard-layout">
+          <Sidebar sections={invoiceSidebarSections} />
+          <div className="invoice-dashboard-main">
+            {/* Top toolbar */}
+            <div className="invoice-detail-toolbar mb-3">
+              {isAdmin && companyId ? (
+                <div
+                  className="o-control-panel"
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    marginBottom: 16,
+                  }}
                 >
-                  View Journal Entry
-                </button>
-              </div>
-            ) : (
-              <div></div>
-            )}
-            <div className="d-flex flex-wrap gap-1 align-items-center justify-content-end">
-              {newMode ? (
-                <>
-                  <button
-                    className="btn btn-sm btn-primary"
-                    onClick={createInvoice}
-                    disabled={loading}
-                  >
-                    {loading ? "Saving…" : "Save Draft"}
-                  </button>
-                  <button
-                    className="btn btn-sm btn-light border"
-                    onClick={goBackToList}
-                  >
-                    Discard
-                  </button>
-                </>
-              ) : isEditing ? (
-                <>
-                  <button
-                    className="btn btn-sm btn-primary"
-                    onClick={saveInvoice}
-                    disabled={loading}
-                  >
-                    {loading ? "Saving…" : "Save"}
-                  </button>
-                  <button
-                    className="btn btn-sm btn-light border"
-                    onClick={() => setIsEditing(false)}
-                  >
-                    Discard
-                  </button>
-                </>
+                  <div className="o-breadcrumb">
+                    <span
+                      className="o-breadcrumb-item"
+                      style={{ cursor: "pointer" }}
+                      onClick={goBackToCompanies}
+                    >
+                      Invoices
+                    </span>
+                    <span className="o-breadcrumb-separator">
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polyline points="9 18 15 12 9 6" />
+                      </svg>
+                    </span>
+                    <span className="o-breadcrumb-current">
+                      {company?.name || "Company"}
+                    </span>
+                  </div>
+                </div>
               ) : (
-                <>
-                  {statusLabel === "draft" && (
+                <div className="d-flex align-items-center gap-2">
                     <button
                       className="btn btn-sm btn-light border"
-                      onClick={() => setIsEditing(true)}
+                      onClick={goBackToList}
                     >
-                      Edit
+                      ← Back
                     </button>
-                  )}
-                  {statusLabel === "draft" && (
-                    <button
-                      className="btn btn-sm btn-light border"
-                      onClick={postInvoice}
-                    >
-                      Post
-                    </button>
-                  )}
-                  {(statusLabel === "posted" || statusLabel === "paid") && (
-                    <button
-                      className="btn btn-sm btn-light border"
-                      onClick={fiscalizeInvoice}
-                    >
-                      Fiscalize
-                    </button>
-                  )}
-                  {(statusLabel === "posted" || statusLabel === "fiscalized") && (
-                    <button
-                      className="btn btn-sm btn-light border"
-                      onClick={resetInvoice}
-                    >
-                      Reset
-                    </button>
-                  )}
-                  <button
-                    className="btn btn-sm btn-light border"
-                    onClick={printInvoice}
-                  >
-                    Print PDF
-                  </button>
-                  {statusLabel !== "draft" &&
-                    selectedInvoice &&
-                    getPaymentStatus(
-                      selectedInvoice.amount_paid,
-                      selectedInvoice.amount_due,
-                    ) !== "Paid" && (
-                    <button
-                      className="btn btn-light border invoice-register-payment-btn"
-                      onClick={() => setPaymentOpen(true)}
-                    >
-                      Register Payment
-                    </button>
-                  )}
-                  {statusLabel !== "draft" && !isCreditNote && (
-                    <button
-                      className="btn btn-sm btn-light border"
-                      onClick={createCreditNote}
-                    >
-                      Credit Note
-                    </button>
-                  )}
-                </>
+                    <h4 className="fw-bold mb-0" style={invoiceHeadingStyle}>
+                      {newMode
+                        ? "New Invoice"
+                        : selectedInvoice?.reference || "Invoice"}
+                    </h4>
+                </div>
               )}
+              {!newMode && !isEditing && selectedInvoice && statusLabel !== "draft" ? (
+                <div className="invoice-status-rail" aria-label="Invoice workflow status">
+                  <button
+                    type="button"
+                    className="invoice-status-chip invoice-status-action"
+                    onClick={() => setJournalPreviewOpen(true)}
+                  >
+                    View Journal Entry
+                  </button>
+                </div>
+              ) : (
+                <div></div>
+              )}
+              <div className="d-flex flex-wrap gap-1 align-items-center justify-content-end">
+                {newMode ? (
+                  <>
+                    <button
+                      className="btn btn-sm btn-primary"
+                      onClick={createInvoice}
+                      disabled={loading}
+                    >
+                      {loading ? "Saving…" : "Save Draft"}
+                    </button>
+                    <button
+                      className="btn btn-sm btn-light border"
+                      onClick={goBackToList}
+                    >
+                      Discard
+                    </button>
+                  </>
+                ) : isEditing ? (
+                  <>
+                    <button
+                      className="btn btn-sm btn-primary"
+                      onClick={saveInvoice}
+                      disabled={loading}
+                    >
+                      {loading ? "Saving…" : "Save"}
+                    </button>
+                    <button
+                      className="btn btn-sm btn-light border"
+                      onClick={() => setIsEditing(false)}
+                    >
+                      Discard
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    {statusLabel === "draft" && (
+                      <button
+                        className="btn btn-sm btn-light border"
+                        onClick={() => setIsEditing(true)}
+                      >
+                        Edit
+                      </button>
+                    )}
+                    {statusLabel === "draft" && (
+                      <button
+                        className="btn btn-sm btn-light border"
+                        onClick={postInvoice}
+                      >
+                        Post
+                      </button>
+                    )}
+                    {(statusLabel === "posted" || statusLabel === "paid") && (
+                      <button
+                        className="btn btn-sm btn-light border"
+                        onClick={fiscalizeInvoice}
+                      >
+                        Fiscalize
+                      </button>
+                    )}
+                    {(statusLabel === "posted" || statusLabel === "fiscalized") && (
+                      <button
+                        className="btn btn-sm btn-light border"
+                        onClick={resetInvoice}
+                      >
+                        Reset
+                      </button>
+                    )}
+                    <button
+                      className="btn btn-sm btn-light border"
+                      onClick={printInvoice}
+                    >
+                      Print PDF
+                    </button>
+                    {statusLabel !== "draft" &&
+                      selectedInvoice &&
+                      getPaymentStatus(
+                        selectedInvoice.amount_paid,
+                        selectedInvoice.amount_due,
+                      ) !== "Paid" && (
+                      <button
+                        className="btn btn-light border invoice-register-payment-btn"
+                        onClick={() => setPaymentOpen(true)}
+                      >
+                        Register Payment
+                      </button>
+                    )}
+                    {statusLabel !== "draft" && !isCreditNote && (
+                      <button
+                        className="btn btn-sm btn-light border"
+                        onClick={createCreditNote}
+                      >
+                        Credit Note
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
-          </div>
 
           {/* ── New Invoice Form ── */}
           {newMode && (
@@ -3071,106 +3073,6 @@ export default function InvoicesPage({
                   </div>
                 </div>
               </div>
-
-              <aside className="card shadow-sm invoice-customer-history-card">
-                <div className="card-body">
-                  <div className="invoice-customer-history-header">
-                    <div>
-                      <h6 className="fw-semibold mb-1">Customer's Invoices</h6>
-                    </div>
-                  </div>
-
-                  {newInvoiceCustomer ? (
-                    <>
-                      <div className="invoice-customer-history-stats">
-                        <div className="invoice-customer-history-stat">
-                          <span className="invoice-customer-history-stat-label">
-                            Total invoices
-                          </span>
-                          <strong>{customerHistoryInvoices.length}</strong>
-                        </div>
-                        <div className="invoice-customer-history-stat">
-                          <span className="invoice-customer-history-stat-label">
-                            Outstanding
-                          </span>
-                          <strong>
-                            {formatCurrency(
-                              customerHistoryOutstandingTotal,
-                              newCurrency || "USD",
-                            )}
-                          </strong>
-                        </div>
-                      </div>
-
-                      {recentCustomerHistory.length ? (
-                        <div className="invoice-customer-history-list">
-                          {recentCustomerHistory.map((historyInvoice) => {
-                            const paymentState = getPaymentStatus(
-                              historyInvoice.amount_paid,
-                              historyInvoice.amount_due,
-                            );
-                            const statusClass =
-                              historyInvoice.status === "paid"
-                                ? "bg-success"
-                                : historyInvoice.status === "posted"
-                                  ? "bg-info"
-                                  : historyInvoice.status === "fiscalized"
-                                    ? "bg-primary"
-                                    : "bg-secondary";
-                            const paymentClass =
-                              paymentState === "Paid"
-                                ? "bg-success"
-                                : paymentState === "Partial"
-                                  ? "bg-warning"
-                                  : "bg-secondary";
-                            return (
-                              <button
-                                key={historyInvoice.id}
-                                type="button"
-                                className="invoice-customer-history-item"
-                                onClick={() => {
-                                  setSelectedInvoiceId(historyInvoice.id);
-                                  setNewMode(false);
-                                }}
-                              >
-                                <div className="invoice-customer-history-item-top">
-                                  <strong>{historyInvoice.reference}</strong>
-                                  <span className={`badge ${statusClass}`}>
-                                    {historyInvoice.status}
-                                  </span>
-                                </div>
-                                <div className="invoice-customer-history-item-meta">
-                                  <span>
-                                    {formatDateTime(historyInvoice.invoice_date) || "—"}
-                                  </span>
-                                  <span>
-                                    {formatCurrency(
-                                      historyInvoice.total_amount,
-                                      historyInvoice.currency || newCurrency || "USD",
-                                    )}
-                                  </span>
-                                </div>
-                                <div className="invoice-customer-history-item-bottom">
-                                  <span className={`badge ${paymentClass}`}>
-                                    {paymentState}
-                                  </span>
-                                  <span className="text-muted">
-                                    Due {formatCurrency(historyInvoice.amount_due || 0, historyInvoice.currency || newCurrency || "USD")}
-                                  </span>
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div className="invoice-customer-history-empty">
-                          No previous invoices found for this customer.
-                        </div>
-                      )}
-                    </>
-                  ) : null}
-                </div>
-              </aside>
             </div>
           )}
 
@@ -3183,105 +3085,6 @@ export default function InvoicesPage({
               >
               <div className="card-body invoice-form">
                 {/* Fields */}
-                <div className="row g-3 mb-4 invoice-detail-fields">
-                  <div className="col-md-6">
-                    <label className="form-label">Customer</label>
-                    {canEdit ? (
-                      <div
-                        className="position-relative"
-                        ref={customerDropdownRef}
-                      >
-                        <input
-                          className={`form-control input-underline ${
-                            invalidFields.includes("editCustomer")
-                              ? "input-field-error"
-                              : ""
-                          }`}
-                          placeholder="Search or select customer…"
-                          value={customerSearch}
-                          onChange={(e) => {
-                            setCustomerSearch(e.target.value);
-                            setCustomerDropdownOpen(true);
-                            if (!e.target.value) setEditCustomerId(null);
-                          }}
-                          onFocus={() => setCustomerDropdownOpen(true)}
-                        />
-                        {customerDropdownOpen && (
-                          <ul
-                            className="list-group position-absolute w-100 shadow-sm"
-                            style={{
-                              zIndex: 1050,
-                              maxHeight: 220,
-                              overflowY: "auto",
-                            }}
-                          >
-                            {displayContacts.map((c) => (
-                              <li
-                                key={c.id}
-                                className={`list-group-item list-group-item-action${editCustomerId === c.id ? " active" : ""}`}
-                                role="button"
-                                onClick={() =>
-                                  selectCustomer(c.id, c.name, "edit")
-                                }
-                              >
-                                {c.name}
-                              </li>
-                            ))}
-                            {customerSearch.trim() &&
-                              !filteredContacts.some(
-                                (c) =>
-                                  c.name.toLowerCase() ===
-                                  customerSearch.trim().toLowerCase(),
-                              ) && (
-                                <li
-                                  className="list-group-item list-group-item-action text-primary"
-                                  role="button"
-                                  onClick={() =>
-                                    createCustomerFromSearch("edit")
-                                  }
-                                >
-                                  {customerCreating
-                                    ? "Creating..."
-                                    : `Create "${customerSearch.trim()}"`}
-                                </li>
-                              )}
-                            {!displayContacts.length &&
-                              !customerSearch.trim() && (
-                                <li className="list-group-item text-muted">
-                                  No customers
-                                </li>
-                              )}
-                          </ul>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="form-control-plaintext">
-                        {customer?.name || "—"}
-                      </div>
-                    )}
-                  </div>
-                  <div className="col-md-4">
-                    <label className="form-label">Invoice Date</label>
-                    {canEdit ? (
-                      <input
-                        className="form-control input-underline"
-                        type="date"
-                        value={editInvoiceDate}
-                        onChange={(e) => setEditInvoiceDate(e.target.value)}
-                      />
-                    ) : (
-                      <div className="form-control-plaintext">
-                        {invoiceDateLabel}
-                      </div>
-                    )}
-                  </div>
-                  <div className="col-md-4">
-                    <label className="form-label">Due Date</label>
-                    {canEdit ? (
-                      <input
-                        className="form-control input-underline"
-                        type="date"
-                        value={editDueDate}
                         onChange={(e) => setEditDueDate(e.target.value)}
                       />
                     ) : (
@@ -3687,108 +3490,9 @@ export default function InvoicesPage({
                 </div>
               </div>
             </div>
-
-              <aside className="card shadow-sm invoice-customer-history-card">
-                <div className="card-body">
-                  <div className="invoice-customer-history-header">
-                    <div>
-                      <h6 className="fw-semibold mb-1">Customer's Invoices</h6>
-                    </div>
-                  </div>
-
-                  {customer ? (
-                    <>
-                      <div className="invoice-customer-history-stats">
-                        <div className="invoice-customer-history-stat">
-                          <span className="invoice-customer-history-stat-label">
-                            Total invoices
-                          </span>
-                          <strong>{selectedInvoiceCustomerHistoryInvoices.length}</strong>
-                        </div>
-                        <div className="invoice-customer-history-stat">
-                          <span className="invoice-customer-history-stat-label">
-                            Outstanding
-                          </span>
-                          <strong>
-                            {formatCurrency(
-                              selectedInvoiceCustomerHistoryOutstandingTotal,
-                              invoiceCurrency || "USD",
-                            )}
-                          </strong>
-                        </div>
-                      </div>
-
-                      {selectedInvoiceRecentHistory.length ? (
-                        <div className="invoice-customer-history-list">
-                          {selectedInvoiceRecentHistory.map((historyInvoice) => {
-                            const paymentState = getPaymentStatus(
-                              historyInvoice.amount_paid,
-                              historyInvoice.amount_due,
-                            );
-                            const statusClass =
-                              historyInvoice.status === "paid"
-                                ? "bg-success"
-                                : historyInvoice.status === "posted"
-                                  ? "bg-info"
-                                  : historyInvoice.status === "fiscalized"
-                                    ? "bg-primary"
-                                    : "bg-secondary";
-                            const paymentClass =
-                              paymentState === "Paid"
-                                ? "bg-success"
-                                : paymentState === "Partial"
-                                  ? "bg-warning"
-                                  : "bg-secondary";
-
-                            return (
-                              <button
-                                key={historyInvoice.id}
-                                type="button"
-                                className="invoice-customer-history-item"
-                                onClick={() => {
-                                  setSelectedInvoiceId(historyInvoice.id);
-                                }}
-                              >
-                                <div className="invoice-customer-history-item-top">
-                                  <strong>{historyInvoice.reference}</strong>
-                                  <span className={`badge ${statusClass}`}>
-                                    {historyInvoice.status}
-                                  </span>
-                                </div>
-                                <div className="invoice-customer-history-item-meta">
-                                  <span>
-                                    {formatDateTime(historyInvoice.invoice_date) || "—"}
-                                  </span>
-                                  <span>
-                                    {formatCurrency(
-                                      historyInvoice.total_amount,
-                                      historyInvoice.currency || invoiceCurrency || "USD",
-                                    )}
-                                  </span>
-                                </div>
-                                <div className="invoice-customer-history-item-bottom">
-                                  <span className={`badge ${paymentClass}`}>
-                                    {paymentState}
-                                  </span>
-                                  <span className="text-muted">
-                                    Due {formatCurrency(historyInvoice.amount_due || 0, historyInvoice.currency || invoiceCurrency || "USD")}
-                                  </span>
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div className="invoice-customer-history-empty">
-                          No previous invoices found for this customer.
-                        </div>
-                      )}
-                    </>
-                  ) : null}
-                </div>
-              </aside>
             </div>
           )}
+          </div>
         </div>
       )}
 
