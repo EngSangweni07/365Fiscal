@@ -2,7 +2,7 @@
 General Ledger, Aged Receivable, Aged Payable."""
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
@@ -21,6 +21,13 @@ from app.models.product import Product
 from app.models.account import Account, JournalEntry, JournalEntryLine
 
 router = APIRouter(prefix="/accounting/reports", tags=["accounting-reports"])
+
+
+def _to_utc(dt: datetime) -> datetime:
+    """Normalize datetime values so subtraction works across mixed tz-aware/naive data."""
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
 
 
 def _company_ids(db: Session, user) -> list[int]:
@@ -632,7 +639,7 @@ def aged_receivable(
     user=Depends(get_current_user),
     _=Depends(require_company_access),
 ):
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     buckets = [
         ("current", 0, 30),
         ("1_30", 1, 30),
@@ -666,11 +673,11 @@ def aged_receivable(
 
         due_date = inv.due_date or inv.invoice_date or inv.created_at
         if due_date:
-            days_overdue = (now - due_date).days
+            days_overdue = (now - _to_utc(due_date)).days
         else:
             days_overdue = 0
 
-        amount = float(inv.amount_due)
+        amount = float(inv.amount_due or 0)
         customer_data[cid]["total"] += amount
 
         if days_overdue <= 0:
@@ -702,7 +709,7 @@ def aged_payable(
     user=Depends(get_current_user),
     _=Depends(require_company_access),
 ):
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     unpaid_pos = (
         db.query(PurchaseOrder)
@@ -726,11 +733,11 @@ def aged_payable(
 
         order_date = po.order_date or po.created_at
         if order_date:
-            days_old = (now - order_date).days
+            days_old = (now - _to_utc(order_date)).days
         else:
             days_old = 0
 
-        amount = float(po.total_amount)
+        amount = float(po.total_amount or 0)
         supplier_data[sid]["total"] += amount
 
         if days_old <= 0:
