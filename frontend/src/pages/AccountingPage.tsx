@@ -30,6 +30,7 @@ import AccountingReportsPage, { type ReportKey } from "./AccountingReportsPage";
 import AccountingConfigPage, {
   type AccountingConfigSectionKey,
 } from "./AccountingConfigPage";
+import PaymentsPage from "./PaymentsPage";
 
 /* ── Types ───────────────────────────────────────────── */
 interface AccountingOverview {
@@ -317,8 +318,17 @@ export default function AccountingPage() {
 
   useEffect(() => {
     const section = searchParams.get("section");
-    if (section === "journal_entries") {
-      setActiveSection("journal_entries");
+    if (section === "journal_entries") setActiveSection("journal_entries");
+    if (section === "payments") setActiveSection("payments");
+    if (section === "reports") {
+      setActiveSection("reports");
+      setReportsMenuOpen(true);
+      setConfigurationMenuOpen(false);
+    }
+    if (section === "configuration") {
+      setActiveSection("configuration");
+      setConfigurationMenuOpen(true);
+      setReportsMenuOpen(false);
     }
   }, [searchParams]);
 
@@ -362,7 +372,9 @@ export default function AccountingPage() {
   // Navigate to sub-pages
   const handleSectionSelect = (key: string) => {
     if (key === "payments") {
-      navigate(companyId ? `/payments?company_id=${companyId}` : "/payments");
+      setActiveSection("payments");
+      setReportsMenuOpen(false);
+      setConfigurationMenuOpen(false);
       return;
     }
     if (key === "reports") {
@@ -510,29 +522,29 @@ export default function AccountingPage() {
           id: "accounting-overview",
           label: "OVERVIEW",
           icon: (
-            <Layers size={18} strokeWidth={1.5} aria-hidden="true" color="#4a7de6" />
+            <Layers size={18} strokeWidth={1.5} aria-hidden="true" color="#2563eb" />
           ),
           isActive: activeSection === "overview",
           onClick: () => handleSectionSelect("overview"),
-          iconColor: "#4a7de6",
-          iconBackground: "rgba(74, 125, 230, 0.15)",
+          iconColor: "#2563eb",
+          iconBackground: "rgba(37, 99, 235, 0.15)",
         },
         {
           id: "accounting-payments",
           label: "PAYMENTS",
           icon: (
-            <CreditCard size={18} strokeWidth={1.5} aria-hidden="true" color="#4a7de6" />
+            <CreditCard size={18} strokeWidth={1.5} aria-hidden="true" color="#0f766e" />
           ),
-          isActive: false,
+          isActive: activeSection === "payments",
           onClick: () => handleSectionSelect("payments"),
-          iconColor: "#4a7de6",
-          iconBackground: "rgba(74, 125, 230, 0.15)",
+          iconColor: "#0f766e",
+          iconBackground: "rgba(15, 118, 110, 0.15)",
         },
         {
           id: "accounting-reports",
           label: "REPORTS",
           icon: (
-            <BarChart3 size={18} strokeWidth={1.5} aria-hidden="true" color="#4a7de6" />
+            <BarChart3 size={18} strokeWidth={1.5} aria-hidden="true" color="#7c3aed" />
           ),
           isActive: reportsMenuOpen || activeSection === "reports",
           onClick: () => {
@@ -540,8 +552,8 @@ export default function AccountingPage() {
             setConfigurationMenuOpen(false);
             setActiveSection("reports");
           },
-          iconColor: "#4a7de6",
-          iconBackground: "rgba(74, 125, 230, 0.15)",
+          iconColor: "#7c3aed",
+          iconBackground: "rgba(124, 58, 237, 0.15)",
           dropdownItems: ACCOUNTING_REPORT_ITEMS.map((item) => {
             const Icon = item.icon;
             return {
@@ -565,7 +577,7 @@ export default function AccountingPage() {
           id: "accounting-configuration",
           label: "CONFIGURATION",
           icon: (
-            <Settings size={18} strokeWidth={1.5} aria-hidden="true" color="#4a7de6" />
+            <Settings size={18} strokeWidth={1.5} aria-hidden="true" color="#b45309" />
           ),
           isActive: configurationMenuOpen || activeSection === "configuration",
           onClick: () => {
@@ -573,8 +585,8 @@ export default function AccountingPage() {
             setReportsMenuOpen(false);
             setActiveSection("configuration");
           },
-          iconColor: "#4a7de6",
-          iconBackground: "rgba(74, 125, 230, 0.15)",
+          iconColor: "#b45309",
+          iconBackground: "rgba(180, 83, 9, 0.15)",
           dropdownItems: ACCOUNTING_CONFIGURATION_ITEMS.map((item) => {
             const Icon = item.icon;
             return {
@@ -1144,7 +1156,11 @@ export default function AccountingPage() {
 
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     <button
-                      onClick={() => navigate(companyId ? `/payments?company_id=${companyId}` : "/payments")}
+                      onClick={() => {
+                        setActiveSection("payments");
+                        setReportsMenuOpen(false);
+                        setConfigurationMenuOpen(false);
+                      }}
                       style={widgetButton("primary")}
                     >
                       <CreditCard size={14} /> New payment
@@ -1731,6 +1747,9 @@ export default function AccountingPage() {
         {companySelector}
         {activeSection === "overview" && renderOverview()}
         {activeSection === "journal_entries" && renderJournalEntries()}
+        {activeSection === "payments" && (
+          <PaymentsPage embedded companyId={companyId} />
+        )}
         {activeSection === "reports" && (
           <AccountingReportsPage
             embedded

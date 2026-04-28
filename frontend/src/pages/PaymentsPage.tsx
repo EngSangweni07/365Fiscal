@@ -32,6 +32,11 @@ interface PaymentSummary {
   by_method: Record<string, { count: number; amount: number }>;
 }
 
+type PaymentsPageProps = {
+  embedded?: boolean;
+  companyId?: number | null;
+};
+
 const paymentMethods = [
   { value: "cash", label: "Cash" },
   { value: "bank_transfer", label: "Bank Transfer" },
@@ -100,12 +105,16 @@ const SettingsIcon = () => (
   </svg>
 );
 
-export default function PaymentsPage() {
+export default function PaymentsPage({
+  embedded = false,
+  companyId: companyIdProp,
+}: PaymentsPageProps = {}) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { me } = useMe();
   const isAdmin = Boolean(me?.is_admin);
   const [companyId, setCompanyId] = useState<number | null>(null);
+  const selectedCompanyId = companyIdProp ?? companyId;
 
   const [payments, setPayments] = useState<Payment[]>([]);
   const [summary, setSummary] = useState<PaymentSummary | null>(null);
@@ -124,6 +133,7 @@ export default function PaymentsPage() {
   const [previewPaymentId, setPreviewPaymentId] = useState<number | null>(null);
 
   useEffect(() => {
+    if (companyIdProp != null) return;
     const requestedCompanyId = Number(searchParams.get("company_id") || 0);
     if (requestedCompanyId > 0) {
       setCompanyId(requestedCompanyId);
@@ -132,26 +142,26 @@ export default function PaymentsPage() {
     if (!isAdmin && me?.company_ids?.length) {
       setCompanyId(me.company_ids[0]);
     }
-  }, [isAdmin, me?.company_ids, searchParams]);
+  }, [isAdmin, me?.company_ids, searchParams, companyIdProp]);
 
   useEffect(() => {
     loadData();
-  }, [companyId, methodFilter, reconciledFilter, searchFilter]);
+  }, [selectedCompanyId, methodFilter, reconciledFilter, searchFilter]);
 
   const loadData = async () => {
-    if (!companyId) return;
+    if (!selectedCompanyId) return;
     setLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams();
-      params.append("company_id", String(companyId));
+      params.append("company_id", String(selectedCompanyId));
       if (methodFilter) params.append("payment_method", methodFilter);
       if (reconciledFilter) params.append("is_reconciled", reconciledFilter);
       if (searchFilter) params.append("search", searchFilter);
 
       const [paymentsData, summaryData] = await Promise.all([
         apiFetch<Payment[]>(`/payments?${params.toString()}`),
-        apiFetch<PaymentSummary>(`/payments/summary?company_id=${companyId}`).catch(() => null),
+        apiFetch<PaymentSummary>(`/payments/summary?company_id=${selectedCompanyId}`).catch(() => null),
       ]);
 
       setPayments(paymentsData);
@@ -286,15 +296,15 @@ export default function PaymentsPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [methodFilter, reconciledFilter, searchFilter, companyId, pageSize]);
+  }, [methodFilter, reconciledFilter, searchFilter, selectedCompanyId, pageSize]);
 
   const handleSidebarSelect = (key: string) => {
     if (key === "overview") {
-      navigate(companyId ? `/accounting?company_id=${companyId}` : "/accounting");
+      navigate(selectedCompanyId ? `/accounting?company_id=${selectedCompanyId}` : "/accounting");
       return;
     }
     if (key === "payments") {
-      navigate(companyId ? `/payments?company_id=${companyId}` : "/payments");
+      navigate(selectedCompanyId ? `/payments?company_id=${selectedCompanyId}` : "/payments");
       return;
     }
     if (key === "reports") {
@@ -351,38 +361,46 @@ export default function PaymentsPage() {
         ],
       },
     ],
-    [companyId, navigate],
+    [selectedCompanyId, navigate],
   );
 
   return (
     <div style={{ display: "flex", gap: 0, minHeight: 0, height: "100%" }}>
-      <Sidebar sections={paymentSidebarSections} />
+      {!embedded && <Sidebar sections={paymentSidebarSections} />}
       <div className="content-area" style={{ flex: 1, minHeight: 0, height: "100%", overflowY: "auto" }}>
-        <div
-          className="o-control-panel"
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginBottom: 16,
-            padding: "8px 0",
-          }}
-        >
-          <div className="o-breadcrumb">
-            <span
-              className="o-breadcrumb-item"
-              style={{ cursor: "pointer" }}
-              onClick={() => navigate(companyId ? `/accounting?company_id=${companyId}` : "/accounting")}
-            >
-              Accounting
-            </span>
-            <span className="o-breadcrumb-separator">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </span>
-            <span className="o-breadcrumb-current">Payments</span>
+        {!embedded && (
+          <div
+            className="o-control-panel"
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              marginBottom: 16,
+              padding: "8px 0",
+            }}
+          >
+            <div className="o-breadcrumb">
+              <span
+                className="o-breadcrumb-item"
+                style={{ cursor: "pointer" }}
+                onClick={() =>
+                  navigate(
+                    selectedCompanyId
+                      ? `/accounting?company_id=${selectedCompanyId}`
+                      : "/accounting",
+                  )
+                }
+              >
+                Accounting
+              </span>
+              <span className="o-breadcrumb-separator">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </span>
+              <span className="o-breadcrumb-current">Payments</span>
+            </div>
           </div>
-        </div>
+        )}
 
       {error && (
         <div className="alert alert-error" style={{ marginBottom: 16 }}>
@@ -582,7 +600,7 @@ export default function PaymentsPage() {
                         className="btn btn-sm btn-light"
                         onClick={() =>
                           navigate(
-                            `/accounting?section=journal_entries&reference=${encodeURIComponent(`PAY/${payment.reference}`)}${companyId ? `&company_id=${companyId}` : ""}`,
+                            `/accounting?section=journal_entries&reference=${encodeURIComponent(`PAY/${payment.reference}`)}${selectedCompanyId ? `&company_id=${selectedCompanyId}` : ""}`,
                           )
                         }
                         style={{ marginRight: 6 }}
