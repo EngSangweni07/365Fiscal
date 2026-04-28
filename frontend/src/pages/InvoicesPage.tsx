@@ -23,6 +23,7 @@ import { useCompanies, Company } from "../hooks/useCompanies";
 import { useAlert } from "../context/AlertContext";
 import ValidationAlert from "../components/ValidationAlert";
 import ValidatedField from "../components/ValidatedField";
+import BackButton from "../components/BackButton";
 import { Sidebar } from "../components/Sidebar";
 import type { SidebarSection } from "../types/sidebar";
 import type { CurrencyItem, CurrencyRateRead } from "../types/currency";
@@ -2523,12 +2524,14 @@ export default function InvoicesPage({
                 </div>
               ) : (
                 <div className="d-flex align-items-center gap-2">
-                  <button
+                  <BackButton
                     className="btn btn-sm btn-light border"
-                    onClick={goBackToList}
+                    fallbackTo="/invoices"
+                    title="Back"
+                    ariaLabel="Back"
                   >
-                    ← Back
-                  </button>
+                    Back
+                  </BackButton>
                   <h4 className="fw-bold mb-0" style={invoiceHeadingStyle}>
                     {newMode
                       ? "New Invoice"

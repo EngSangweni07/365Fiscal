@@ -2,7 +2,6 @@
 import { useNavigate } from "react-router-dom";
 import type { LucideIcon } from "lucide-react";
 import {
-  ArrowLeft,
   BadgeCheck,
   BarChart3,
   CalendarDays,
@@ -28,6 +27,7 @@ import {
 import { apiFetch, apiRequest } from "../api";
 import JournalEntryPreviewDrawer from "../components/JournalEntryPreviewDrawer";
 import { Sidebar } from "../components/Sidebar";
+import BackButton from "../components/BackButton";
 import type { SidebarSection } from "../types/sidebar";
 import { useMe } from "../hooks/useMe";
 import { useCompanies, Company } from "../hooks/useCompanies";
@@ -2036,10 +2036,14 @@ export default function ExpensesPage() {
             {mainView === "expenses" && subView === "form" && (
               <div className="expense-form-toolbar">
                 <div className="expense-form-toolbar-main">
-                  <button className="expense-form-back-btn" onClick={goBack}>
-                    <ArrowLeft size={16} />
+                  <BackButton
+                    className="expense-form-back-btn"
+                    onBack={goBack}
+                    title="Back to List"
+                    ariaLabel="Back to List"
+                  >
                     <span>Back to List</span>
-                  </button>
+                  </BackButton>
                   <div className="expense-form-toolbar-copy">
                     <h2>
                       {isNew

@@ -46,6 +46,7 @@ import {
 } from "lucide-react";
 import ValidationAlert from "../components/ValidationAlert";
 import ValidatedField from "../components/ValidatedField";
+import BackButton from "../components/BackButton";
 import {
   getMissingRequiredFields,
   getRequiredFieldError,
@@ -4055,14 +4056,16 @@ export default function InventoryPage() {
                 style={{ background: "var(--gray-50)", marginTop: -8 }}
               >
                 <div className="o-control-panel-left inventory-record-header-left">
-                  <button
+                  <BackButton
                     className={`o-btn o-btn-link ${
                       mainView === "warehouses" ? "inventory-record-back" : ""
                     }`}
-                    onClick={goBack}
+                    onBack={goBack}
+                    title="Back to List"
+                    ariaLabel="Back to List"
                   >
-                    ← Back to List
-                  </button>
+                    Back to List
+                  </BackButton>
                   <span
                     className={
                       mainView === "warehouses"
@@ -7635,12 +7638,14 @@ export default function InventoryPage() {
                   style={{ width: "100%" }}
                 >
                   <div className="o-form-view inventory-form-panel inventory-move-form">
-                    <button
+                    <BackButton
                       className="o-btn o-btn-link inventory-move-back-link"
-                      onClick={goBack}
+                      onBack={goBack}
+                      title="Back to List"
+                      ariaLabel="Back to List"
                     >
-                      ← Back to List
-                    </button>
+                      Back to List
+                    </BackButton>
                     <div className="inventory-move-header">
                       <h2 className="inventory-move-title">
                         {isNew

@@ -3067,13 +3067,15 @@ export default function POSPage() {
             {/* Order Detail View */}
             {selectedOrder ? (
               <div className="pos-order-detail">
-                <button
+                <BackButton
                   className="pos-btn pos-btn-ghost pos-btn-xs"
-                  onClick={() => setSelectedOrder(null)}
+                  onBack={() => setSelectedOrder(null)}
                   style={{ marginBottom: 8 }}
+                  title="Back to Orders"
+                  ariaLabel="Back to Orders"
                 >
-                  ← Back to Orders
-                </button>
+                  Back to Orders
+                </BackButton>
                 <div className="pos-order-detail-header">
                   <div className="pos-order-detail-ref">
                     {selectedOrder.reference}

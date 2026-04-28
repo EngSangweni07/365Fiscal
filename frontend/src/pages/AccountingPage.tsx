@@ -1737,12 +1737,6 @@ export default function AccountingPage() {
             padding: "8px 0",
           }}
         >
-          <button
-            className="btn btn-sm btn-light border"
-            onClick={() => navigate(-1)}
-          >
-            ← Back
-          </button>
         </div>
         {companySelector}
         {activeSection === "overview" && renderOverview()}

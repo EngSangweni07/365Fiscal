@@ -10,6 +10,7 @@ import { useMe } from "../hooks/useMe";
 import { useCompanies, Company } from "../hooks/useCompanies";
 import ValidationAlert from "../components/ValidationAlert";
 import ValidatedField from "../components/ValidatedField";
+import BackButton from "../components/BackButton";
 import {
   getDocumentLinesError,
   getMissingRequiredFields,
@@ -1187,12 +1188,14 @@ export default function QuotationsPage({
               </div>
             ) : (
               <div className="d-flex align-items-center gap-2">
-                <button
+                <BackButton
                   className="btn btn-sm btn-light border"
-                  onClick={() => navigate("/quotations")}
+                  fallbackTo="/quotations"
+                  title="Back"
+                  ariaLabel="Back"
                 >
-                  ← Back
-                </button>
+                  Back
+                </BackButton>
                 <h4 className="fw-bold mb-0">
                   {mode === "new"
                     ? "New Quotation"

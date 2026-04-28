@@ -1,12 +1,17 @@
-import type { ReactNode } from "react";
+import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { useNavigate, type To } from "react-router-dom";
 import BackIcon from "../assets/back.svg?react";
 
-type BackButtonProps = {
+type BackButtonProps = Omit<
+  ButtonHTMLAttributes<HTMLButtonElement>,
+  "onClick" | "children" | "title" | "aria-label"
+> & {
   className?: string;
   iconClassName?: string;
+  showIcon?: boolean;
   title?: string;
   ariaLabel?: string;
+  onBack?: () => void;
   fallbackTo?: To;
   replaceOnFallback?: boolean;
   onBeforeBack?: () => boolean;
@@ -16,16 +21,24 @@ type BackButtonProps = {
 export default function BackButton({
   className,
   iconClassName,
+  showIcon = true,
   title = "Go back",
   ariaLabel = "Go back",
+  onBack,
   fallbackTo = "/",
   replaceOnFallback = true,
   onBeforeBack,
   children,
+  ...buttonProps
 }: BackButtonProps) {
   const navigate = useNavigate();
 
   const handleBack = () => {
+    if (onBack) {
+      onBack();
+      return;
+    }
+
     if (onBeforeBack?.()) return;
 
     if (window.history.length > 1) {
@@ -43,10 +56,13 @@ export default function BackButton({
       onClick={handleBack}
       title={title}
       aria-label={ariaLabel}
+      {...buttonProps}
     >
-      <span className={iconClassName}>
-        <BackIcon aria-hidden="true" focusable="false" />
-      </span>
+      {showIcon && (
+        <span className={iconClassName}>
+          <BackIcon aria-hidden="true" focusable="false" />
+        </span>
+      )}
       {children}
     </button>
   );

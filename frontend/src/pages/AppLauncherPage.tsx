@@ -26,6 +26,7 @@ import {
 import { useMe, type Me } from "../hooks/useMe";
 import { getInitials } from "../hooks/getInitials";
 import { apiFetch } from "../api";
+import BackButton from "../components/BackButton";
 
 import ecocashBadge from "../assets/ecocash.svg";
 import visaBadge from "../assets/visa.svg";
@@ -2067,20 +2068,22 @@ export default function AppLauncherPage() {
               )}
             </div>
             <div className="modal-footer">
-              <button
+              <BackButton
                 className="demo-interest-submit login-btn"
-                type="button"
-                onClick={() =>
+                onBack={() =>
                   setDemoInterestStep((current) => Math.max(current - 1, 0))
                 }
+                showIcon={false}
                 disabled={
                   demoInterestStep === 0 ||
                   demoInterestSubmitting ||
                   isCheckingPayment
                 }
+                title="Back"
+                ariaLabel="Back"
               >
                 Back
-              </button>
+              </BackButton>
               {demoInterestStep < lastDemoInterestStep ? (
                 <button
                   className="login-btn demo-interest-submit"

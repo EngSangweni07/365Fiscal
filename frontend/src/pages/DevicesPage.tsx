@@ -2,6 +2,7 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import { apiFetch, apiRequest } from "../api";
 import { useCompanies, Company } from "../hooks/useCompanies";
 import { useListView } from "../context/ListViewContext";
+import BackButton from "../components/BackButton";
 
 import { Trash2 } from "lucide-react";
 
@@ -93,22 +94,6 @@ const PlusIcon = () => (
   >
     <line x1="12" y1="5" x2="12" y2="19" />
     <line x1="5" y1="12" x2="19" y2="12" />
-  </svg>
-);
-
-const ArrowLeft = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <line x1="19" y1="12" x2="5" y2="12" />
-    <polyline points="12 19 5 12 12 5" />
   </svg>
 );
 
@@ -958,18 +943,20 @@ export default function DevicesPage() {
             flex: 1,
           }}
         >
-          <button
+          <BackButton
             className="outline"
-            onClick={goBack}
+            onBack={goBack}
             style={{
               display: "flex",
               alignItems: "center",
               gap: 4,
               padding: "6px 10px",
             }}
+            title="Back"
+            ariaLabel="Back"
           >
-            <ArrowLeft /> Back
-          </button>
+            Back
+          </BackButton>
           <div className="o-breadcrumb">
             <span className="o-breadcrumb-item" onClick={goBack}>
               Devices
