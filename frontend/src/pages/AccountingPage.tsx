@@ -1618,7 +1618,7 @@ export default function AccountingPage() {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              padding: "1.5rem",
+              padding: "1.5rem 0rem",
               zIndex: 1200,
             }}
           >
