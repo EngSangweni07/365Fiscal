@@ -487,8 +487,9 @@ textarea {
 .invoice-form .row.g-3 > [class*="col-"],
 .invoice-form .row.g-4 > [class*="col-"] {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  gap: 10px;
+  align-items: center;
+  display: flex;
 }
 
 .invoice-form .form-control,
@@ -7605,8 +7606,8 @@ button.danger:hover {
 }
 
 .o-sidebar-item.active .o-sidebar-item-icon {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.3);
+  background: var(--sidebar-icon-bg-active, var(--sidebar-icon-bg, transparent));
+  border-color: rgba(15, 23, 42, 0.08);
 }
 
 .o-sidebar-item:hover {
@@ -7619,8 +7620,14 @@ button.danger:hover {
 }
 
 .o-sidebar-item.active svg {
-  color: var(--color-base-white);
-  stroke: var(--color-base-white) !important;
+  color: var(
+    --sidebar-icon-color-active,
+    var(--sidebar-icon-color, var(--color-base-white))
+  );
+  stroke: var(
+    --sidebar-icon-color-active,
+    var(--sidebar-icon-color, var(--color-base-white))
+  ) !important;
   fill: none;
 }
 

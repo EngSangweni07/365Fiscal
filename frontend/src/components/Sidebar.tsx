@@ -2,6 +2,17 @@ import { Fragment, type CSSProperties, type KeyboardEvent } from "react";
 import type { SidebarSection } from "../types/sidebar";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
+const DEFAULT_ICON_STYLES = [
+  { color: "#2563eb", background: "rgba(37, 99, 235, 0.14)" },
+  { color: "#0f766e", background: "rgba(15, 118, 110, 0.15)" },
+  { color: "#b45309", background: "rgba(180, 83, 9, 0.15)" },
+  { color: "#7c3aed", background: "rgba(124, 58, 237, 0.14)" },
+  { color: "#be123c", background: "rgba(190, 18, 60, 0.14)" },
+  { color: "#0f766e", background: "rgba(20, 184, 166, 0.14)" },
+  { color: "#0369a1", background: "rgba(3, 105, 161, 0.14)" },
+  { color: "#15803d", background: "rgba(21, 128, 61, 0.14)" },
+];
+
 const isActivationKey = (key: string) => key === "Enter" || key === " ";
 
 const handleActivationKey = (
@@ -23,17 +34,27 @@ export function Sidebar({ sections, className }: SidebarProps) {
   const buildIconStyle = (
     color?: string,
     background?: string,
-  ): CSSProperties => ({
-    "--sidebar-icon-color": color,
-    "--sidebar-icon-bg": background,
-  } as CSSProperties);
+    fallbackIndex = 0,
+  ): CSSProperties => {
+    const fallback =
+      DEFAULT_ICON_STYLES[fallbackIndex % DEFAULT_ICON_STYLES.length];
+    const resolvedColor = color || fallback.color;
+    const resolvedBackground = background || fallback.background;
+
+    return {
+      "--sidebar-icon-color": resolvedColor,
+      "--sidebar-icon-color-active": resolvedColor,
+      "--sidebar-icon-bg": resolvedBackground,
+      "--sidebar-icon-bg-active": resolvedBackground,
+    } as CSSProperties;
+  };
 
   return (
     <div className={wrapperClass}>
-      {sections.map((section) => (
+      {sections.map((section, sectionIndex) => (
         <div className="o-sidebar-section" key={section.id}>
           <div className="o-sidebar-title">{section.title}</div>
-          {section.items.map((item) => {
+          {section.items.map((item, itemIndex) => {
             const hasDropdown = Boolean(item.dropdownItems?.length);
             const dropdownActive = item.dropdownItems?.some(
               (dropdownItem) => dropdownItem.isActive,
@@ -42,6 +63,7 @@ export function Sidebar({ sections, className }: SidebarProps) {
             const iconStyle = buildIconStyle(
               item.iconColor,
               item.iconBackground,
+              sectionIndex * 20 + itemIndex,
             );
 
             return (
