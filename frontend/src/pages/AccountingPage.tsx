@@ -25,9 +25,9 @@ import {
 import { apiFetch } from "../api";
 import { useCompanies } from "../hooks/useCompanies";
 import { useMe } from "../hooks/useMe";
-import { SidebarMenu } from "../components/SidebarMenu";
+import { Sidebar } from "../components/Sidebar";
 import { TablePagination } from "../components/TablePagination";
-import type { SidebarMenuItem } from "../components/SidebarMenu";
+import type { SidebarSection } from "../types/sidebar";
 
 /* ── Types ───────────────────────────────────────────── */
 interface AccountingOverview {
@@ -116,14 +116,6 @@ type SectionKey =
   | "payments"
   | "reports"
   | "configuration";
-
-const SECTION_LABELS: Record<SectionKey, string> = {
-  overview: "Overview",
-  journal_entries: "Journal Entries",
-  payments: "Payments",
-  reports: "Reports",
-  configuration: "Configuration",
-};
 
 /* ── Styles ──────────────────────────────────────────── */
 const card: React.CSSProperties = {
@@ -225,6 +217,8 @@ export default function AccountingPage() {
   const [selectedJournalEntry, setSelectedJournalEntry] = useState<JournalEntry | null>(null);
   const [journalEntriesPage, setJournalEntriesPage] = useState(1);
   const [journalEntriesPageSize, setJournalEntriesPageSize] = useState(10);
+  const [reportsMenuOpen, setReportsMenuOpen] = useState(false);
+  const [configurationMenuOpen, setConfigurationMenuOpen] = useState(false);
   const [journalForm, setJournalForm] = useState({
     journal_id: "",
     reference: "",
@@ -457,11 +451,82 @@ export default function AccountingPage() {
     }
   };
 
-  const sidebarItems: SidebarMenuItem[] = [
-    { key: "overview", label: "OVERVIEW", icon: Layers, color: "#4a7de6" },
-    { key: "payments", label: "PAYMENTS", icon: CreditCard, color: "#4a7de6" },
-    { key: "reports", label: "REPORTS", icon: BarChart3, color: "#4a7de6" },
-    { key: "configuration", label: "CONFIGURATION", icon: Settings, color: "#4a7de6" },
+  const accountingSidebarSections: SidebarSection[] = [
+    {
+      id: "accounting-menu",
+      title: "MENU",
+      items: [
+        {
+          id: "accounting-overview",
+          label: "OVERVIEW",
+          icon: (
+            <Layers size={18} strokeWidth={1.5} aria-hidden="true" color="#4a7de6" />
+          ),
+          isActive: activeSection === "overview",
+          onClick: () => handleSectionSelect("overview"),
+          iconColor: "#4a7de6",
+          iconBackground: "rgba(74, 125, 230, 0.15)",
+        },
+        {
+          id: "accounting-payments",
+          label: "PAYMENTS",
+          icon: (
+            <CreditCard size={18} strokeWidth={1.5} aria-hidden="true" color="#4a7de6" />
+          ),
+          isActive: false,
+          onClick: () => handleSectionSelect("payments"),
+          iconColor: "#4a7de6",
+          iconBackground: "rgba(74, 125, 230, 0.15)",
+        },
+        {
+          id: "accounting-reports",
+          label: "REPORTS",
+          icon: (
+            <BarChart3 size={18} strokeWidth={1.5} aria-hidden="true" color="#4a7de6" />
+          ),
+          isActive: reportsMenuOpen,
+          onClick: () => {
+            setReportsMenuOpen((prev) => !prev);
+            setConfigurationMenuOpen(false);
+          },
+          iconColor: "#4a7de6",
+          iconBackground: "rgba(74, 125, 230, 0.15)",
+          dropdownItems: [
+            {
+              id: "accounting-reports-overview",
+              label: "Accounting Reports",
+              onClick: () => navigate("/accounting/reports"),
+            },
+            {
+              id: "accounting-reports-financial",
+              label: "Financial Reports",
+              onClick: () => navigate("/reports"),
+            },
+          ],
+        },
+        {
+          id: "accounting-configuration",
+          label: "CONFIGURATION",
+          icon: (
+            <Settings size={18} strokeWidth={1.5} aria-hidden="true" color="#4a7de6" />
+          ),
+          isActive: configurationMenuOpen,
+          onClick: () => {
+            setConfigurationMenuOpen((prev) => !prev);
+            setReportsMenuOpen(false);
+          },
+          iconColor: "#4a7de6",
+          iconBackground: "rgba(74, 125, 230, 0.15)",
+          dropdownItems: [
+            {
+              id: "accounting-configuration-main",
+              label: "Accounting Settings",
+              onClick: () => navigate("/accounting/configuration"),
+            },
+          ],
+        },
+      ],
+    },
   ];
 
   /* ── Company Selector ── */
@@ -1567,12 +1632,7 @@ export default function AccountingPage() {
 
   return (
     <div style={{ display: "flex", gap: 0, minHeight: 0, height: "100%" }}>
-      <SidebarMenu
-        title="Accounting"
-        items={sidebarItems}
-        activeKey={activeSection}
-        onSelect={handleSectionSelect}
-      />
+      <Sidebar sections={accountingSidebarSections} />
       <div style={{ flex: 1, minHeight: 0, padding: "1.5rem", overflowY: "auto" }}>
         <div
           className="o-control-panel"
@@ -1585,7 +1645,7 @@ export default function AccountingPage() {
         >
           <button
             className="btn btn-sm btn-light border"
-            onClick={() => setActiveSection("overview")}
+            onClick={() => navigate(-1)}
           >
             ← Back
           </button>
