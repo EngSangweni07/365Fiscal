@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { apiFetch } from "../api";
 import JournalEntryPreviewDrawer from "../components/JournalEntryPreviewDrawer";
-import { SidebarMenu } from "../components/SidebarMenu";
+import { Sidebar } from "../components/Sidebar";
 import { TablePagination } from "../components/TablePagination";
 import { useMe } from "../hooks/useMe";
-import type { SidebarMenuItem } from "../components/SidebarMenu";
+import type { SidebarSection } from "../types/sidebar";
 
 interface Payment {
   id: number;
@@ -122,13 +122,6 @@ export default function PaymentsPage() {
   const [exportingSelected, setExportingSelected] = useState(false);
   const [reconcilingSelected, setReconcilingSelected] = useState(false);
   const [previewPaymentId, setPreviewPaymentId] = useState<number | null>(null);
-
-  const sidebarItems: SidebarMenuItem[] = [
-    { key: "overview", label: "OVERVIEW", icon: OverviewIcon, color: "#4a7de6" },
-    { key: "payments", label: "PAYMENTS", icon: PaymentIcon, color: "#4a7de6" },
-    { key: "reports", label: "REPORTS", icon: ReportsIcon, color: "#4a7de6" },
-    { key: "configuration", label: "CONFIGURATION", icon: SettingsIcon, color: "#4a7de6" },
-  ];
 
   useEffect(() => {
     const requestedCompanyId = Number(searchParams.get("company_id") || 0);
@@ -313,14 +306,57 @@ export default function PaymentsPage() {
     }
   };
 
+  const paymentSidebarSections = useMemo<SidebarSection[]>(
+    () => [
+      {
+        id: "payments-accounting-menu",
+        title: "ACCOUNTING",
+        items: [
+          {
+            id: "payments-sidebar-overview",
+            label: "OVERVIEW",
+            icon: <OverviewIcon />,
+            isActive: false,
+            onClick: () => handleSidebarSelect("overview"),
+            iconColor: "#2563eb",
+            iconBackground: "rgba(37, 99, 235, 0.14)",
+          },
+          {
+            id: "payments-sidebar-payments",
+            label: "PAYMENTS",
+            icon: <PaymentIcon />,
+            isActive: true,
+            onClick: () => handleSidebarSelect("payments"),
+            iconColor: "#0f766e",
+            iconBackground: "rgba(15, 118, 110, 0.15)",
+          },
+          {
+            id: "payments-sidebar-reports",
+            label: "REPORTS",
+            icon: <ReportsIcon />,
+            isActive: false,
+            onClick: () => handleSidebarSelect("reports"),
+            iconColor: "#7c3aed",
+            iconBackground: "rgba(124, 58, 237, 0.14)",
+          },
+          {
+            id: "payments-sidebar-configuration",
+            label: "CONFIGURATION",
+            icon: <SettingsIcon />,
+            isActive: false,
+            onClick: () => handleSidebarSelect("configuration"),
+            iconColor: "#b45309",
+            iconBackground: "rgba(180, 83, 9, 0.15)",
+          },
+        ],
+      },
+    ],
+    [companyId, navigate],
+  );
+
   return (
     <div style={{ display: "flex", gap: 0, minHeight: 0, height: "100%" }}>
-      <SidebarMenu
-        title="Accounting"
-        items={sidebarItems}
-        activeKey="payments"
-        onSelect={handleSidebarSelect}
-      />
+      <Sidebar sections={paymentSidebarSections} />
       <div className="content-area" style={{ flex: 1, minHeight: 0, height: "100%", overflowY: "auto" }}>
         <div
           className="o-control-panel"
