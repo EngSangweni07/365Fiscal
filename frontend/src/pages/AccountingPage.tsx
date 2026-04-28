@@ -1583,21 +1583,12 @@ export default function AccountingPage() {
             padding: "8px 0",
           }}
         >
-          <div className="o-breadcrumb">
-            <span
-              className="o-breadcrumb-item"
-              style={{ cursor: "pointer" }}
-              onClick={() => setActiveSection("overview")}
-            >
-              Accounting
-            </span>
-            <span className="o-breadcrumb-separator">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </span>
-            <span className="o-breadcrumb-current">{SECTION_LABELS[activeSection]}</span>
-          </div>
+          <button
+            className="btn btn-sm btn-light border"
+            onClick={() => setActiveSection("overview")}
+          >
+            ← Back
+          </button>
         </div>
         {companySelector}
         {activeSection === "overview" && renderOverview()}
