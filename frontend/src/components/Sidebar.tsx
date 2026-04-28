@@ -1,4 +1,9 @@
-import { Fragment, type CSSProperties, type KeyboardEvent } from "react";
+import {
+  Fragment,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent,
+} from "react";
 import type { SidebarSection } from "../types/sidebar";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
@@ -30,6 +35,9 @@ type SidebarProps = {
 };
 
 export function Sidebar({ sections, className }: SidebarProps) {
+  const [dropdownOpenState, setDropdownOpenState] = useState<
+    Record<string, boolean>
+  >({});
   const wrapperClass = ["o-sidebar", className].filter(Boolean).join(" ");
   const buildIconStyle = (
     color?: string,
@@ -59,12 +67,28 @@ export function Sidebar({ sections, className }: SidebarProps) {
             const dropdownActive = item.dropdownItems?.some(
               (dropdownItem) => dropdownItem.isActive,
             );
-            const dropdownOpen = hasDropdown && (item.isActive || dropdownActive);
+            const defaultOpen = hasDropdown && (item.isActive || dropdownActive);
+            const hasManualState = Object.prototype.hasOwnProperty.call(
+              dropdownOpenState,
+              item.id,
+            );
+            const dropdownOpen =
+              hasDropdown &&
+              (hasManualState ? dropdownOpenState[item.id] : defaultOpen);
             const iconStyle = buildIconStyle(
               item.iconColor,
               item.iconBackground,
               sectionIndex * 20 + itemIndex,
             );
+            const handleItemClick = () => {
+              if (hasDropdown) {
+                setDropdownOpenState((prev) => ({
+                  ...prev,
+                  [item.id]: !dropdownOpen,
+                }));
+              }
+              item.onClick();
+            };
 
             return (
               <Fragment key={item.id}>
@@ -73,8 +97,8 @@ export function Sidebar({ sections, className }: SidebarProps) {
                   tabIndex={0}
                   aria-pressed={item.isActive ? "true" : "false"}
                   className={`o-sidebar-item ${item.isActive ? "active" : ""}`}
-                  onClick={item.onClick}
-                  onKeyDown={(event) => handleActivationKey(event, item.onClick)}
+                  onClick={handleItemClick}
+                  onKeyDown={(event) => handleActivationKey(event, handleItemClick)}
                 >
                   <span className="o-sidebar-item-label">
                     {item.icon && (

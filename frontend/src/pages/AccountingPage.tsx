@@ -1728,16 +1728,6 @@ export default function AccountingPage() {
     <div style={{ display: "flex", gap: 0, minHeight: 0, height: "100%" }}>
       <Sidebar sections={accountingSidebarSections} />
       <div style={{ flex: 1, minHeight: 0, padding: "1.5rem", overflowY: "auto" }}>
-        <div
-          className="o-control-panel"
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginBottom: 16,
-            padding: "8px 0",
-          }}
-        >
-        </div>
         {companySelector}
         {activeSection === "overview" && renderOverview()}
         {activeSection === "journal_entries" && renderJournalEntries()}
