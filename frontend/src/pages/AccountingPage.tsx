@@ -986,7 +986,7 @@ export default function AccountingPage() {
           <div style={widgetCardStyle}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
               <div>
-                <div style={cardLabelStyle}>Customers</div>
+                <div style={cardLabelStyle}>Invoices</div>
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <button onClick={() => navigate("/invoices/new")} style={widgetButton("primary")}>
@@ -1049,7 +1049,7 @@ export default function AccountingPage() {
           <div style={widgetCardStyle}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
               <div>
-                <div style={cardLabelStyle}>Vendors</div>
+                <div style={cardLabelStyle}>Bills</div>
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <button onClick={() => navigate("/purchases")} style={widgetButton("primary")}>
