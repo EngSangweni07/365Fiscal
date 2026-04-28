@@ -2561,7 +2561,7 @@ export default function ExpensesPage() {
                   style={{ width: "100%" }}
                 >
                   <div className="expense-suppliers-toolbar">
-                    <label className="expense-suppliers-search">
+                    <label className="table-searchbox">
                       <Search size={16} />
                       <input
                         type="text"
