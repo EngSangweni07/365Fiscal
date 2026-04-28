@@ -2205,7 +2205,7 @@ export default function ExpensesPage() {
                 <div className="o-main expense-list-page">
                   <div className="expense-list-toolbar">
                     <div className="expense-list-search-wrap">
-                      <div className="expense-list-searchbox">
+                      <div className="table-searchbox">
                         <span className="search-icon">
                           <Search size={16} />
                         </span>

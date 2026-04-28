@@ -493,12 +493,12 @@
   justify-content: center;
 }
 
-.expense-list-searchbox {
+.table-searchbox {
   position: relative;
   width: min(520px, 100%);
 }
 
-.expense-list-searchbox input {
+.table-searchbox input {
   width: 100%;
   min-height: 46px;
   padding: 0 54px 0 42px;
@@ -511,11 +511,11 @@
   outline: none;
 }
 
-.expense-list-searchbox input::placeholder {
+.table-searchbox input::placeholder {
   color: #8a95b8;
 }
 
-.expense-list-searchbox .search-icon {
+.table-searchbox .search-icon {
   position: absolute;
   left: 14px;
   top: 50%;
