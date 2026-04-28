@@ -579,11 +579,11 @@ textarea {
 .invoice-form .form-label {
   margin: 0;
   color: var(--color-text-secondary);
-  font-size: 11px;
+  font-size: 0.875rem;
   font-weight: 700;
-  letter-spacing: 0.05em;
   text-transform: uppercase;
   text-wrap: auto;
+  width: 20%;
 }
 
 .statusbar {

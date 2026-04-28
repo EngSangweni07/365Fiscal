@@ -102,34 +102,46 @@ export function Sidebar({ sections, className }: SidebarProps) {
                   <details className="o-sidebar-dropdown" open={dropdownOpen}>
                     <summary aria-hidden tabIndex={-1} />
                     <div className="o-sidebar-dropdown-content">
-                      {item.dropdownItems!.map((dropdownItem) => (
-                        <div
-                          key={dropdownItem.id}
-                          role="button"
-                          tabIndex={0}
-                          aria-pressed={dropdownItem.isActive ? "true" : "false"}
-                          className={`o-sidebar-item ${
-                            dropdownItem.isActive ? "active" : ""
-                          }`}
-                          onClick={dropdownItem.onClick}
-                          onKeyDown={(event) =>
-                            handleActivationKey(event, dropdownItem.onClick)
-                          }
-                        >
-                          <span
-                            style={{
-                              letterSpacing: "0.5px",
-                              fontSize: 12,
-                              fontWeight: 500,
-                            }}
+                      {item.dropdownItems!.map((dropdownItem, dropdownIndex) => {
+                        const dropdownIconStyle = buildIconStyle(
+                          dropdownItem.iconColor || item.iconColor,
+                          dropdownItem.iconBackground || item.iconBackground,
+                          sectionIndex * 40 + itemIndex * 10 + dropdownIndex + 1,
+                        );
+
+                        return (
+                          <div
+                            key={dropdownItem.id}
+                            role="button"
+                            tabIndex={0}
+                            aria-pressed={dropdownItem.isActive ? "true" : "false"}
+                            className={`o-sidebar-item ${
+                              dropdownItem.isActive ? "active" : ""
+                            }`}
+                            onClick={dropdownItem.onClick}
+                            onKeyDown={(event) =>
+                              handleActivationKey(event, dropdownItem.onClick)
+                            }
                           >
-                            {dropdownItem.label}
-                          </span>
-                          {dropdownItem.badge && (
-                            <span className="o-sidebar-count">{dropdownItem.badge}</span>
-                          )}
-                        </div>
-                      ))}
+                            <span className="o-sidebar-item-label">
+                              {dropdownItem.icon && (
+                                <span
+                                  className="o-sidebar-item-icon"
+                                  style={dropdownIconStyle}
+                                >
+                                  {dropdownItem.icon}
+                                </span>
+                              )}
+                              <span className="o-sidebar-item-text">
+                                {dropdownItem.label}
+                              </span>
+                            </span>
+                            {dropdownItem.badge && (
+                              <span className="o-sidebar-count">{dropdownItem.badge}</span>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </details>
                 )}

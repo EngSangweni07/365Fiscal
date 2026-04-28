@@ -4,8 +4,6 @@ import {
   BarChart3,
   BookOpen,
   Calculator,
-  ChevronDown,
-  Clock,
   CreditCard,
   DollarSign,
   Download,
@@ -126,7 +124,7 @@ interface TaxReturn {
   net_vat_payable: number;
 }
 
-type ReportKey =
+export type ReportKey =
   | "balance_sheet"
   | "profit_loss"
   | "cash_flow"
@@ -147,6 +145,13 @@ const REPORT_LABELS: Record<ReportKey, string> = {
   general_ledger: "General Ledger",
   aged_receivable: "Aged Receivable",
   aged_payable: "Aged Payable",
+};
+
+type AccountingReportsPageProps = {
+  embedded?: boolean;
+  companyId?: number | null;
+  activeReport?: ReportKey;
+  onActiveReportChange?: (report: ReportKey) => void;
 };
 
 /* ── Styles ──────────────────────────────────────────── */
@@ -207,15 +212,21 @@ const fmt = (n: number) =>
   n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 /* ── Component ───────────────────────────────────────── */
-export default function AccountingReportsPage() {
+export default function AccountingReportsPage({
+  embedded = false,
+  companyId: companyIdProp,
+  activeReport: activeReportProp,
+  onActiveReportChange,
+}: AccountingReportsPageProps = {}) {
   const navigate = useNavigate();
   const { me } = useMe();
-  const { companies, loading: companiesLoading } = useCompanies();
+  const { companies } = useCompanies();
   const isAdmin = Boolean(me?.is_admin);
 
   const [companyId, setCompanyId] = useState<number | null>(null);
   const [companyQuery, setCompanyQuery] = useState("");
-  const [activeReport, setActiveReport] = useState<ReportKey>("balance_sheet");
+  const [internalActiveReport, setInternalActiveReport] =
+    useState<ReportKey>("balance_sheet");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [loading, setLoading] = useState(false);
@@ -236,10 +247,21 @@ export default function AccountingReportsPage() {
 
   // Auto-select company for portal
   useEffect(() => {
+    if (companyIdProp != null) return;
     if (!isAdmin && me?.company_ids?.length && !companyId) {
       setCompanyId(me.company_ids[0]);
     }
-  }, [isAdmin, me?.company_ids, companyId]);
+  }, [isAdmin, me?.company_ids, companyId, companyIdProp]);
+
+  const selectedCompanyId = companyIdProp ?? companyId;
+  const selectedActiveReport = activeReportProp ?? internalActiveReport;
+  const setSelectedActiveReport = (next: ReportKey) => {
+    if (onActiveReportChange) {
+      onActiveReportChange(next);
+      return;
+    }
+    setInternalActiveReport(next);
+  };
 
   const filteredCompanies = useMemo(() => {
     if (!companyQuery.trim()) return companies;
@@ -253,17 +275,17 @@ export default function AccountingReportsPage() {
 
   // Fetch report when company/report/dates change
   const fetchReport = useCallback(async () => {
-    if (!companyId) return;
+    if (!selectedCompanyId) return;
     setLoading(true);
     setError(null);
-    const params = new URLSearchParams({ company_id: String(companyId) });
+    const params = new URLSearchParams({ company_id: String(selectedCompanyId) });
     if (dateFrom) params.set("date_from", dateFrom);
     if (dateTo) params.set("date_to", dateTo);
     if (dateFrom) params.set("as_of", dateTo || new Date().toISOString().slice(0, 10));
 
     try {
       const base = "/accounting/reports";
-      switch (activeReport) {
+      switch (selectedActiveReport) {
         case "balance_sheet":
           setBalanceSheet(await apiFetch(`${base}/balance-sheet?${params}`));
           break;
@@ -297,7 +319,7 @@ export default function AccountingReportsPage() {
     } finally {
       setLoading(false);
     }
-  }, [companyId, activeReport, dateFrom, dateTo]);
+  }, [selectedCompanyId, selectedActiveReport, dateFrom, dateTo]);
 
   useEffect(() => {
     fetchReport();
@@ -316,7 +338,7 @@ export default function AccountingReportsPage() {
     { key: "aged_payable", label: "AGED PAYABLE", icon: CreditCard, color: "#4a7de6" },
   ];
 
-  const needsDateRange = ["profit_loss", "cash_flow", "general_ledger", "tax_return"].includes(activeReport);
+  const needsDateRange = ["profit_loss", "cash_flow", "general_ledger", "tax_return"].includes(selectedActiveReport);
 
   const handlePrint = () => {
     if (printRef.current) {
@@ -734,7 +756,7 @@ export default function AccountingReportsPage() {
     if (error) {
       return <div style={{ ...card, color: "#dc2626", textAlign: "center", padding: "2rem" }}>{error}</div>;
     }
-    switch (activeReport) {
+    switch (selectedActiveReport) {
       case "balance_sheet": return renderBalanceSheet();
       case "profit_loss": return renderProfitLoss();
       case "cash_flow": return renderCashFlow();
@@ -752,23 +774,25 @@ export default function AccountingReportsPage() {
   return (
     <div style={{ display: "flex", height: "100%", minHeight: 0, overflow: "hidden" }}>
       {/* Sidebar */}
-      <div
-        style={{
-          width: 240,
-          minWidth: 240,
-          borderRight: "1px solid var(--border, #e5e7eb)",
-          overflowY: "auto",
-          background: "var(--sidebar-bg, #fafafa)",
-          padding: "8px 0",
-        }}
-      >
-        <SidebarMenu
-          title="Reporting"
-          items={sidebarItems}
-          activeKey={activeReport}
-          onSelect={(key) => setActiveReport(key as ReportKey)}
-        />
-      </div>
+      {!embedded && (
+        <div
+          style={{
+            width: 240,
+            minWidth: 240,
+            borderRight: "1px solid var(--border, #e5e7eb)",
+            overflowY: "auto",
+            background: "var(--sidebar-bg, #fafafa)",
+            padding: "8px 0",
+          }}
+        >
+          <SidebarMenu
+            title="Reporting"
+            items={sidebarItems}
+            activeKey={selectedActiveReport}
+            onSelect={(key) => setSelectedActiveReport(key as ReportKey)}
+          />
+        </div>
+      )}
 
       {/* Main Content */}
       <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "1.25rem" }}>
@@ -781,25 +805,32 @@ export default function AccountingReportsPage() {
             padding: "8px 0",
           }}
         >
-          <div className="o-breadcrumb">
-            <span
-              className="o-breadcrumb-item"
-              style={{ cursor: "pointer" }}
-              onClick={() => navigate("/accounting")}
-            >
-              Accounting
-            </span>
-            <span className="o-breadcrumb-separator">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </span>
-            <span className="o-breadcrumb-current">{REPORT_LABELS[activeReport]}</span>
-          </div>
+          {!embedded && (
+            <div className="o-breadcrumb">
+              <span
+                className="o-breadcrumb-item"
+                style={{ cursor: "pointer" }}
+                onClick={() => navigate("/accounting")}
+              >
+                Accounting
+              </span>
+              <span className="o-breadcrumb-separator">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </span>
+              <span className="o-breadcrumb-current">{REPORT_LABELS[selectedActiveReport]}</span>
+            </div>
+          )}
+          {embedded && (
+            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>
+              {REPORT_LABELS[selectedActiveReport]}
+            </h2>
+          )}
         </div>
 
         {/* Company Selector */}
-        {isAdmin && (
+        {!embedded && isAdmin && (
           <div style={{ marginBottom: 16 }}>
             <div style={{ position: "relative", maxWidth: 320 }}>
               <Search size={14} style={{ position: "absolute", left: 10, top: 10, color: "#9ca3af" }} />
@@ -819,10 +850,10 @@ export default function AccountingReportsPage() {
                   style={{
                     padding: "5px 12px",
                     fontSize: 12,
-                    fontWeight: companyId === c.id ? 700 : 500,
+                    fontWeight: selectedCompanyId === c.id ? 700 : 500,
                     borderRadius: 6,
-                    border: companyId === c.id ? "2px solid var(--primary, #4a7de6)" : "1px solid var(--border, #e5e7eb)",
-                    background: companyId === c.id ? "rgba(74,125,230,0.08)" : "#fff",
+                    border: selectedCompanyId === c.id ? "2px solid var(--primary, #4a7de6)" : "1px solid var(--border, #e5e7eb)",
+                    background: selectedCompanyId === c.id ? "rgba(74,125,230,0.08)" : "#fff",
                     cursor: "pointer",
                   }}
                 >
@@ -833,7 +864,7 @@ export default function AccountingReportsPage() {
           </div>
         )}
 
-        {!companyId ? (
+        {!selectedCompanyId ? (
           <div style={{ ...card, textAlign: "center", padding: "3rem", color: "#9ca3af" }}>
             <BarChart3 size={48} strokeWidth={1} style={{ margin: "0 auto 12px" }} />
             <div style={{ fontSize: 15, fontWeight: 600 }}>Select a company to view reports</div>

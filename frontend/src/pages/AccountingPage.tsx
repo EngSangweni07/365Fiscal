@@ -6,12 +6,10 @@ import {
   BookOpen,
   Calculator,
   CheckCircle,
-  Clock,
   CreditCard,
   DollarSign,
   Download,
   FileText,
-  Globe,
   Layers,
   PieChart,
   Plus,
@@ -28,6 +26,7 @@ import { useMe } from "../hooks/useMe";
 import { Sidebar } from "../components/Sidebar";
 import { TablePagination } from "../components/TablePagination";
 import type { SidebarSection } from "../types/sidebar";
+import AccountingReportsPage, { type ReportKey } from "./AccountingReportsPage";
 
 /* ── Types ───────────────────────────────────────────── */
 interface AccountingOverview {
@@ -117,6 +116,25 @@ type SectionKey =
   | "reports"
   | "configuration";
 
+const ACCOUNTING_REPORT_ITEMS: {
+  id: string;
+  key: ReportKey;
+  label: string;
+  icon: typeof Layers;
+  color: string;
+  background: string;
+}[] = [
+  { id: "report-balance-sheet", key: "balance_sheet", label: "Balance Sheet", icon: Layers, color: "#1d4ed8", background: "rgba(29, 78, 216, 0.14)" },
+  { id: "report-profit-loss", key: "profit_loss", label: "Profit and Loss", icon: TrendingUp, color: "#2563eb", background: "rgba(37, 99, 235, 0.14)" },
+  { id: "report-cash-flow", key: "cash_flow", label: "Cash Flow", icon: DollarSign, color: "#1e40af", background: "rgba(30, 64, 175, 0.14)" },
+  { id: "report-executive-summary", key: "executive_summary", label: "Executive Summary", icon: PieChart, color: "#2563eb", background: "rgba(37, 99, 235, 0.14)" },
+  { id: "report-tax-return", key: "tax_return", label: "Tax Return", icon: Calculator, color: "#1d4ed8", background: "rgba(29, 78, 216, 0.14)" },
+  { id: "report-trial-balance", key: "trial_balance", label: "Trial Balance", icon: BookOpen, color: "#2563eb", background: "rgba(37, 99, 235, 0.14)" },
+  { id: "report-general-ledger", key: "general_ledger", label: "General Ledger", icon: FileText, color: "#1e40af", background: "rgba(30, 64, 175, 0.14)" },
+  { id: "report-aged-receivable", key: "aged_receivable", label: "Aged Receivable", icon: Users, color: "#1d4ed8", background: "rgba(29, 78, 216, 0.14)" },
+  { id: "report-aged-payable", key: "aged_payable", label: "Aged Payable", icon: CreditCard, color: "#2563eb", background: "rgba(37, 99, 235, 0.14)" },
+];
+
 /* ── Styles ──────────────────────────────────────────── */
 const card: React.CSSProperties = {
   background: "#fff",
@@ -195,7 +213,7 @@ export default function AccountingPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { me } = useMe();
-  const { companies, loading: companiesLoading } = useCompanies();
+  const { companies } = useCompanies();
   const isAdmin = Boolean(me?.is_admin);
 
   const [companyId, setCompanyId] = useState<number | null>(null);
@@ -219,6 +237,7 @@ export default function AccountingPage() {
   const [journalEntriesPageSize, setJournalEntriesPageSize] = useState(10);
   const [reportsMenuOpen, setReportsMenuOpen] = useState(false);
   const [configurationMenuOpen, setConfigurationMenuOpen] = useState(false);
+  const [activeReport, setActiveReport] = useState<ReportKey>("balance_sheet");
   const [journalForm, setJournalForm] = useState({
     journal_id: "",
     reference: "",
@@ -326,12 +345,16 @@ export default function AccountingPage() {
       return;
     }
     if (key === "reports") {
-      navigate("/accounting/reports");
+      setActiveSection("reports");
+      setReportsMenuOpen(true);
       return;
     }
     if (key === "configuration") {
       navigate("/accounting/configuration");
       return;
+    }
+    if (key !== "reports") {
+      setReportsMenuOpen(false);
     }
     setActiveSection(key as SectionKey);
   };
@@ -484,25 +507,32 @@ export default function AccountingPage() {
           icon: (
             <BarChart3 size={18} strokeWidth={1.5} aria-hidden="true" color="#4a7de6" />
           ),
-          isActive: reportsMenuOpen,
+          isActive: reportsMenuOpen || activeSection === "reports",
           onClick: () => {
             setReportsMenuOpen((prev) => !prev);
             setConfigurationMenuOpen(false);
+            setActiveSection("reports");
           },
           iconColor: "#4a7de6",
           iconBackground: "rgba(74, 125, 230, 0.15)",
-          dropdownItems: [
-            {
-              id: "accounting-reports-overview",
-              label: "Accounting Reports",
-              onClick: () => navigate("/accounting/reports"),
-            },
-            {
-              id: "accounting-reports-financial",
-              label: "Financial Reports",
-              onClick: () => navigate("/reports"),
-            },
-          ],
+          dropdownItems: ACCOUNTING_REPORT_ITEMS.map((item) => {
+            const Icon = item.icon;
+            return {
+              id: item.id,
+              label: item.label.toUpperCase(),
+              icon: (
+                <Icon size={16} strokeWidth={1.6} aria-hidden="true" color={item.color} />
+              ),
+              iconColor: item.color,
+              iconBackground: item.background,
+              isActive: activeSection === "reports" && activeReport === item.key,
+              onClick: () => {
+                setActiveReport(item.key);
+                setActiveSection("reports");
+                setReportsMenuOpen(true);
+              },
+            };
+          }),
         },
         {
           id: "accounting-configuration",
@@ -1653,6 +1683,14 @@ export default function AccountingPage() {
         {companySelector}
         {activeSection === "overview" && renderOverview()}
         {activeSection === "journal_entries" && renderJournalEntries()}
+        {activeSection === "reports" && (
+          <AccountingReportsPage
+            embedded
+            companyId={companyId}
+            activeReport={activeReport}
+            onActiveReportChange={setActiveReport}
+          />
+        )}
       </div>
     </div>
   );
