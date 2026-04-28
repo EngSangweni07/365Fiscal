@@ -43,7 +43,7 @@ export function Sidebar({ sections, className }: SidebarProps) {
 
     return {
       "--sidebar-icon-color": resolvedColor,
-      "--sidebar-icon-color-active": resolvedColor,
+      "--sidebar-icon-color-active": "var(--color-base-white)",
       "--sidebar-icon-bg": resolvedBackground,
       "--sidebar-icon-bg-active": resolvedBackground,
     } as CSSProperties;
