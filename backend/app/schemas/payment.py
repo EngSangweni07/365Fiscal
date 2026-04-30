@@ -78,3 +78,23 @@ class PaymentMethodRead(PaymentMethodBase):
 
     class Config:
         from_attributes = True
+
+
+class CustomerDepositCreate(BaseModel):
+    company_id: int
+    contact_id: int
+    amount: float
+    currency: str = "USD"
+    payment_method: str = "cash"
+    payment_account: str = ""
+    transaction_reference: str = ""
+    payment_date: Optional[datetime] = None
+    notes: str = ""
+
+
+class CustomerDepositBalanceRead(BaseModel):
+    company_id: int
+    contact_id: int
+    total_deposited: float
+    total_used: float
+    balance: float

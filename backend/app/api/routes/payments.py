@@ -2,7 +2,7 @@
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from typing import List, Optional
 
 from app.api.deps import (
@@ -11,14 +11,16 @@ from app.api.deps import (
 )
 from app.models.payment import Payment, PaymentMethod
 from app.models.account import JournalEntry
+from app.models.contact import Contact
 from app.models.invoice import Invoice
 from app.models.user import User
 from app.models.audit_log import AuditAction, ResourceType
 from app.schemas.payment import (
     PaymentCreate, PaymentUpdate, PaymentRead, PaymentReconcile,
-    PaymentMethodCreate, PaymentMethodUpdate, PaymentMethodRead
+    PaymentMethodCreate, PaymentMethodUpdate, PaymentMethodRead,
+    CustomerDepositCreate, CustomerDepositBalanceRead,
 )
-from app.services.accounting import create_reversal_entry, post_payment_entry
+from app.services.accounting import create_reversal_entry, post_payment_entry, post_customer_deposit_entry
 from app.services.payment_records import (
     backfill_company_payments,
     create_payment_record,
@@ -26,6 +28,33 @@ from app.services.payment_records import (
 )
 
 router = APIRouter(prefix="/payments", tags=["payments"])
+
+DEPOSIT_TAG = "[deposit]"
+DEPOSIT_USE_TAG = "[deposit_use]"
+
+
+def _deposit_balance(db: Session, *, company_id: int, contact_id: int) -> dict:
+    total_deposited = db.query(func.coalesce(func.sum(Payment.amount), 0)).filter(
+        Payment.company_id == company_id,
+        Payment.contact_id == contact_id,
+        Payment.status != "cancelled",
+        Payment.notes.ilike(f"{DEPOSIT_TAG}%"),
+    ).scalar()
+
+    total_used = db.query(func.coalesce(func.sum(Payment.amount), 0)).filter(
+        Payment.company_id == company_id,
+        Payment.contact_id == contact_id,
+        Payment.status != "cancelled",
+        Payment.notes.ilike(f"{DEPOSIT_USE_TAG}%"),
+    ).scalar()
+
+    deposited = round(float(total_deposited or 0), 2)
+    used = round(float(total_used or 0), 2)
+    return {
+        "total_deposited": deposited,
+        "total_used": used,
+        "balance": round(deposited - used, 2),
+    }
 
 @router.get("")
 def list_payments(
@@ -209,6 +238,103 @@ def payment_summary(
         "pending_count": pending_count,
         "by_method": by_method,
     }
+
+
+@router.get("/deposits/balance", response_model=CustomerDepositBalanceRead)
+def customer_deposit_balance(
+    company_id: int,
+    contact_id: int,
+    db: Session = Depends(get_db),
+    user=Depends(require_portal_user),
+):
+    ensure_company_access(db, user, company_id)
+    stats = _deposit_balance(db, company_id=company_id, contact_id=contact_id)
+    return {
+        "company_id": company_id,
+        "contact_id": contact_id,
+        **stats,
+    }
+
+
+@router.get("/deposits", response_model=List[PaymentRead])
+def list_customer_deposits(
+    company_id: int,
+    contact_id: Optional[int] = None,
+    limit: int = Query(100, le=500),
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    user=Depends(require_portal_user),
+):
+    ensure_company_access(db, user, company_id)
+
+    query = db.query(Payment).filter(
+        Payment.company_id == company_id,
+        Payment.status != "cancelled",
+        or_(
+            Payment.notes.ilike(f"{DEPOSIT_TAG}%"),
+            Payment.notes.ilike(f"{DEPOSIT_USE_TAG}%"),
+        ),
+    )
+    if contact_id:
+        query = query.filter(Payment.contact_id == contact_id)
+
+    return query.order_by(Payment.payment_date.desc()).offset(offset).limit(limit).all()
+
+
+@router.post("/deposits", response_model=PaymentRead)
+def create_customer_deposit(
+    payload: CustomerDepositCreate,
+    db: Session = Depends(get_db),
+    user=Depends(require_portal_user),
+):
+    ensure_company_access(db, user, payload.company_id)
+
+    if not can_record_payment(db, user, payload.company_id):
+        raise HTTPException(status_code=403, detail="Permission denied to record deposits")
+
+    if payload.amount <= 0:
+        raise HTTPException(status_code=400, detail="Deposit amount must be greater than zero")
+
+    contact = db.query(Contact).filter(
+        Contact.id == payload.contact_id,
+        Contact.company_id == payload.company_id,
+    ).first()
+    if not contact:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    clean_note = (payload.notes or "").strip()
+    tagged_note = f"{DEPOSIT_TAG} {clean_note}".strip()
+    payment = create_payment_record(
+        db,
+        company_id=payload.company_id,
+        invoice_id=None,
+        contact_id=payload.contact_id,
+        amount=payload.amount,
+        currency=payload.currency,
+        payment_method=payload.payment_method,
+        created_by_id=user.id,
+        payment_date=payload.payment_date,
+        reference=next_payment_reference(db, "DEP"),
+        payment_account=payload.payment_account,
+        transaction_reference=payload.transaction_reference,
+        notes=tagged_note,
+    )
+    post_customer_deposit_entry(db, payment)
+
+    log_audit(
+        db=db,
+        user=user,
+        action=AuditAction.PAYMENT_RECORD,
+        resource_type=ResourceType.PAYMENT,
+        resource_reference=payment.reference,
+        company_id=payload.company_id,
+        new_values={"amount": payload.amount, "contact_id": payload.contact_id, "type": "deposit"},
+        changes_summary=f"Customer deposit of {payload.amount} {payload.currency} recorded",
+    )
+
+    db.commit()
+    db.refresh(payment)
+    return payment
 
 
 @router.post("/{payment_id}/reconcile")

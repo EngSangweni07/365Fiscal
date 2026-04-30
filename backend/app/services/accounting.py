@@ -29,6 +29,7 @@ ACCOUNT_CODES = {
     "purchases": "5400",
     "cogs": "5000",
     "expenses": "6000",
+    "customer_deposits": "2200",
 }
 
 JOURNAL_CODES = {
@@ -689,5 +690,44 @@ def post_stock_move_entry(db: Session, move, replace_existing: bool = False) -> 
         entry_date=payload["entry_date"],
         narration=payload["narration"],
         lines=payload["lines"],
+        replace_existing=replace_existing,
+    )
+
+
+def post_customer_deposit_entry(db: Session, payment, replace_existing: bool = False) -> JournalEntry | None:
+    amount = round(float(getattr(payment, "amount", 0) or 0), 2)
+    if amount <= 0:
+        return None
+
+    payment_method = (getattr(payment, "payment_method", "") or "").strip().lower()
+    is_cash = payment_method == "cash"
+    cash_or_bank_code = ACCOUNT_CODES["cash"] if is_cash else ACCOUNT_CODES["bank"]
+
+    lines = [
+        {
+            "code": cash_or_bank_code,
+            "contact_id": getattr(payment, "contact_id", None),
+            "label": getattr(payment, "reference", ""),
+            "currency_code": getattr(payment, "currency", "USD") or "USD",
+            "debit": amount,
+        },
+        {
+            "code": ACCOUNT_CODES["customer_deposits"],
+            "contact_id": getattr(payment, "contact_id", None),
+            "label": getattr(payment, "reference", ""),
+            "currency_code": getattr(payment, "currency", "USD") or "USD",
+            "credit": amount,
+        },
+    ]
+
+    return post_entry(
+        db,
+        company_id=getattr(payment, "company_id"),
+        journal_type="cash" if is_cash else "bank",
+        reference=f"DEP/{getattr(payment, 'reference', '')}",
+        entry_date=getattr(payment, "payment_date", None),
+        narration=f"Customer deposit {getattr(payment, 'reference', '')}",
+        lines=lines,
+        payment_id=getattr(payment, "id", None),
         replace_existing=replace_existing,
     )

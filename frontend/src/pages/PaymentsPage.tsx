@@ -9,7 +9,7 @@ import type { SidebarSection } from "../types/sidebar";
 
 interface Payment {
   id: number;
-  invoice_id: number;
+  invoice_id: number | null;
   invoice_reference: string;
   company_id: number;
   amount: number;
@@ -22,6 +22,21 @@ interface Payment {
   created_at: string;
   created_by_id: number | null;
   created_by_email: string;
+}
+
+interface Contact {
+  id: number;
+  name: string;
+  email?: string;
+  phone?: string;
+}
+
+interface DepositBalance {
+  company_id: number;
+  contact_id: number;
+  total_deposited: number;
+  total_used: number;
+  balance: number;
 }
 
 interface PaymentSummary {
@@ -131,6 +146,14 @@ export default function PaymentsPage({
   const [exportingSelected, setExportingSelected] = useState(false);
   const [reconcilingSelected, setReconcilingSelected] = useState(false);
   const [previewPaymentId, setPreviewPaymentId] = useState<number | null>(null);
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [showDepositDialog, setShowDepositDialog] = useState(false);
+  const [depositCustomerId, setDepositCustomerId] = useState<number | "">("");
+  const [depositAmount, setDepositAmount] = useState("");
+  const [depositMethod, setDepositMethod] = useState("cash");
+  const [depositNotes, setDepositNotes] = useState("");
+  const [depositBalance, setDepositBalance] = useState<DepositBalance | null>(null);
+  const [depositSaving, setDepositSaving] = useState(false);
 
   useEffect(() => {
     if (companyIdProp != null) return;
@@ -147,6 +170,28 @@ export default function PaymentsPage({
   useEffect(() => {
     loadData();
   }, [selectedCompanyId, methodFilter, reconciledFilter, searchFilter]);
+
+  useEffect(() => {
+    if (!selectedCompanyId) {
+      setContacts([]);
+      return;
+    }
+    apiFetch<Contact[]>(`/contacts?company_id=${selectedCompanyId}`)
+      .then((rows) => setContacts(rows || []))
+      .catch(() => setContacts([]));
+  }, [selectedCompanyId]);
+
+  useEffect(() => {
+    if (!selectedCompanyId || !depositCustomerId) {
+      setDepositBalance(null);
+      return;
+    }
+    apiFetch<DepositBalance>(
+      `/payments/deposits/balance?company_id=${selectedCompanyId}&contact_id=${depositCustomerId}`,
+    )
+      .then((res) => setDepositBalance(res))
+      .catch(() => setDepositBalance(null));
+  }, [selectedCompanyId, depositCustomerId]);
 
   const loadData = async () => {
     if (!selectedCompanyId) return;
@@ -180,6 +225,48 @@ export default function PaymentsPage({
       loadData();
     } catch (err: any) {
       setError(err.message || "Failed to reconcile payment");
+    }
+  };
+
+  const submitDeposit = async () => {
+    if (!selectedCompanyId || !depositCustomerId) {
+      setError("Please select a customer for the deposit");
+      return;
+    }
+    const amount = Number(depositAmount || 0);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setError("Deposit amount must be greater than zero");
+      return;
+    }
+
+    setDepositSaving(true);
+    setError(null);
+    try {
+      await apiFetch("/payments/deposits", {
+        method: "POST",
+        body: JSON.stringify({
+          company_id: selectedCompanyId,
+          contact_id: Number(depositCustomerId),
+          amount,
+          payment_method: depositMethod,
+          notes: depositNotes,
+        }),
+      });
+
+      setShowDepositDialog(false);
+      setDepositAmount("");
+      setDepositNotes("");
+      await loadData();
+      if (depositCustomerId) {
+        const refreshed = await apiFetch<DepositBalance>(
+          `/payments/deposits/balance?company_id=${selectedCompanyId}&contact_id=${depositCustomerId}`,
+        );
+        setDepositBalance(refreshed);
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to record customer deposit");
+    } finally {
+      setDepositSaving(false);
     }
   };
 
@@ -441,6 +528,20 @@ export default function PaymentsPage({
 
       {/* Filters */}
       <div className="card" style={{ padding: 20, marginBottom: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--slate-800)" }}>Customer Deposits</div>
+            <div style={{ fontSize: 13, color: "var(--slate-500)" }}>
+              Record money deposited into a customer account balance.
+            </div>
+          </div>
+          <button className="btn btn-primary" onClick={() => setShowDepositDialog(true)}>
+            Record Deposit
+          </button>
+        </div>
+      </div>
+
+      <div className="card" style={{ padding: 20, marginBottom: 20 }}>
         <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-end" }}>
           <div className="form-group" style={{ flex: 2, minWidth: 200 }}>
             <label>Search</label>
@@ -637,6 +738,104 @@ export default function PaymentsPage({
         sourceType="payment"
         sourceId={previewPaymentId}
       />
+
+      {showDepositDialog && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 23, 42, 0.45)",
+            display: "grid",
+            placeItems: "center",
+            zIndex: 2000,
+            padding: 16,
+          }}
+          onClick={() => !depositSaving && setShowDepositDialog(false)}
+        >
+          <div
+            className="card"
+            style={{ width: "100%", maxWidth: 520, marginBottom: 0 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ marginTop: 0, marginBottom: 16 }}>Record Customer Deposit</h3>
+            <div className="form-group" style={{ marginBottom: 12 }}>
+              <label>Customer</label>
+              <select
+                value={depositCustomerId}
+                onChange={(e) => setDepositCustomerId(e.target.value ? Number(e.target.value) : "")}
+              >
+                <option value="">Select customer</option>
+                {contacts.map((contact) => (
+                  <option key={contact.id} value={contact.id}>
+                    {contact.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {depositBalance && (
+              <div
+                style={{
+                  marginBottom: 12,
+                  background: "var(--blue-50)",
+                  border: "1px solid var(--blue-100)",
+                  borderRadius: 8,
+                  padding: 10,
+                  fontSize: 13,
+                }}
+              >
+                Current Balance: <strong>{formatCurrency(depositBalance.balance)}</strong>
+              </div>
+            )}
+
+            <div className="form-group" style={{ marginBottom: 12 }}>
+              <label>Amount</label>
+              <input
+                type="number"
+                min={0}
+                step={0.01}
+                value={depositAmount}
+                onChange={(e) => setDepositAmount(e.target.value)}
+                placeholder="0.00"
+              />
+            </div>
+
+            <div className="form-group" style={{ marginBottom: 12 }}>
+              <label>Payment Method</label>
+              <select value={depositMethod} onChange={(e) => setDepositMethod(e.target.value)}>
+                {paymentMethods.map((method) => (
+                  <option key={method.value} value={method.value}>
+                    {method.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: 16 }}>
+              <label>Notes</label>
+              <input
+                type="text"
+                value={depositNotes}
+                onChange={(e) => setDepositNotes(e.target.value)}
+                placeholder="Optional deposit note"
+              />
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <button
+                className="btn btn-light"
+                onClick={() => setShowDepositDialog(false)}
+                disabled={depositSaving}
+              >
+                Cancel
+              </button>
+              <button className="btn btn-primary" onClick={submitDeposit} disabled={depositSaving}>
+                {depositSaving ? "Saving..." : "Save Deposit"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
         <style>{`
         .alert-error {
