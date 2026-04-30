@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { apiFetch } from "../api";
 import JournalEntryPreviewDrawer from "../components/JournalEntryPreviewDrawer";
-import { SidebarMenu } from "../components/SidebarMenu";
+import { Sidebar } from "../components/Sidebar";
 import { TablePagination } from "../components/TablePagination";
 import { useMe } from "../hooks/useMe";
-import type { SidebarMenuItem } from "../components/SidebarMenu";
+import type { SidebarSection } from "../types/sidebar";
 
 interface Payment {
   id: number;
@@ -31,6 +31,11 @@ interface PaymentSummary {
   pending_count: number;
   by_method: Record<string, { count: number; amount: number }>;
 }
+
+type PaymentsPageProps = {
+  embedded?: boolean;
+  companyId?: number | null;
+};
 
 const paymentMethods = [
   { value: "cash", label: "Cash" },
@@ -100,12 +105,16 @@ const SettingsIcon = () => (
   </svg>
 );
 
-export default function PaymentsPage() {
+export default function PaymentsPage({
+  embedded = false,
+  companyId: companyIdProp,
+}: PaymentsPageProps = {}) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { me } = useMe();
   const isAdmin = Boolean(me?.is_admin);
   const [companyId, setCompanyId] = useState<number | null>(null);
+  const selectedCompanyId = companyIdProp ?? companyId;
 
   const [payments, setPayments] = useState<Payment[]>([]);
   const [summary, setSummary] = useState<PaymentSummary | null>(null);
@@ -123,14 +132,8 @@ export default function PaymentsPage() {
   const [reconcilingSelected, setReconcilingSelected] = useState(false);
   const [previewPaymentId, setPreviewPaymentId] = useState<number | null>(null);
 
-  const sidebarItems: SidebarMenuItem[] = [
-    { key: "overview", label: "OVERVIEW", icon: OverviewIcon, color: "#4a7de6" },
-    { key: "payments", label: "PAYMENTS", icon: PaymentIcon, color: "#4a7de6" },
-    { key: "reports", label: "REPORTS", icon: ReportsIcon, color: "#4a7de6" },
-    { key: "configuration", label: "CONFIGURATION", icon: SettingsIcon, color: "#4a7de6" },
-  ];
-
   useEffect(() => {
+    if (companyIdProp != null) return;
     const requestedCompanyId = Number(searchParams.get("company_id") || 0);
     if (requestedCompanyId > 0) {
       setCompanyId(requestedCompanyId);
@@ -139,26 +142,26 @@ export default function PaymentsPage() {
     if (!isAdmin && me?.company_ids?.length) {
       setCompanyId(me.company_ids[0]);
     }
-  }, [isAdmin, me?.company_ids, searchParams]);
+  }, [isAdmin, me?.company_ids, searchParams, companyIdProp]);
 
   useEffect(() => {
     loadData();
-  }, [companyId, methodFilter, reconciledFilter, searchFilter]);
+  }, [selectedCompanyId, methodFilter, reconciledFilter, searchFilter]);
 
   const loadData = async () => {
-    if (!companyId) return;
+    if (!selectedCompanyId) return;
     setLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams();
-      params.append("company_id", String(companyId));
+      params.append("company_id", String(selectedCompanyId));
       if (methodFilter) params.append("payment_method", methodFilter);
       if (reconciledFilter) params.append("is_reconciled", reconciledFilter);
       if (searchFilter) params.append("search", searchFilter);
 
       const [paymentsData, summaryData] = await Promise.all([
         apiFetch<Payment[]>(`/payments?${params.toString()}`),
-        apiFetch<PaymentSummary>(`/payments/summary?company_id=${companyId}`).catch(() => null),
+        apiFetch<PaymentSummary>(`/payments/summary?company_id=${selectedCompanyId}`).catch(() => null),
       ]);
 
       setPayments(paymentsData);
@@ -293,15 +296,15 @@ export default function PaymentsPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [methodFilter, reconciledFilter, searchFilter, companyId, pageSize]);
+  }, [methodFilter, reconciledFilter, searchFilter, selectedCompanyId, pageSize]);
 
   const handleSidebarSelect = (key: string) => {
     if (key === "overview") {
-      navigate(companyId ? `/accounting?company_id=${companyId}` : "/accounting");
+      navigate(selectedCompanyId ? `/accounting?company_id=${selectedCompanyId}` : "/accounting");
       return;
     }
     if (key === "payments") {
-      navigate(companyId ? `/payments?company_id=${companyId}` : "/payments");
+      navigate(selectedCompanyId ? `/payments?company_id=${selectedCompanyId}` : "/payments");
       return;
     }
     if (key === "reports") {
@@ -313,40 +316,91 @@ export default function PaymentsPage() {
     }
   };
 
+  const paymentSidebarSections = useMemo<SidebarSection[]>(
+    () => [
+      {
+        id: "payments-accounting-menu",
+        title: "ACCOUNTING",
+        items: [
+          {
+            id: "payments-sidebar-overview",
+            label: "OVERVIEW",
+            icon: <OverviewIcon />,
+            isActive: false,
+            onClick: () => handleSidebarSelect("overview"),
+            iconColor: "#2563eb",
+            iconBackground: "rgba(37, 99, 235, 0.14)",
+          },
+          {
+            id: "payments-sidebar-payments",
+            label: "PAYMENTS",
+            icon: <PaymentIcon />,
+            isActive: true,
+            onClick: () => handleSidebarSelect("payments"),
+            iconColor: "#0f766e",
+            iconBackground: "rgba(15, 118, 110, 0.15)",
+          },
+          {
+            id: "payments-sidebar-reports",
+            label: "REPORTS",
+            icon: <ReportsIcon />,
+            isActive: false,
+            onClick: () => handleSidebarSelect("reports"),
+            iconColor: "#7c3aed",
+            iconBackground: "rgba(124, 58, 237, 0.14)",
+          },
+          {
+            id: "payments-sidebar-configuration",
+            label: "CONFIGURATION",
+            icon: <SettingsIcon />,
+            isActive: false,
+            onClick: () => handleSidebarSelect("configuration"),
+            iconColor: "#b45309",
+            iconBackground: "rgba(180, 83, 9, 0.15)",
+          },
+        ],
+      },
+    ],
+    [selectedCompanyId, navigate],
+  );
+
   return (
     <div style={{ display: "flex", gap: 0, minHeight: 0, height: "100%" }}>
-      <SidebarMenu
-        title="Accounting"
-        items={sidebarItems}
-        activeKey="payments"
-        onSelect={handleSidebarSelect}
-      />
+      {!embedded && <Sidebar sections={paymentSidebarSections} />}
       <div className="content-area" style={{ flex: 1, minHeight: 0, height: "100%", overflowY: "auto" }}>
-        <div
-          className="o-control-panel"
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginBottom: 16,
-            padding: "8px 0",
-          }}
-        >
-          <div className="o-breadcrumb">
-            <span
-              className="o-breadcrumb-item"
-              style={{ cursor: "pointer" }}
-              onClick={() => navigate(companyId ? `/accounting?company_id=${companyId}` : "/accounting")}
-            >
-              Accounting
-            </span>
-            <span className="o-breadcrumb-separator">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </span>
-            <span className="o-breadcrumb-current">Payments</span>
+        {!embedded && (
+          <div
+            className="o-control-panel"
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              marginBottom: 16,
+              padding: "8px 0",
+            }}
+          >
+            <div className="o-breadcrumb">
+              <span
+                className="o-breadcrumb-item"
+                style={{ cursor: "pointer" }}
+                onClick={() =>
+                  navigate(
+                    selectedCompanyId
+                      ? `/accounting?company_id=${selectedCompanyId}`
+                      : "/accounting",
+                  )
+                }
+              >
+                Accounting
+              </span>
+              <span className="o-breadcrumb-separator">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </span>
+              <span className="o-breadcrumb-current">Payments</span>
+            </div>
           </div>
-        </div>
+        )}
 
       {error && (
         <div className="alert alert-error" style={{ marginBottom: 16 }}>
@@ -546,7 +600,7 @@ export default function PaymentsPage() {
                         className="btn btn-sm btn-light"
                         onClick={() =>
                           navigate(
-                            `/accounting?section=journal_entries&reference=${encodeURIComponent(`PAY/${payment.reference}`)}${companyId ? `&company_id=${companyId}` : ""}`,
+                            `/accounting?section=journal_entries&reference=${encodeURIComponent(`PAY/${payment.reference}`)}${selectedCompanyId ? `&company_id=${selectedCompanyId}` : ""}`,
                           )
                         }
                         style={{ marginRight: 6 }}

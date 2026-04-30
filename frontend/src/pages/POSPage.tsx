@@ -2,9 +2,9 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../api";
 import JournalEntryPreviewDrawer from "../components/JournalEntryPreviewDrawer";
+import BackButton from "../components/BackButton";
 import { useMe } from "../hooks/useMe";
 import { useAlert } from "../context/AlertContext";
-import BackIcon from "../assets/back.svg?react";
 import type { CurrencyItem, CurrencyRateRead } from "../types/currency";
 
 /* ────────────────────────── types ────────────────────────── */
@@ -562,13 +562,13 @@ export default function POSPage() {
   // Customer display
   const customerDisplayRef = useRef<Window | null>(null);
 
-  const backToHome = useCallback(() => {
+  const closeIfOpenedFromAnotherWindow = useCallback(() => {
     if (window.opener && !window.opener.closed) {
       window.close();
-      return;
+      return true;
     }
-    navigate("/");
-  }, [navigate]);
+    return false;
+  }, []);
 
   // Load base currency from company settings (fallback if currency list isn't configured)
   useEffect(() => {
@@ -1886,14 +1886,15 @@ export default function POSPage() {
               {pinError && <div className="pos-error">{pinError}</div>}
             </div>
             <div className="pos-dialog-footer flex">
-              <button
+              <BackButton
                 className="pos-btn pos-btn-ghost"
-                onClick={backToHome}
+                onBeforeBack={closeIfOpenedFromAnotherWindow}
+                fallbackTo="/"
                 title="Back to Home"
+                ariaLabel="Back to Home"
               >
-                <BackIcon aria-hidden="true" focusable="false" />
                 Back to Home
-              </button>
+              </BackButton>
               <button
                 className="pos-btn pos-btn-primary"
                 onClick={verifyPin}
@@ -2099,14 +2100,15 @@ export default function POSPage() {
               {error && <div className="pos-error">{error}</div>}
             </div>
             <div className="pos-dialog-footer">
-              <button
+              <BackButton
                 className="pos-btn pos-btn-ghost"
-                onClick={backToHome}
+                onBeforeBack={closeIfOpenedFromAnotherWindow}
+                fallbackTo="/"
                 title="Back to Home"
+                ariaLabel="Back to Home"
               >
-                <BackIcon aria-hidden="true" focusable="false" />
                 Back to Home
-              </button>
+              </BackButton>
               <button className="pos-btn pos-btn-primary" onClick={openSession}>
                 Open Session
               </button>
@@ -2123,14 +2125,13 @@ export default function POSPage() {
       {/* ─── TOP BAR ─── */}
       <header className="pos-topbar">
         <div className="pos-topbar-left">
-          <button
+          <BackButton
             className="pos-btn pos-btn-icon"
-            onClick={backToHome}
+            onBeforeBack={closeIfOpenedFromAnotherWindow}
+            fallbackTo="/"
             title="Back to Home"
-            aria-label="Back to Home"
-          >
-            <BackIcon aria-hidden="true" focusable="false" />
-          </button>
+            ariaLabel="Back to Home"
+          />
           {companyInfo && (
             <div className="pos-topbar-brand">
               <span className="pos-company-name">{companyInfo.name}</span>
@@ -3066,13 +3067,15 @@ export default function POSPage() {
             {/* Order Detail View */}
             {selectedOrder ? (
               <div className="pos-order-detail">
-                <button
+                <BackButton
                   className="pos-btn pos-btn-ghost pos-btn-xs"
-                  onClick={() => setSelectedOrder(null)}
+                  onBack={() => setSelectedOrder(null)}
                   style={{ marginBottom: 8 }}
+                  title="Back to Orders"
+                  ariaLabel="Back to Orders"
                 >
-                  ← Back to Orders
-                </button>
+                  Back to Orders
+                </BackButton>
                 <div className="pos-order-detail-header">
                   <div className="pos-order-detail-ref">
                     {selectedOrder.reference}

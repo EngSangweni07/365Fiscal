@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Routes,
   Route,
-  NavLink,
   Navigate,
   useLocation,
   useNavigate,
@@ -61,7 +60,6 @@ import AccountingReportsPage from "./pages/AccountingReportsPage";
 import AccountingConfigPage from "./pages/AccountingConfigPage";
 import { apiFetch } from "./api";
 import { useMe } from "./hooks/useMe";
-import BackIcon from "./assets/back.svg?react";
 import ListViewContext, {
   FilterChip,
   ListViewState,
@@ -69,6 +67,7 @@ import ListViewContext, {
 } from "./context/ListViewContext";
 import { AlertProvider } from "./context/AlertContext";
 import AuthGuard from "./components/AuthGuard";
+import BackButton from "./components/BackButton";
 
 const adminNav = [
   { to: "/", label: "Home", icon: HomeIcon },
@@ -526,11 +525,12 @@ function AppContent() {
               aria-label="Primary navigation"
             >
               <div className="topbar-left">
-                <NavLink to="/" className="app-switcher">
-                  <span className="app-switcher-icon">
-                    <BackIcon aria-hidden="true" focusable="false" />
-                  </span>
-                </NavLink>
+                <BackButton
+                  className="app-switcher"
+                  iconClassName="app-switcher-icon"
+                  ariaLabel="Go back"
+                  title="Go back"
+                />
                 <div className="topbar-brand">
                   <div>
                     <h1 className="topbar-title">{appTitle}</h1>
@@ -1013,5 +1013,4 @@ function POSIcon() {
 function SubscriptionIcon() {
   return <WalletCards size={20} strokeWidth={2} />;
 }
-
 

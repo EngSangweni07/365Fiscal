@@ -4,6 +4,7 @@ import { apiFetch } from "../api";
 import { useCompanies, Company } from "../hooks/useCompanies";
 import ValidationAlert from "../components/ValidationAlert";
 import ValidatedField from "../components/ValidatedField";
+import BackButton from "../components/BackButton";
 import {
   getMissingRequiredFields,
   getRequiredFieldError,
@@ -211,7 +212,15 @@ export default function ContactFormPage() {
               <h3>Customer</h3>
             </div>
             <div className="form-actions">
-              <button className="outline" onClick={() => navigate("/contacts")}>Back</button>
+              <BackButton
+                className="outline"
+                fallbackTo="/contacts"
+                showIcon={false}
+                title="Back"
+                ariaLabel="Back"
+              >
+                Back
+              </BackButton>
             </div>
           </div>
           <div className="card" style={{ padding: 20 }}>
@@ -235,7 +244,15 @@ export default function ContactFormPage() {
               </div>
             </div>
             <div className="form-actions">
-              <button className="outline" onClick={() => navigate("/contacts")}>Back</button>
+              <BackButton
+                className="outline"
+                fallbackTo="/contacts"
+                showIcon={false}
+                title="Back"
+                ariaLabel="Back"
+              >
+                Back
+              </BackButton>
               {isEditing ? (
                 <>
                   <button className="primary" onClick={selectedContactId ? updateContact : createContact}>Save</button>

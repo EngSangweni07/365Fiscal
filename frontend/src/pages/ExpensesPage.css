@@ -244,10 +244,6 @@
   justify-content: space-between;
   gap: 16px;
   padding: 18px 20px;
-  border: 1px solid #dfe4f2;
-  border-radius: 20px;
-  background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
-  box-shadow: 0 12px 30px rgba(33, 45, 96, 0.06);
 }
 
 .expense-categories-toolbar {
@@ -262,19 +258,6 @@
   box-shadow: 0 12px 30px rgba(33, 45, 96, 0.06);
 }
 
-.expense-suppliers-search {
-  flex: 1;
-  min-width: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 46px;
-  padding: 0 14px;
-  border: 1px solid #d8dfef;
-  border-radius: 14px;
-  background: #fff;
-  color: #7380a5;
-}
 
 .expense-categories-search {
   flex: 1;
@@ -290,16 +273,6 @@
   color: #7380a5;
 }
 
-.expense-suppliers-search input {
-  flex: 1;
-  min-width: 0;
-  border: none;
-  background: transparent;
-  color: #1d2852;
-  font-size: 14px;
-  font-weight: 600;
-  outline: none;
-}
 
 .expense-categories-search input {
   flex: 1;
@@ -312,9 +285,6 @@
   outline: none;
 }
 
-.expense-suppliers-search input::placeholder {
-  color: #8a95b8;
-}
 
 .expense-categories-search input::placeholder {
   color: #8a95b8;
@@ -497,12 +467,12 @@
   justify-content: center;
 }
 
-.expense-list-searchbox {
+.table-searchbox {
   position: relative;
   width: min(520px, 100%);
 }
 
-.expense-list-searchbox input {
+.table-searchbox input {
   width: 100%;
   min-height: 46px;
   padding: 0 54px 0 42px;
@@ -515,11 +485,11 @@
   outline: none;
 }
 
-.expense-list-searchbox input::placeholder {
+.table-searchbox input::placeholder {
   color: #8a95b8;
 }
 
-.expense-list-searchbox .search-icon {
+.table-searchbox .search-icon {
   position: absolute;
   left: 14px;
   top: 50%;

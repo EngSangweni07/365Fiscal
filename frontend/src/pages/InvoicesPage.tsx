@@ -23,6 +23,7 @@ import { useCompanies, Company } from "../hooks/useCompanies";
 import { useAlert } from "../context/AlertContext";
 import ValidationAlert from "../components/ValidationAlert";
 import ValidatedField from "../components/ValidatedField";
+import BackButton from "../components/BackButton";
 import { Sidebar } from "../components/Sidebar";
 import type { SidebarSection } from "../types/sidebar";
 import type { CurrencyItem, CurrencyRateRead } from "../types/currency";
@@ -2523,12 +2524,14 @@ export default function InvoicesPage({
                 </div>
               ) : (
                 <div className="d-flex align-items-center gap-2">
-                  <button
+                  <BackButton
                     className="btn btn-sm btn-light border"
-                    onClick={goBackToList}
+                    fallbackTo="/invoices"
+                    title="Back"
+                    ariaLabel="Back"
                   >
-                    ← Back
-                  </button>
+                    Back
+                  </BackButton>
                   <h4 className="fw-bold mb-0" style={invoiceHeadingStyle}>
                     {newMode
                       ? "New Invoice"
@@ -3118,7 +3121,7 @@ export default function InvoicesPage({
               >
               <div className="card-body invoice-form">
                 {/* Fields */}
-                <div className="row g-3 mb-4 invoice-detail-fields">
+                <div className="row g-3 mb-4">
                   {/* Row 1: Customer + Invoice Date */}
                   <div className="col-md-6">
                     <label className="form-label">Customer</label>
@@ -3184,9 +3187,11 @@ export default function InvoicesPage({
                         )}
                       </div>
                     ) : (
-                      <div className="form-control-plaintext">
-                        {customer?.name || "—"}
-                      </div>
+                      <input
+                        className="form-control input-underline bg-light"
+                        value={customer?.name || "—"}
+                        readOnly
+                      />
                     )}
                   </div>
                   <div className="col-md-6">
@@ -3199,9 +3204,11 @@ export default function InvoicesPage({
                         onChange={(e) => setEditInvoiceDate(e.target.value)}
                       />
                     ) : (
-                      <div className="form-control-plaintext">
-                        {invoiceDateLabel}
-                      </div>
+                      <input
+                        className="form-control input-underline bg-light"
+                        value={invoiceDateLabel || "—"}
+                        readOnly
+                      />
                     )}
                   </div>
 
@@ -3216,11 +3223,15 @@ export default function InvoicesPage({
                         onChange={(e) => setEditDueDate(e.target.value)}
                       />
                     ) : (
-                      <div className="form-control-plaintext">
-                        {selectedInvoice?.due_date
-                          ? new Date(selectedInvoice.due_date).toLocaleDateString()
-                          : "—"}
-                      </div>
+                      <input
+                        className="form-control input-underline bg-light"
+                        value={
+                          selectedInvoice?.due_date
+                            ? new Date(selectedInvoice.due_date).toLocaleDateString()
+                            : "—"
+                        }
+                        readOnly
+                      />
                     )}
                   </div>
                   <div className="col-md-6">
@@ -3273,9 +3284,11 @@ export default function InvoicesPage({
                         )}
                       </div>
                     ) : (
-                      <div className="form-control-plaintext">
-                        {linkedQuotation?.reference || "—"}
-                      </div>
+                      <input
+                        className="form-control input-underline bg-light"
+                        value={linkedQuotation?.reference || "—"}
+                        readOnly
+                      />
                     )}
                   </div>
 
@@ -3307,16 +3320,20 @@ export default function InvoicesPage({
                         ))}
                       </select>
                     ) : (
-                      <div className="form-control-plaintext">
-                        {invoiceCurrency}
-                      </div>
+                      <input
+                        className="form-control input-underline bg-light"
+                        value={invoiceCurrency || "—"}
+                        readOnly
+                      />
                     )}
                   </div>
                   <div className="col-md-6">
                     <label className="form-label">Reference</label>
-                    <div className="form-control-plaintext fw-semibold">
-                      {selectedInvoice?.reference || "—"}
-                    </div>
+                    <input
+                      className="form-control input-underline bg-light"
+                      value={selectedInvoice?.reference || "—"}
+                      readOnly
+                    />
                   </div>
 
                   {/* Row 4: Fiscal Device + Payment Terms */}
@@ -3340,9 +3357,14 @@ export default function InvoicesPage({
                         ))}
                       </select>
                     ) : (
-                      <div className="form-control-plaintext">
-                        {devices.find((d) => d.id === selectedInvoice?.device_id)?.device_id || "—"}
-                      </div>
+                      <input
+                        className="form-control input-underline bg-light"
+                        value={
+                          devices.find((d) => d.id === selectedInvoice?.device_id)?.device_id ||
+                          "—"
+                        }
+                        readOnly
+                      />
                     )}
                   </div>
                   <div className="col-md-6">
@@ -3361,18 +3383,22 @@ export default function InvoicesPage({
                         ))}
                       </select>
                     ) : (
-                      <div className="form-control-plaintext">
-                        {selectedInvoice?.payment_terms || "—"}
-                      </div>
+                      <input
+                        className="form-control input-underline bg-light"
+                        value={selectedInvoice?.payment_terms || "—"}
+                        readOnly
+                      />
                     )}
                   </div>
 
                   {/* Row 5: Payment Reference */}
                   <div className="col-md-6">
                     <label className="form-label">Payment Reference</label>
-                    <div className="form-control-plaintext">
-                      {selectedInvoice?.payment_reference || "—"}
-                    </div>
+                    <input
+                      className="form-control input-underline bg-light"
+                      value={selectedInvoice?.payment_reference || "—"}
+                      readOnly
+                    />
                   </div>
 
                   {/* Row 6: Notes (full width) */}
@@ -3386,9 +3412,12 @@ export default function InvoicesPage({
                         onChange={(e) => setEditNotes(e.target.value)}
                       />
                     ) : (
-                      <div className="form-control-plaintext">
-                        {selectedInvoice?.notes || "—"}
-                      </div>
+                      <textarea
+                        className="form-control input-underline bg-light"
+                        rows={2}
+                        value={selectedInvoice?.notes || "—"}
+                        readOnly
+                      />
                     )}
                   </div>
                 </div>

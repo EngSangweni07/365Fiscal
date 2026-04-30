@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { apiFetch } from "../api";
 import { useCompanies } from "../hooks/useCompanies";
 import { useAlert } from "../context/AlertContext";
+import BackButton from "../components/BackButton";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -373,16 +374,18 @@ export default function PortalDevicesPage() {
         {/* Header */}
         <div className="toolbar" style={{ marginBottom: 12 }}>
           <div className="toolbar-left" style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <button
+            <BackButton
               className="outline"
-              onClick={() => { setSelectedDevice(null); setMessage(null); }}
+              onBack={() => {
+                setSelectedDevice(null);
+                setMessage(null);
+              }}
               style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+              title="Back"
+              ariaLabel="Back"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
-              </svg>
               Back
-            </button>
+            </BackButton>
             <h3 style={{ margin: 0 }}>
               {selectedDevice.device_id || selectedDevice.serial_number || `Device #${selectedDevice.id}`}
             </h3>

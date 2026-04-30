@@ -9,6 +9,7 @@ import { useMe } from "../hooks/useMe";
 import { useCompanies, Company } from "../hooks/useCompanies";
 import ValidationAlert from "../components/ValidationAlert";
 import ValidatedField from "../components/ValidatedField";
+import BackButton from "../components/BackButton";
 import {
   getDocumentLinesError,
   getMissingRequiredFields,
@@ -1003,12 +1004,15 @@ export default function PurchasesPage({
       {mode !== "list" && (
         <div className="page-header">
           <div className="header-actions">
-            <button
+            <BackButton
               className="btn btn-sm btn-light border"
-              onClick={() => navigate("/purchases")}
+              fallbackTo="/purchases"
+              showIcon={false}
+              title="Back"
+              ariaLabel="Back"
             >
               Back
-            </button>
+            </BackButton>
           </div>
         </div>
       )}

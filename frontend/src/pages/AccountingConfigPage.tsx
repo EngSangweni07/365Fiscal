@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import {
   BookOpen,
   Calculator,
-  ChevronDown,
   Clock,
   Download,
   FileText,
@@ -16,7 +15,7 @@ import {
   Upload,
 } from "lucide-react";
 import { apiFetch } from "../api";
-import { useCompanies, Company } from "../hooks/useCompanies";
+import { useCompanies } from "../hooks/useCompanies";
 import { useMe } from "../hooks/useMe";
 import { SidebarMenu } from "../components/SidebarMenu";
 import type { SidebarMenuItem } from "../components/SidebarMenu";
@@ -104,7 +103,7 @@ type ContactMapping = {
   payable_account_id: number | null;
 };
 
-type SectionKey =
+export type AccountingConfigSectionKey =
   | "chart_of_accounts"
   | "journals"
   | "payment_terms"
@@ -112,13 +111,20 @@ type SectionKey =
   | "budgets"
   | "account_mappings";
 
-const SECTION_LABELS: Record<SectionKey, string> = {
+const SECTION_LABELS: Record<AccountingConfigSectionKey, string> = {
   chart_of_accounts: "Chart of Accounts",
   journals: "Journals",
   payment_terms: "Payment Terms",
   fiscal_positions: "Fiscal Positions",
   budgets: "Budgets",
   account_mappings: "Account Mappings",
+};
+
+type AccountingConfigPageProps = {
+  embedded?: boolean;
+  companyId?: number | null;
+  activeSection?: AccountingConfigSectionKey;
+  onActiveSectionChange?: (section: AccountingConfigSectionKey) => void;
 };
 
 const ACCOUNT_TYPES = [
@@ -284,15 +290,21 @@ const selectStyle: React.CSSProperties = { ...inputStyle };
 const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: "var(--text-muted, #6b7280)", marginBottom: 4 };
 
 /* ── Component ───────────────────────────────────────── */
-export default function AccountingConfigPage() {
+export default function AccountingConfigPage({
+  embedded = false,
+  companyId: companyIdProp,
+  activeSection: activeSectionProp,
+  onActiveSectionChange,
+}: AccountingConfigPageProps = {}) {
   const navigate = useNavigate();
   const { me } = useMe();
-  const { companies, loading: companiesLoading } = useCompanies();
+  const { companies } = useCompanies();
   const isAdmin = Boolean(me?.is_admin);
 
   const [companyId, setCompanyId] = useState<number | null>(null);
   const [companyQuery, setCompanyQuery] = useState("");
-  const [activeSection, setActiveSection] = useState<SectionKey>("chart_of_accounts");
+  const [internalActiveSection, setInternalActiveSection] =
+    useState<AccountingConfigSectionKey>("chart_of_accounts");
 
   // Data
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -330,10 +342,21 @@ export default function AccountingConfigPage() {
 
   // Company selection
   useEffect(() => {
+    if (companyIdProp != null) return;
     if (!isAdmin && me?.company_ids?.length && !companyId) {
       setCompanyId(me.company_ids[0]);
     }
-  }, [isAdmin, me?.company_ids, companyId]);
+  }, [isAdmin, me?.company_ids, companyId, companyIdProp]);
+
+  const selectedCompanyId = companyIdProp ?? companyId;
+  const selectedActiveSection = activeSectionProp ?? internalActiveSection;
+  const setSelectedActiveSection = (section: AccountingConfigSectionKey) => {
+    if (onActiveSectionChange) {
+      onActiveSectionChange(section);
+      return;
+    }
+    setInternalActiveSection(section);
+  };
 
   const filteredCompanies = useMemo(() => {
     if (!companyQuery.trim()) return companies;
@@ -345,36 +368,31 @@ export default function AccountingConfigPage() {
     );
   }, [companies, companyQuery]);
 
-  const currentCompany = useMemo(
-    () => companies.find((company) => company.id === companyId) ?? null,
-    [companies, companyId],
-  );
-
   // Fetch data on company/section change
   useEffect(() => {
-    if (!companyId) return;
+    if (!selectedCompanyId) return;
     setError(null);
-    const fetchMap: Record<SectionKey, () => void> = {
+    const fetchMap: Record<AccountingConfigSectionKey, () => void> = {
       chart_of_accounts: () =>
-        apiFetch<Account[]>(`/accounting/accounts?company_id=${companyId}`)
+        apiFetch<Account[]>(`/accounting/accounts?company_id=${selectedCompanyId}`)
           .then(setAccounts)
           .catch(() => setAccounts([])),
       journals: () =>
-        apiFetch<Journal[]>(`/accounting/journals?company_id=${companyId}`)
+        apiFetch<Journal[]>(`/accounting/journals?company_id=${selectedCompanyId}`)
           .then(setJournals)
           .catch(() => setJournals([])),
       payment_terms: () =>
-        apiFetch<PaymentTermItem[]>(`/accounting/payment-terms?company_id=${companyId}`)
+        apiFetch<PaymentTermItem[]>(`/accounting/payment-terms?company_id=${selectedCompanyId}`)
           .then(setPaymentTerms)
           .catch(() => setPaymentTerms([])),
       fiscal_positions: () =>
-        apiFetch<FiscalPosition[]>(`/accounting/fiscal-positions?company_id=${companyId}`)
+        apiFetch<FiscalPosition[]>(`/accounting/fiscal-positions?company_id=${selectedCompanyId}`)
           .then(setFiscalPositions)
           .catch(() => setFiscalPositions([])),
       budgets: () =>
         Promise.all([
-          apiFetch<Budget[]>(`/accounting/budgets?company_id=${companyId}`),
-          apiFetch<Account[]>(`/accounting/accounts?company_id=${companyId}`),
+          apiFetch<Budget[]>(`/accounting/budgets?company_id=${selectedCompanyId}`),
+          apiFetch<Account[]>(`/accounting/accounts?company_id=${selectedCompanyId}`),
         ])
           .then(([budgetList, accountList]) => {
             setBudgets(budgetList);
@@ -385,7 +403,7 @@ export default function AccountingConfigPage() {
             setAccounts([]);
           }),
       account_mappings: () =>
-        loadAccountMappings(companyId)
+        loadAccountMappings(selectedCompanyId)
           .catch(() => {
             setAccounts([]);
             setProductMappings([]);
@@ -393,8 +411,8 @@ export default function AccountingConfigPage() {
             setContactMappings([]);
           }),
     };
-    fetchMap[activeSection]();
-  }, [companyId, activeSection]);
+    fetchMap[selectedActiveSection]();
+  }, [selectedCompanyId, selectedActiveSection]);
 
   // Sidebar
   const sidebarItems: SidebarMenuItem[] = [
@@ -415,11 +433,11 @@ export default function AccountingConfigPage() {
   };
 
   const handleSave = async () => {
-    if (!companyId) return;
+    if (!selectedCompanyId) return;
     setSaving(true);
     setError(null);
     try {
-      const endpointMap: Record<SectionKey, string> = {
+      const endpointMap: Record<AccountingConfigSectionKey, string> = {
         chart_of_accounts: "/accounting/accounts",
         journals: "/accounting/journals",
         payment_terms: "/accounting/payment-terms",
@@ -427,9 +445,9 @@ export default function AccountingConfigPage() {
         budgets: "/accounting/budgets",
         account_mappings: "",
       };
-      const endpoint = endpointMap[activeSection];
+      const endpoint = endpointMap[selectedActiveSection];
       const payloadData =
-        activeSection === "budgets"
+        selectedActiveSection === "budgets"
           ? {
               ...formData,
               lines: (formData.lines || [])
@@ -448,18 +466,29 @@ export default function AccountingConfigPage() {
       } else {
         await apiFetch(endpoint, {
           method: "POST",
-          body: JSON.stringify({ ...payloadData, company_id: companyId }),
+          body: JSON.stringify({ ...payloadData, company_id: selectedCompanyId }),
         });
       }
       resetForm();
-      // Re-fetch
-      setActiveSection((prev) => prev);
-      // Force re-fetch by toggling a counter
-      setCompanyId((prev) => {
-        setTimeout(() => setCompanyId(prev), 0);
-        return null;
-      });
-      setTimeout(() => setCompanyId(companyId), 50);
+      // Re-fetch current section
+      if (selectedActiveSection === "account_mappings") {
+        await loadAccountMappings(selectedCompanyId);
+      } else if (selectedActiveSection === "chart_of_accounts") {
+        const list = await apiFetch<Account[]>(`/accounting/accounts?company_id=${selectedCompanyId}`);
+        setAccounts(list);
+      } else if (selectedActiveSection === "journals") {
+        const list = await apiFetch<Journal[]>(`/accounting/journals?company_id=${selectedCompanyId}`);
+        setJournals(list);
+      } else if (selectedActiveSection === "payment_terms") {
+        const list = await apiFetch<PaymentTermItem[]>(`/accounting/payment-terms?company_id=${selectedCompanyId}`);
+        setPaymentTerms(list);
+      } else if (selectedActiveSection === "fiscal_positions") {
+        const list = await apiFetch<FiscalPosition[]>(`/accounting/fiscal-positions?company_id=${selectedCompanyId}`);
+        setFiscalPositions(list);
+      } else if (selectedActiveSection === "budgets") {
+        const list = await apiFetch<Budget[]>(`/accounting/budgets?company_id=${selectedCompanyId}`);
+        setBudgets(list);
+      }
     } catch (err: any) {
       setError(err?.detail || err?.message || "Failed to save");
     } finally {
@@ -471,27 +500,42 @@ export default function AccountingConfigPage() {
     if (!confirm("Are you sure you want to delete this item?")) return;
     try {
       await apiFetch(`${endpoint}/${id}`, { method: "DELETE" });
-      setTimeout(() => setCompanyId(companyId), 50);
-      setCompanyId(null);
+      if (!selectedCompanyId) return;
+      if (selectedActiveSection === "chart_of_accounts") {
+        const list = await apiFetch<Account[]>(`/accounting/accounts?company_id=${selectedCompanyId}`);
+        setAccounts(list);
+      } else if (selectedActiveSection === "journals") {
+        const list = await apiFetch<Journal[]>(`/accounting/journals?company_id=${selectedCompanyId}`);
+        setJournals(list);
+      } else if (selectedActiveSection === "payment_terms") {
+        const list = await apiFetch<PaymentTermItem[]>(`/accounting/payment-terms?company_id=${selectedCompanyId}`);
+        setPaymentTerms(list);
+      } else if (selectedActiveSection === "fiscal_positions") {
+        const list = await apiFetch<FiscalPosition[]>(`/accounting/fiscal-positions?company_id=${selectedCompanyId}`);
+        setFiscalPositions(list);
+      } else if (selectedActiveSection === "budgets") {
+        const list = await apiFetch<Budget[]>(`/accounting/budgets?company_id=${selectedCompanyId}`);
+        setBudgets(list);
+      }
     } catch {
       // ignore
     }
   };
 
   const handleInstallChart = async () => {
-    if (!companyId) return;
+    if (!selectedCompanyId) return;
     setInstalling(true);
     setError(null);
     try {
       const res = await apiFetch<{ ok: boolean; accounts_created: number; journals_created: number }>(
-        `/accounting/install-chart?company_id=${companyId}`,
+        `/accounting/install-chart?company_id=${selectedCompanyId}`,
         { method: "POST" },
       );
       // Refresh accounts list
-      apiFetch<Account[]>(`/accounting/accounts?company_id=${companyId}`)
+      apiFetch<Account[]>(`/accounting/accounts?company_id=${selectedCompanyId}`)
         .then(setAccounts)
         .catch(() => setAccounts([]));
-      apiFetch<Journal[]>(`/accounting/journals?company_id=${companyId}`)
+      apiFetch<Journal[]>(`/accounting/journals?company_id=${selectedCompanyId}`)
         .then(setJournals)
         .catch(() => setJournals([]));
     } catch (err: any) {
@@ -511,12 +555,12 @@ export default function AccountingConfigPage() {
   /* ── Form Rendering ── */
   const renderForm = () => {
     if (!showForm) return null;
-    if (activeSection === "budgets") return renderBudgetForm();
+    if (selectedActiveSection === "budgets") return renderBudgetForm();
     const fields = getFormFields();
     return (
       <div style={card}>
         <h4 style={{ margin: "0 0 12px", fontSize: 14, fontWeight: 600 }}>
-          {editingId ? "Edit" : "New"} {getSectionTitle()}
+      {editingId ? "Edit" : "New"} {getSectionTitle()}
         </h4>
         {error && (
           <div style={{ color: "#ef4444", fontSize: 13, marginBottom: 10 }}>{error}</div>
@@ -580,7 +624,7 @@ export default function AccountingConfigPage() {
   };
 
   const getSectionTitle = (): string => {
-    const m: Record<SectionKey, string> = {
+    const m: Record<AccountingConfigSectionKey, string> = {
       chart_of_accounts: "Account",
       journals: "Journal",
       payment_terms: "Payment Term",
@@ -588,7 +632,7 @@ export default function AccountingConfigPage() {
       budgets: "Budget",
       account_mappings: "Account Mapping",
     };
-    return m[activeSection];
+    return m[selectedActiveSection];
   };
 
   type FormField = {
@@ -600,7 +644,7 @@ export default function AccountingConfigPage() {
   };
 
   const getFormFields = (): FormField[] => {
-    switch (activeSection) {
+    switch (selectedActiveSection) {
       case "chart_of_accounts":
         return [
           { key: "code", label: "Code", type: "text" },
@@ -647,7 +691,7 @@ export default function AccountingConfigPage() {
 
   /* ── Table Rendering ── */
   const renderContent = () => {
-    switch (activeSection) {
+    switch (selectedActiveSection) {
       case "chart_of_accounts":
         return renderAccountsTable();
       case "journals":
@@ -844,18 +888,18 @@ export default function AccountingConfigPage() {
   };
 
   const exportMappings = async () => {
-    if (!companyId) return;
+    if (!selectedCompanyId) return;
     setExportingMappings(true);
     setError(null);
     try {
-      const payload = await apiFetch<any>(`/accounting/account-mappings/export?company_id=${companyId}`);
+      const payload = await apiFetch<any>(`/accounting/account-mappings/export?company_id=${selectedCompanyId}`);
       const blob = new Blob([JSON.stringify(payload, null, 2)], {
         type: "application/json;charset=utf-8",
       });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `account-mappings-company-${companyId}.json`;
+      link.download = `account-mappings-company-${selectedCompanyId}.json`;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -869,7 +913,7 @@ export default function AccountingConfigPage() {
 
   const importMappings = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !companyId) return;
+    if (!file || !selectedCompanyId) return;
     setImportingMappings(true);
     setError(null);
     try {
@@ -878,14 +922,14 @@ export default function AccountingConfigPage() {
       const result = await apiFetch<any>(`/accounting/account-mappings/import`, {
         method: "POST",
         body: JSON.stringify({
-          company_id: companyId,
+          company_id: selectedCompanyId,
           overwrite_nulls: true,
           products: parsed.products || [],
           categories: parsed.categories || [],
           contacts: parsed.contacts || [],
         }),
       });
-      await loadAccountMappings(companyId);
+      await loadAccountMappings(selectedCompanyId);
       const messages = [
         `Updated products: ${result.updated_products}`,
         `Updated categories: ${result.updated_categories}`,
@@ -919,10 +963,10 @@ export default function AccountingConfigPage() {
             </div>
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button style={btnSecondary} onClick={exportMappings} disabled={exportingMappings || !companyId}>
+            <button style={btnSecondary} onClick={exportMappings} disabled={exportingMappings || !selectedCompanyId}>
               <Download size={14} /> {exportingMappings ? "Exporting..." : "Export JSON"}
             </button>
-            <button style={btnPrimary} onClick={() => importFileRef.current?.click()} disabled={importingMappings || !companyId}>
+            <button style={btnPrimary} onClick={() => importFileRef.current?.click()} disabled={importingMappings || !selectedCompanyId}>
               <Upload size={14} /> {importingMappings ? "Importing..." : "Import JSON"}
             </button>
             <input
@@ -1346,26 +1390,28 @@ export default function AccountingConfigPage() {
   return (
     <div style={{ display: "flex", height: "100%", minHeight: 0, overflow: "hidden" }}>
       {/* Sidebar */}
-      <div
-        style={{
-          width: 240,
-          minWidth: 240,
-          borderRight: "1px solid var(--border, #e5e7eb)",
-          overflowY: "auto",
-          background: "var(--sidebar-bg, #fafafa)",
-          padding: "8px 0",
-        }}
-      >
-        <SidebarMenu
-          title="Accounting"
-          items={sidebarItems}
-          activeKey={activeSection}
-          onSelect={(key) => {
-            setActiveSection(key as SectionKey);
-            resetForm();
+      {!embedded && (
+        <div
+          style={{
+            width: 240,
+            minWidth: 240,
+            borderRight: "1px solid var(--border, #e5e7eb)",
+            overflowY: "auto",
+            background: "var(--sidebar-bg, #fafafa)",
+            padding: "8px 0",
           }}
-        />
-      </div>
+        >
+          <SidebarMenu
+            title="Accounting"
+            items={sidebarItems}
+            activeKey={selectedActiveSection}
+            onSelect={(key) => {
+              setSelectedActiveSection(key as AccountingConfigSectionKey);
+              resetForm();
+            }}
+          />
+        </div>
+      )}
 
       {/* Main Content */}
       <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "1.25rem" }}>
@@ -1378,25 +1424,32 @@ export default function AccountingConfigPage() {
             padding: "8px 0",
           }}
         >
-          <div className="o-breadcrumb">
-            <span
-              className="o-breadcrumb-item"
-              style={{ cursor: "pointer" }}
-              onClick={() => navigate("/accounting")}
-            >
-              Accounting
-            </span>
-            <span className="o-breadcrumb-separator">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </span>
-            <span className="o-breadcrumb-current">{SECTION_LABELS[activeSection]}</span>
-          </div>
+          {!embedded && (
+            <div className="o-breadcrumb">
+              <span
+                className="o-breadcrumb-item"
+                style={{ cursor: "pointer" }}
+                onClick={() => navigate("/accounting")}
+              >
+                Accounting
+              </span>
+              <span className="o-breadcrumb-separator">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </span>
+              <span className="o-breadcrumb-current">{SECTION_LABELS[selectedActiveSection]}</span>
+            </div>
+          )}
+          {embedded && (
+            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>
+              {SECTION_LABELS[selectedActiveSection]}
+            </h2>
+          )}
         </div>
 
         {/* Company Selector */}
-        {isAdmin && (
+        {!embedded && isAdmin && (
           <div style={{ marginBottom: 16 }}>
             <div style={{ position: "relative", maxWidth: 320 }}>
               <Search
@@ -1419,13 +1472,13 @@ export default function AccountingConfigPage() {
                   style={{
                     padding: "5px 12px",
                     fontSize: 12,
-                    fontWeight: companyId === c.id ? 700 : 500,
+                    fontWeight: selectedCompanyId === c.id ? 700 : 500,
                     borderRadius: 6,
                     border:
-                      companyId === c.id
+                      selectedCompanyId === c.id
                         ? "2px solid var(--primary, #4a7de6)"
                         : "1px solid var(--border, #e5e7eb)",
-                    background: companyId === c.id ? "rgba(74,125,230,0.08)" : "#fff",
+                    background: selectedCompanyId === c.id ? "rgba(74,125,230,0.08)" : "#fff",
                     cursor: "pointer",
                   }}
                 >
@@ -1436,7 +1489,7 @@ export default function AccountingConfigPage() {
           </div>
         )}
 
-        {!companyId ? (
+        {!selectedCompanyId ? (
           <div style={{ ...card, textAlign: "center", padding: "3rem", color: "#9ca3af" }}>
             <Settings size={48} strokeWidth={1} style={{ margin: "0 auto 12px" }} />
             <div style={{ fontSize: 15, fontWeight: 600 }}>Select a company to configure accounting</div>
@@ -1450,7 +1503,7 @@ export default function AccountingConfigPage() {
                 {getSectionTitle()}s
               </h2>
               <div style={{ display: "flex", gap: 8 }}>
-                {activeSection === "chart_of_accounts" && (
+                {selectedActiveSection === "chart_of_accounts" && (
                   <button
                     style={{ ...btnSecondary, background: "#f0fdf4", borderColor: "#86efac", color: "#166534" }}
                     onClick={handleInstallChart}
@@ -1459,7 +1512,7 @@ export default function AccountingConfigPage() {
                     <Download size={14} /> {installing ? "Installing..." : "Install Generic Chart"}
                   </button>
                 )}
-                {activeSection !== "account_mappings" && (
+                {selectedActiveSection !== "account_mappings" && (
                   <button
                     style={btnPrimary}
                     onClick={() => {

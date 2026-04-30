@@ -3,9 +3,12 @@ import type { ReactNode } from "react";
 export type SidebarDropdownItem = {
   id: string;
   label: string;
+  icon?: ReactNode;
   badge?: ReactNode;
   isActive?: boolean;
   onClick: () => void;
+  iconColor?: string;
+  iconBackground?: string;
 };
 
 export type SidebarItem = {

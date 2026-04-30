@@ -743,49 +743,6 @@ button.invoice-detail-btn:disabled {
   min-width: 0;
 }
 
-.invoice-detail-fields > [class*="col-"] {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.invoice-detail-fields .form-label {
-  margin-bottom: 0;
-  color: #64748b;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-.invoice-detail-fields .form-control-plaintext {
-  min-height: 46px;
-  padding: 12px 14px;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-  color: #0f172a;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.45;
-}
-
-.invoice-detail-fields .form-control-plaintext.fw-semibold {
-  font-weight: 700 !important;
-}
-
-.invoice-detail-fields .form-control,
-.invoice-detail-fields .form-select,
-.invoice-detail-fields textarea {
-  min-height: 46px;
-  border-radius: 12px;
-}
-
-.invoice-detail-fields textarea.form-control,
-.invoice-detail-fields textarea.input-underline {
-  min-height: 88px;
-}
-
 .invoice-customer-history-card {
   position: sticky;
   top: 16px;

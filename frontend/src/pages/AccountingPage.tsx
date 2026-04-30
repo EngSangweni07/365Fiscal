@@ -6,12 +6,10 @@ import {
   BookOpen,
   Calculator,
   CheckCircle,
-  Clock,
   CreditCard,
   DollarSign,
   Download,
   FileText,
-  Globe,
   Layers,
   PieChart,
   Plus,
@@ -25,9 +23,14 @@ import {
 import { apiFetch } from "../api";
 import { useCompanies } from "../hooks/useCompanies";
 import { useMe } from "../hooks/useMe";
-import { SidebarMenu } from "../components/SidebarMenu";
+import { Sidebar } from "../components/Sidebar";
 import { TablePagination } from "../components/TablePagination";
-import type { SidebarMenuItem } from "../components/SidebarMenu";
+import type { SidebarSection } from "../types/sidebar";
+import AccountingReportsPage, { type ReportKey } from "./AccountingReportsPage";
+import AccountingConfigPage, {
+  type AccountingConfigSectionKey,
+} from "./AccountingConfigPage";
+import PaymentsPage from "./PaymentsPage";
 
 /* ── Types ───────────────────────────────────────────── */
 interface AccountingOverview {
@@ -117,13 +120,40 @@ type SectionKey =
   | "reports"
   | "configuration";
 
-const SECTION_LABELS: Record<SectionKey, string> = {
-  overview: "Overview",
-  journal_entries: "Journal Entries",
-  payments: "Payments",
-  reports: "Reports",
-  configuration: "Configuration",
-};
+const ACCOUNTING_REPORT_ITEMS: {
+  id: string;
+  key: ReportKey;
+  label: string;
+  icon: typeof Layers;
+  color: string;
+  background: string;
+}[] = [
+  { id: "report-balance-sheet", key: "balance_sheet", label: "Balance Sheet", icon: Layers, color: "#1d4ed8", background: "rgba(29, 78, 216, 0.14)" },
+  { id: "report-profit-loss", key: "profit_loss", label: "Profit and Loss", icon: TrendingUp, color: "#2563eb", background: "rgba(37, 99, 235, 0.14)" },
+  { id: "report-cash-flow", key: "cash_flow", label: "Cash Flow", icon: DollarSign, color: "#1e40af", background: "rgba(30, 64, 175, 0.14)" },
+  { id: "report-executive-summary", key: "executive_summary", label: "Executive Summary", icon: PieChart, color: "#2563eb", background: "rgba(37, 99, 235, 0.14)" },
+  { id: "report-tax-return", key: "tax_return", label: "Tax Return", icon: Calculator, color: "#1d4ed8", background: "rgba(29, 78, 216, 0.14)" },
+  { id: "report-trial-balance", key: "trial_balance", label: "Trial Balance", icon: BookOpen, color: "#2563eb", background: "rgba(37, 99, 235, 0.14)" },
+  { id: "report-general-ledger", key: "general_ledger", label: "General Ledger", icon: FileText, color: "#1e40af", background: "rgba(30, 64, 175, 0.14)" },
+  { id: "report-aged-receivable", key: "aged_receivable", label: "Aged Receivable", icon: Users, color: "#1d4ed8", background: "rgba(29, 78, 216, 0.14)" },
+  { id: "report-aged-payable", key: "aged_payable", label: "Aged Payable", icon: CreditCard, color: "#2563eb", background: "rgba(37, 99, 235, 0.14)" },
+];
+
+const ACCOUNTING_CONFIGURATION_ITEMS: {
+  id: string;
+  key: AccountingConfigSectionKey;
+  label: string;
+  icon: typeof Layers;
+  color: string;
+  background: string;
+}[] = [
+  { id: "config-chart-of-accounts", key: "chart_of_accounts", label: "Chart of Accounts", icon: BookOpen, color: "#0f766e", background: "rgba(15, 118, 110, 0.14)" },
+  { id: "config-journals", key: "journals", label: "Journals", icon: FileText, color: "#0ea5a4", background: "rgba(14, 165, 164, 0.14)" },
+  { id: "config-payment-terms", key: "payment_terms", label: "Payment Terms", icon: CreditCard, color: "#14b8a6", background: "rgba(20, 184, 166, 0.14)" },
+  { id: "config-fiscal-positions", key: "fiscal_positions", label: "Fiscal Positions", icon: Layers, color: "#0f766e", background: "rgba(15, 118, 110, 0.14)" },
+  { id: "config-budgets", key: "budgets", label: "Budgets", icon: Calculator, color: "#0d9488", background: "rgba(13, 148, 136, 0.14)" },
+  { id: "config-account-mappings", key: "account_mappings", label: "Account Mappings", icon: Settings, color: "#0f766e", background: "rgba(15, 118, 110, 0.14)" },
+];
 
 /* ── Styles ──────────────────────────────────────────── */
 const card: React.CSSProperties = {
@@ -203,7 +233,7 @@ export default function AccountingPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { me } = useMe();
-  const { companies, loading: companiesLoading } = useCompanies();
+  const { companies } = useCompanies();
   const isAdmin = Boolean(me?.is_admin);
 
   const [companyId, setCompanyId] = useState<number | null>(null);
@@ -225,6 +255,11 @@ export default function AccountingPage() {
   const [selectedJournalEntry, setSelectedJournalEntry] = useState<JournalEntry | null>(null);
   const [journalEntriesPage, setJournalEntriesPage] = useState(1);
   const [journalEntriesPageSize, setJournalEntriesPageSize] = useState(10);
+  const [reportsMenuOpen, setReportsMenuOpen] = useState(false);
+  const [configurationMenuOpen, setConfigurationMenuOpen] = useState(false);
+  const [activeReport, setActiveReport] = useState<ReportKey>("balance_sheet");
+  const [activeConfigurationSection, setActiveConfigurationSection] =
+    useState<AccountingConfigSectionKey>("chart_of_accounts");
   const [journalForm, setJournalForm] = useState({
     journal_id: "",
     reference: "",
@@ -283,8 +318,17 @@ export default function AccountingPage() {
 
   useEffect(() => {
     const section = searchParams.get("section");
-    if (section === "journal_entries") {
-      setActiveSection("journal_entries");
+    if (section === "journal_entries") setActiveSection("journal_entries");
+    if (section === "payments") setActiveSection("payments");
+    if (section === "reports") {
+      setActiveSection("reports");
+      setReportsMenuOpen(true);
+      setConfigurationMenuOpen(false);
+    }
+    if (section === "configuration") {
+      setActiveSection("configuration");
+      setConfigurationMenuOpen(true);
+      setReportsMenuOpen(false);
     }
   }, [searchParams]);
 
@@ -328,16 +372,28 @@ export default function AccountingPage() {
   // Navigate to sub-pages
   const handleSectionSelect = (key: string) => {
     if (key === "payments") {
-      navigate(companyId ? `/payments?company_id=${companyId}` : "/payments");
+      setActiveSection("payments");
+      setReportsMenuOpen(false);
+      setConfigurationMenuOpen(false);
       return;
     }
     if (key === "reports") {
-      navigate("/accounting/reports");
+      setActiveSection("reports");
+      setReportsMenuOpen(true);
+      setConfigurationMenuOpen(false);
       return;
     }
     if (key === "configuration") {
-      navigate("/accounting/configuration");
+      setActiveSection("configuration");
+      setConfigurationMenuOpen(true);
+      setReportsMenuOpen(false);
       return;
+    }
+    if (key !== "reports") {
+      setReportsMenuOpen(false);
+    }
+    if (key !== "configuration") {
+      setConfigurationMenuOpen(false);
     }
     setActiveSection(key as SectionKey);
   };
@@ -457,11 +513,103 @@ export default function AccountingPage() {
     }
   };
 
-  const sidebarItems: SidebarMenuItem[] = [
-    { key: "overview", label: "OVERVIEW", icon: Layers, color: "#4a7de6" },
-    { key: "payments", label: "PAYMENTS", icon: CreditCard, color: "#4a7de6" },
-    { key: "reports", label: "REPORTS", icon: BarChart3, color: "#4a7de6" },
-    { key: "configuration", label: "CONFIGURATION", icon: Settings, color: "#4a7de6" },
+  const accountingSidebarSections: SidebarSection[] = [
+    {
+      id: "accounting-menu",
+      title: "MENU",
+      items: [
+        {
+          id: "accounting-overview",
+          label: "OVERVIEW",
+          icon: (
+            <Layers size={18} strokeWidth={1.5} aria-hidden="true" color="#2563eb" />
+          ),
+          isActive: activeSection === "overview",
+          onClick: () => handleSectionSelect("overview"),
+          iconColor: "#2563eb",
+          iconBackground: "rgba(37, 99, 235, 0.15)",
+        },
+        {
+          id: "accounting-payments",
+          label: "PAYMENTS",
+          icon: (
+            <CreditCard size={18} strokeWidth={1.5} aria-hidden="true" color="#0f766e" />
+          ),
+          isActive: activeSection === "payments",
+          onClick: () => handleSectionSelect("payments"),
+          iconColor: "#0f766e",
+          iconBackground: "rgba(15, 118, 110, 0.15)",
+        },
+        {
+          id: "accounting-reports",
+          label: "REPORTS",
+          icon: (
+            <BarChart3 size={18} strokeWidth={1.5} aria-hidden="true" color="#7c3aed" />
+          ),
+          isActive: reportsMenuOpen || activeSection === "reports",
+          onClick: () => {
+            setReportsMenuOpen((prev) => !prev);
+            setConfigurationMenuOpen(false);
+            setActiveSection("reports");
+          },
+          iconColor: "#7c3aed",
+          iconBackground: "rgba(124, 58, 237, 0.15)",
+          dropdownItems: ACCOUNTING_REPORT_ITEMS.map((item) => {
+            const Icon = item.icon;
+            return {
+              id: item.id,
+              label: item.label.toUpperCase(),
+              icon: (
+                <Icon size={16} strokeWidth={1.6} aria-hidden="true" color={item.color} />
+              ),
+              iconColor: item.color,
+              iconBackground: item.background,
+              isActive: activeSection === "reports" && activeReport === item.key,
+              onClick: () => {
+                setActiveReport(item.key);
+                setActiveSection("reports");
+                setReportsMenuOpen(true);
+              },
+            };
+          }),
+        },
+        {
+          id: "accounting-configuration",
+          label: "CONFIGURATION",
+          icon: (
+            <Settings size={18} strokeWidth={1.5} aria-hidden="true" color="#b45309" />
+          ),
+          isActive: configurationMenuOpen || activeSection === "configuration",
+          onClick: () => {
+            setConfigurationMenuOpen((prev) => !prev);
+            setReportsMenuOpen(false);
+            setActiveSection("configuration");
+          },
+          iconColor: "#b45309",
+          iconBackground: "rgba(180, 83, 9, 0.15)",
+          dropdownItems: ACCOUNTING_CONFIGURATION_ITEMS.map((item) => {
+            const Icon = item.icon;
+            return {
+              id: item.id,
+              label: item.label.toUpperCase(),
+              icon: (
+                <Icon size={16} strokeWidth={1.6} aria-hidden="true" color={item.color} />
+              ),
+              iconColor: item.color,
+              iconBackground: item.background,
+              isActive:
+                activeSection === "configuration" &&
+                activeConfigurationSection === item.key,
+              onClick: () => {
+                setActiveConfigurationSection(item.key);
+                setActiveSection("configuration");
+                setConfigurationMenuOpen(true);
+              },
+            };
+          }),
+        },
+      ],
+    },
   ];
 
   /* ── Company Selector ── */
@@ -838,7 +986,7 @@ export default function AccountingPage() {
           <div style={widgetCardStyle}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
               <div>
-                <div style={cardLabelStyle}>Customers</div>
+                <div style={cardLabelStyle}>Invoices</div>
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <button onClick={() => navigate("/invoices/new")} style={widgetButton("primary")}>
@@ -901,7 +1049,7 @@ export default function AccountingPage() {
           <div style={widgetCardStyle}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
               <div>
-                <div style={cardLabelStyle}>Vendors</div>
+                <div style={cardLabelStyle}>Bills</div>
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <button onClick={() => navigate("/purchases")} style={widgetButton("primary")}>
@@ -1008,7 +1156,11 @@ export default function AccountingPage() {
 
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     <button
-                      onClick={() => navigate(companyId ? `/payments?company_id=${companyId}` : "/payments")}
+                      onClick={() => {
+                        setActiveSection("payments");
+                        setReportsMenuOpen(false);
+                        setConfigurationMenuOpen(false);
+                      }}
                       style={widgetButton("primary")}
                     >
                       <CreditCard size={14} /> New payment
@@ -1029,7 +1181,14 @@ export default function AccountingPage() {
                 Create at least one bank or cash journal to track balances and payment activity from the overview.
               </div>
               <div style={{ marginTop: "auto" }}>
-                <button onClick={() => navigate("/accounting/configuration")} style={widgetButton("primary")}>
+                <button
+                  onClick={() => {
+                    setActiveSection("configuration");
+                    setConfigurationMenuOpen(true);
+                    setReportsMenuOpen(false);
+                  }}
+                  style={widgetButton("primary")}
+                >
                   <Settings size={14} /> Open configuration
                 </button>
               </div>
@@ -1459,7 +1618,7 @@ export default function AccountingPage() {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              padding: "1.5rem",
+              padding: "1.5rem 0rem",
               zIndex: 1200,
             }}
           >
@@ -1567,41 +1726,30 @@ export default function AccountingPage() {
 
   return (
     <div style={{ display: "flex", gap: 0, minHeight: 0, height: "100%" }}>
-      <SidebarMenu
-        title="Accounting"
-        items={sidebarItems}
-        activeKey={activeSection}
-        onSelect={handleSectionSelect}
-      />
+      <Sidebar sections={accountingSidebarSections} />
       <div style={{ flex: 1, minHeight: 0, padding: "1.5rem", overflowY: "auto" }}>
-        <div
-          className="o-control-panel"
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginBottom: 16,
-            padding: "8px 0",
-          }}
-        >
-          <div className="o-breadcrumb">
-            <span
-              className="o-breadcrumb-item"
-              style={{ cursor: "pointer" }}
-              onClick={() => setActiveSection("overview")}
-            >
-              Accounting
-            </span>
-            <span className="o-breadcrumb-separator">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </span>
-            <span className="o-breadcrumb-current">{SECTION_LABELS[activeSection]}</span>
-          </div>
-        </div>
         {companySelector}
         {activeSection === "overview" && renderOverview()}
         {activeSection === "journal_entries" && renderJournalEntries()}
+        {activeSection === "payments" && (
+          <PaymentsPage embedded companyId={companyId} />
+        )}
+        {activeSection === "reports" && (
+          <AccountingReportsPage
+            embedded
+            companyId={companyId}
+            activeReport={activeReport}
+            onActiveReportChange={setActiveReport}
+          />
+        )}
+        {activeSection === "configuration" && (
+          <AccountingConfigPage
+            embedded
+            companyId={companyId}
+            activeSection={activeConfigurationSection}
+            onActiveSectionChange={setActiveConfigurationSection}
+          />
+        )}
       </div>
     </div>
   );
