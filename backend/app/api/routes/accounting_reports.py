@@ -631,7 +631,123 @@ def general_ledger(
     }
 
 
-# ─── Aged Receivable ─────────────────────────────────
+# Partner Ledger
+@router.get("/partner-ledger")
+def partner_ledger(
+    company_id: int,
+    contact_id: Optional[int] = Query(None),
+    date_from: Optional[str] = Query(None),
+    date_to: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+    _=Depends(require_company_access),
+):
+    now = datetime.utcnow()
+    d_from = datetime.fromisoformat(date_from) if date_from else now.replace(month=1, day=1, hour=0, minute=0, second=0)
+    d_to = datetime.fromisoformat(date_to) if date_to else now
+
+    query = (
+        db.query(JournalEntryLine, JournalEntry, Account, Contact)
+        .join(JournalEntry, JournalEntry.id == JournalEntryLine.entry_id)
+        .join(Account, Account.id == JournalEntryLine.account_id)
+        .join(Contact, Contact.id == JournalEntryLine.contact_id)
+        .filter(
+            JournalEntry.company_id == company_id,
+            JournalEntry.status == "posted",
+            JournalEntry.entry_date >= d_from,
+            JournalEntry.entry_date <= d_to,
+            Contact.company_id == company_id,
+        )
+    )
+    if contact_id:
+        query = query.filter(Contact.id == contact_id)
+
+    ledger_lines = (
+        query.order_by(Contact.name, JournalEntry.entry_date, JournalEntry.id, JournalEntryLine.id)
+        .all()
+    )
+
+    rows = []
+    partners: dict[int, dict] = {}
+
+    def partner_account_type(line: JournalEntryLine, account: Account, contact: Contact) -> str | None:
+        account_type = (account.account_type or "").strip().lower()
+        account_code = (account.code or "").strip()
+        if (
+            line.account_id == contact.receivable_account_id
+            or account_type == "receivable"
+            or account_code in {"1200", "1210"}
+        ):
+            return "receivable"
+        if (
+            line.account_id == contact.payable_account_id
+            or account_type == "payable"
+            or account_code in {"2110", "2120"}
+        ):
+            return "payable"
+        return None
+
+    for line, entry, account, contact in ledger_lines:
+        account_kind = partner_account_type(line, account, contact)
+        if not account_kind:
+            continue
+
+        partner = partners.setdefault(
+            contact.id,
+            {
+                "contact_id": contact.id,
+                "contact_name": contact.name,
+                "contact_reference": contact.reference or "",
+                "debit": 0.0,
+                "credit": 0.0,
+                "balance": 0.0,
+            },
+        )
+        debit = float(line.debit or 0)
+        credit = float(line.credit or 0)
+        partner["debit"] += debit
+        partner["credit"] += credit
+        partner["balance"] += debit - credit
+
+        rows.append(
+            {
+                "contact_id": contact.id,
+                "contact_name": contact.name,
+                "contact_reference": contact.reference or "",
+                "date": entry.entry_date.isoformat() if entry.entry_date else "",
+                "reference": entry.reference,
+                "journal": entry.journal.code if entry.journal else "",
+                "account_code": account.code,
+                "account_name": account.name,
+                "account_type": account_kind,
+                "label": line.label or entry.narration or entry.reference,
+                "debit": round(debit, 2),
+                "credit": round(credit, 2),
+                "balance": round(partner["balance"], 2),
+            }
+        )
+
+    partner_rows = sorted(partners.values(), key=lambda p: p["contact_name"].lower())
+    for partner in partner_rows:
+        partner["debit"] = round(partner["debit"], 2)
+        partner["credit"] = round(partner["credit"], 2)
+        partner["balance"] = round(partner["balance"], 2)
+
+    total_debit = sum(float(row["debit"]) for row in partner_rows)
+    total_credit = sum(float(row["credit"]) for row in partner_rows)
+
+    return {
+        "period_from": d_from.isoformat(),
+        "period_to": d_to.isoformat(),
+        "partners": partner_rows,
+        "entries": rows,
+        "total_debit": round(total_debit, 2),
+        "total_credit": round(total_credit, 2),
+        "total_balance": round(total_debit - total_credit, 2),
+    }
+
+
+# Aged Receivable
 @router.get("/aged-receivable")
 def aged_receivable(
     company_id: int,

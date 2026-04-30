@@ -98,6 +98,41 @@ interface GeneralLedger {
   total_credit: number;
 }
 
+interface PartnerLedgerEntry {
+  contact_id: number;
+  contact_name: string;
+  contact_reference: string;
+  date: string;
+  reference: string;
+  journal: string;
+  account_code: string;
+  account_name: string;
+  account_type: string;
+  label: string;
+  debit: number;
+  credit: number;
+  balance: number;
+}
+
+interface PartnerLedgerSummary {
+  contact_id: number;
+  contact_name: string;
+  contact_reference: string;
+  debit: number;
+  credit: number;
+  balance: number;
+}
+
+interface PartnerLedger {
+  period_from: string;
+  period_to: string;
+  partners: PartnerLedgerSummary[];
+  entries: PartnerLedgerEntry[];
+  total_debit: number;
+  total_credit: number;
+  total_balance: number;
+}
+
 interface AgedRow {
   customer_id?: number;
   customer_name?: string;
@@ -134,6 +169,7 @@ type ReportKey =
   | "tax_return"
   | "trial_balance"
   | "general_ledger"
+  | "partner_ledger"
   | "aged_receivable"
   | "aged_payable";
 
@@ -145,6 +181,7 @@ const REPORT_LABELS: Record<ReportKey, string> = {
   tax_return: "Tax Return",
   trial_balance: "Trial Balance",
   general_ledger: "General Ledger",
+  partner_ledger: "Partner Ledger",
   aged_receivable: "Aged Receivable",
   aged_payable: "Aged Payable",
 };
@@ -228,6 +265,7 @@ export default function AccountingReportsPage() {
   const [execSummary, setExecSummary] = useState<ExecutiveSummary | null>(null);
   const [trialBalance, setTrialBalance] = useState<TrialBalance | null>(null);
   const [generalLedger, setGeneralLedger] = useState<GeneralLedger | null>(null);
+  const [partnerLedger, setPartnerLedger] = useState<PartnerLedger | null>(null);
   const [agedReceivable, setAgedReceivable] = useState<AgedReport | null>(null);
   const [agedPayable, setAgedPayable] = useState<AgedReport | null>(null);
   const [taxReturn, setTaxReturn] = useState<TaxReturn | null>(null);
@@ -285,6 +323,9 @@ export default function AccountingReportsPage() {
         case "general_ledger":
           setGeneralLedger(await apiFetch(`${base}/general-ledger?${params}`));
           break;
+        case "partner_ledger":
+          setPartnerLedger(await apiFetch(`${base}/partner-ledger?${params}`));
+          break;
         case "aged_receivable":
           setAgedReceivable(await apiFetch(`${base}/aged-receivable?${params}`));
           break;
@@ -312,11 +353,12 @@ export default function AccountingReportsPage() {
     { key: "tax_return", label: "TAX RETURN", icon: Calculator, color: "#4a7de6" },
     { key: "trial_balance", label: "TRIAL BALANCE", icon: BookOpen, color: "#4a7de6" },
     { key: "general_ledger", label: "GENERAL LEDGER", icon: FileText, color: "#4a7de6" },
+    { key: "partner_ledger", label: "PARTNER LEDGER", icon: Users, color: "#4a7de6" },
     { key: "aged_receivable", label: "AGED RECEIVABLE", icon: Users, color: "#4a7de6" },
     { key: "aged_payable", label: "AGED PAYABLE", icon: CreditCard, color: "#4a7de6" },
   ];
 
-  const needsDateRange = ["profit_loss", "cash_flow", "general_ledger", "tax_return"].includes(activeReport);
+  const needsDateRange = ["profit_loss", "cash_flow", "general_ledger", "partner_ledger", "tax_return"].includes(activeReport);
 
   const handlePrint = () => {
     if (printRef.current) {
@@ -668,6 +710,96 @@ export default function AccountingReportsPage() {
     );
   };
 
+  const renderPartnerLedger = () => {
+    if (!partnerLedger) return null;
+    return (
+      <div ref={printRef}>
+        <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>
+          Partner Ledger: {new Date(partnerLedger.period_from).toLocaleDateString()} - {new Date(partnerLedger.period_to).toLocaleDateString()}
+        </h3>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 16 }}>
+          <div style={kpiCard}>
+            <div style={{ ...kpiValue, color: "#2563eb" }}>{fmt(partnerLedger.total_debit)}</div>
+            <div style={kpiLabel}>Total Debit</div>
+          </div>
+          <div style={kpiCard}>
+            <div style={{ ...kpiValue, color: "#dc2626" }}>{fmt(partnerLedger.total_credit)}</div>
+            <div style={kpiLabel}>Total Credit</div>
+          </div>
+          <div style={kpiCard}>
+            <div style={{ ...kpiValue, color: partnerLedger.total_balance >= 0 ? "#059669" : "#dc2626" }}>
+              {fmt(partnerLedger.total_balance)}
+            </div>
+            <div style={kpiLabel}>Net Balance</div>
+          </div>
+        </div>
+        <div style={card}>
+          <h4 style={{ fontSize: 14, fontWeight: 700, margin: "0 0 12px" }}>Partner Balances</h4>
+          <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 18 }}>
+            <thead>
+              <tr>
+                <th style={thStyle}>Partner</th>
+                <th style={{ ...thStyle, textAlign: "right" }}>Debit</th>
+                <th style={{ ...thStyle, textAlign: "right" }}>Credit</th>
+                <th style={{ ...thStyle, textAlign: "right" }}>Balance</th>
+              </tr>
+            </thead>
+            <tbody>
+              {partnerLedger.partners.length === 0 && (
+                <tr><td colSpan={4} style={{ ...tdStyle, textAlign: "center", color: "#9ca3af" }}>No partner ledger entries for this period</td></tr>
+              )}
+              {partnerLedger.partners.map((p) => (
+                <tr key={p.contact_id}>
+                  <td style={{ ...tdStyle, fontWeight: 600 }}>
+                    {p.contact_reference ? `${p.contact_reference} - ${p.contact_name}` : p.contact_name}
+                  </td>
+                  <td style={{ ...tdStyle, textAlign: "right" }}>{p.debit ? fmt(p.debit) : "-"}</td>
+                  <td style={{ ...tdStyle, textAlign: "right" }}>{p.credit ? fmt(p.credit) : "-"}</td>
+                  <td style={{ ...tdStyle, textAlign: "right", fontWeight: 700, color: p.balance >= 0 ? "#059669" : "#dc2626" }}>
+                    {fmt(p.balance)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <h4 style={{ fontSize: 14, fontWeight: 700, margin: "4px 0 12px" }}>Ledger Lines</h4>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                <th style={thStyle}>Date</th>
+                <th style={thStyle}>Partner</th>
+                <th style={thStyle}>Reference</th>
+                <th style={thStyle}>Account</th>
+                <th style={thStyle}>Label</th>
+                <th style={{ ...thStyle, textAlign: "right" }}>Debit</th>
+                <th style={{ ...thStyle, textAlign: "right" }}>Credit</th>
+                <th style={{ ...thStyle, textAlign: "right" }}>Balance</th>
+              </tr>
+            </thead>
+            <tbody>
+              {partnerLedger.entries.length === 0 && (
+                <tr><td colSpan={8} style={{ ...tdStyle, textAlign: "center", color: "#9ca3af" }}>No ledger lines</td></tr>
+              )}
+              {partnerLedger.entries.map((e, i) => (
+                <tr key={`${e.contact_id}-${e.reference}-${i}`}>
+                  <td style={tdStyle}>{e.date ? new Date(e.date).toLocaleDateString() : "-"}</td>
+                  <td style={tdStyle}>{e.contact_name}</td>
+                  <td style={{ ...tdStyle, fontWeight: 600 }}>{e.reference}</td>
+                  <td style={tdStyle}>{e.account_code} - {e.account_name}</td>
+                  <td style={{ ...tdStyle, maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.label}</td>
+                  <td style={{ ...tdStyle, textAlign: "right" }}>{e.debit ? fmt(e.debit) : "-"}</td>
+                  <td style={{ ...tdStyle, textAlign: "right" }}>{e.credit ? fmt(e.credit) : "-"}</td>
+                  <td style={{ ...tdStyle, textAlign: "right", fontWeight: 600 }}>{fmt(e.balance)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
   const renderAgedReport = (data: AgedReport | null, nameField: "customer_name" | "supplier_name") => {
     if (!data) return null;
     const title = nameField === "customer_name" ? "Aged Receivable" : "Aged Payable";
@@ -742,6 +874,7 @@ export default function AccountingReportsPage() {
       case "tax_return": return renderTaxReturn();
       case "trial_balance": return renderTrialBalance();
       case "general_ledger": return renderGeneralLedger();
+      case "partner_ledger": return renderPartnerLedger();
       case "aged_receivable": return renderAgedReport(agedReceivable, "customer_name");
       case "aged_payable": return renderAgedReport(agedPayable, "supplier_name");
       default: return null;
