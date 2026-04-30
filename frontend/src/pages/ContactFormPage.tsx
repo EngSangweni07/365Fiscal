@@ -22,6 +22,19 @@ type Contact = {
   reference?: string;
 };
 
+type DepositBalance = {
+  company_id: number;
+  contact_id: number;
+  total_deposited: number;
+  total_used: number;
+  balance: number;
+};
+
+type CompanySettings = {
+  currency_code?: string | null;
+  currency_symbol?: string | null;
+};
+
 type RouteParams = {
   contactId?: string;
 };
@@ -55,12 +68,28 @@ export default function ContactFormPage() {
   const [form, setForm] = useState(emptyForm);
   const [invalidFields, setInvalidFields] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [depositBalance, setDepositBalance] = useState<DepositBalance | null>(null);
+  const [currencyCode, setCurrencyCode] = useState("USD");
+  const [currencySymbol, setCurrencySymbol] = useState("$");
 
   useEffect(() => {
     if (companies.length && companyId === null) {
       setCompanyId(companies[0].id);
     }
   }, [companies, companyId]);
+
+  useEffect(() => {
+    if (!companyId) return;
+    apiFetch<CompanySettings>(`/company-settings?company_id=${companyId}`)
+      .then((settings) => {
+        setCurrencyCode((settings?.currency_code || "USD").toUpperCase());
+        setCurrencySymbol(settings?.currency_symbol || "$");
+      })
+      .catch(() => {
+        setCurrencyCode("USD");
+        setCurrencySymbol("$");
+      });
+  }, [companyId]);
 
   const applyContact = (contact: Contact) => {
     setSelectedContactId(contact.id);
@@ -196,6 +225,30 @@ export default function ContactFormPage() {
     }
   }, [isNew]);
 
+  useEffect(() => {
+    if (!companyId || !selectedContactId) {
+      setDepositBalance(null);
+      return;
+    }
+
+    apiFetch<DepositBalance>(
+      `/payments/deposits/balance?company_id=${companyId}&contact_id=${selectedContactId}`,
+    )
+      .then((data) => setDepositBalance(data))
+      .catch(() => setDepositBalance(null));
+  }, [companyId, selectedContactId]);
+
+  const formatMoney = (value: number) => {
+    try {
+      return new Intl.NumberFormat(undefined, {
+        style: "currency",
+        currency: currencyCode || "USD",
+      }).format(value || 0);
+    } catch {
+      return `${currencySymbol || "$"}${(value || 0).toFixed(2)}`;
+    }
+  };
+
   if (companiesLoading && companyId === null) {
     return <div className="loading-indicator">Loading companies...</div>;
   }
@@ -242,6 +295,25 @@ export default function ContactFormPage() {
                 <span className={`status-pill ${selectedContactId ? "" : "active"}`}>New</span>
                 <span className={`status-pill ${selectedContactId ? "active" : ""}`}>Saved</span>
               </div>
+              {selectedContactId && (
+                <div className="o-stat-buttons" style={{ marginTop: 12, marginBottom: 0 }}>
+                  <button
+                    type="button"
+                    className="o-stat-button"
+                    title="Open customer deposits"
+                    onClick={() =>
+                      navigate(
+                        `/payments?company_id=${companyId ?? ""}&contact_id=${selectedContactId}`,
+                      )
+                    }
+                  >
+                    <span className="o-stat-button-value">
+                      {formatMoney(depositBalance?.balance || 0)}
+                    </span>
+                    <span className="o-stat-button-label">Customer Deposit</span>
+                  </button>
+                </div>
+              )}
             </div>
             <div className="form-actions">
               <BackButton

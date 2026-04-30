@@ -53,6 +53,13 @@ type Customer = {
   phone: string;
   tin: string;
 };
+type CustomerDepositBalance = {
+  company_id: number;
+  contact_id: number;
+  total_deposited: number;
+  total_used: number;
+  balance: number;
+};
 type POSSession = {
   id: number;
   name: string;
@@ -498,6 +505,12 @@ export default function POSPage() {
   const [customerSearch, setCustomerSearch] = useState("");
   const [customerResults, setCustomerResults] = useState<Customer[]>([]);
   const [showCustomerSearch, setShowCustomerSearch] = useState(false);
+  const [showDepositDialog, setShowDepositDialog] = useState(false);
+  const [depositAmount, setDepositAmount] = useState("");
+  const [depositMethod, setDepositMethod] = useState<"cash" | "card" | "mobile_money" | "bank_transfer">("cash");
+  const [depositNotes, setDepositNotes] = useState("");
+  const [depositProcessing, setDepositProcessing] = useState(false);
+  const [customerDepositBalance, setCustomerDepositBalance] = useState<CustomerDepositBalance | null>(null);
 
   // Session open dialog
   const [showSessionDialog, setShowSessionDialog] = useState(false);
@@ -1117,6 +1130,19 @@ export default function POSPage() {
     return () => clearTimeout(t);
   }, [customerSearch, companyId]);
 
+  useEffect(() => {
+    if (!companyId || !selectedCustomer?.id) {
+      setCustomerDepositBalance(null);
+      return;
+    }
+
+    apiFetch<CustomerDepositBalance>(
+      `/payments/deposits/balance?company_id=${companyId}&contact_id=${selectedCustomer.id}`,
+    )
+      .then((data) => setCustomerDepositBalance(data))
+      .catch(() => setCustomerDepositBalance(null));
+  }, [companyId, selectedCustomer?.id]);
+
   // auto-clear errors
   useEffect(() => {
     if (!error) return;
@@ -1503,6 +1529,47 @@ export default function POSPage() {
       setError(e.message);
     } finally {
       setProcessing(false);
+    }
+  };
+
+  const submitCustomerDeposit = async () => {
+    if (!companyId || !selectedCustomer?.id) {
+      setError("Select a customer before recording a deposit");
+      return;
+    }
+
+    const amount = Number(depositAmount || 0);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setError("Deposit amount must be greater than zero");
+      return;
+    }
+
+    setDepositProcessing(true);
+    setError("");
+    try {
+      await apiFetch("/payments/deposits", {
+        method: "POST",
+        body: JSON.stringify({
+          company_id: companyId,
+          contact_id: selectedCustomer.id,
+          amount,
+          currency: posCurrencyCode || "USD",
+          payment_method: depositMethod,
+          notes: depositNotes,
+        }),
+      });
+
+      const nextBalance = await apiFetch<CustomerDepositBalance>(
+        `/payments/deposits/balance?company_id=${companyId}&contact_id=${selectedCustomer.id}`,
+      );
+      setCustomerDepositBalance(nextBalance);
+      setShowDepositDialog(false);
+      setDepositAmount("");
+      setDepositNotes("");
+    } catch (e: any) {
+      setError(e.message || "Failed to save customer deposit");
+    } finally {
+      setDepositProcessing(false);
     }
   };
 
@@ -2811,6 +2878,19 @@ export default function POSPage() {
                 <circle cx="12" cy="7" r="4" />
               </svg>
               <span>{selectedCustomer.name}</span>
+              {customerDepositBalance && (
+                <span style={{ marginLeft: 8, fontSize: 12, opacity: 0.85 }}>
+                  Deposit: {money(customerDepositBalance.balance)}
+                </span>
+              )}
+              <button
+                className="pos-btn-inline"
+                title="Deposit into customer account"
+                onClick={() => setShowDepositDialog(true)}
+                style={{ marginLeft: 8 }}
+              >
+                Deposit
+              </button>
               <button
                 className="pos-btn-inline"
                 onClick={() => setSelectedCustomer(null)}
@@ -3533,6 +3613,93 @@ export default function POSPage() {
               </button>
               <button className="pos-btn pos-btn-danger" onClick={submitRefund}>
                 Confirm Refund
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── CUSTOMER DEPOSIT DIALOG ─── */}
+      {showDepositDialog && selectedCustomer && (
+        <div
+          className="pos-overlay"
+          onClick={() => !depositProcessing && setShowDepositDialog(false)}
+        >
+          <div
+            className="pos-dialog"
+            style={{ maxWidth: 520 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="pos-dialog-header">
+              <h2>Customer Deposit</h2>
+              <div className="pos-payment-total">{selectedCustomer.name}</div>
+            </div>
+            <div className="pos-dialog-body">
+              <div className="pos-pay-section">
+                <label className="pos-label">Current Balance</label>
+                <div style={{ fontWeight: 700, fontSize: 18 }}>
+                  {money(customerDepositBalance?.balance || 0)}
+                </div>
+              </div>
+              <div className="pos-pay-section">
+                <label className="pos-label">Deposit Amount</label>
+                <input
+                  type="number"
+                  className="pos-input pos-input-lg"
+                  min={0}
+                  step={0.01}
+                  value={depositAmount}
+                  onChange={(e) => setDepositAmount(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              <div className="pos-pay-section">
+                <label className="pos-label">Payment Method</label>
+                <select
+                  className="pos-input pos-input-lg"
+                  value={depositMethod}
+                  onChange={(e) =>
+                    setDepositMethod(
+                      e.target.value as
+                        | "cash"
+                        | "card"
+                        | "mobile_money"
+                        | "bank_transfer",
+                    )
+                  }
+                >
+                  <option value="cash">Cash</option>
+                  <option value="card">Card</option>
+                  <option value="mobile_money">Mobile Money</option>
+                  <option value="bank_transfer">Bank Transfer</option>
+                </select>
+              </div>
+              <div className="pos-pay-section">
+                <label className="pos-label">Notes</label>
+                <input
+                  type="text"
+                  className="pos-input"
+                  value={depositNotes}
+                  onChange={(e) => setDepositNotes(e.target.value)}
+                  placeholder="Optional note"
+                />
+              </div>
+              {error && <div className="pos-error">{error}</div>}
+            </div>
+            <div className="pos-dialog-footer">
+              <button
+                className="pos-btn pos-btn-ghost"
+                onClick={() => setShowDepositDialog(false)}
+                disabled={depositProcessing}
+              >
+                Cancel
+              </button>
+              <button
+                className="pos-btn pos-btn-success"
+                onClick={submitCustomerDeposit}
+                disabled={depositProcessing}
+              >
+                {depositProcessing ? "Saving..." : "Save Deposit"}
               </button>
             </div>
           </div>

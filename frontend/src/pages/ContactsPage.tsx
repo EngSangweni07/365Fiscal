@@ -21,6 +21,19 @@ type Contact = {
   reference?: string;
 };
 
+type DepositBalance = {
+  company_id: number;
+  contact_id: number;
+  total_deposited: number;
+  total_used: number;
+  balance: number;
+};
+
+type CompanySettings = {
+  currency_code?: string | null;
+  currency_symbol?: string | null;
+};
+
 type ContactTypeFilter = "all" | "personal" | "company";
 
 export default function ContactsPage() {
@@ -41,6 +54,10 @@ export default function ContactsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [deleting, setDeleting] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [depositByContactId, setDepositByContactId] = useState<Record<number, number>>({});
+  const [depositLoading, setDepositLoading] = useState(false);
+  const [currencyCode, setCurrencyCode] = useState("USD");
+  const [currencySymbol, setCurrencySymbol] = useState("$");
   const { showAlert, showConfirm } = useAlert();
   const showAlertMessage = (message: string, variant: AlertModalVariant = "danger") => {
     showAlert({ message, variant });
@@ -74,6 +91,73 @@ export default function ContactsPage() {
       loadContacts(companyId);
     }
   }, [companyId]);
+
+  useEffect(() => {
+    if (!companyId) return;
+    apiFetch<CompanySettings>(`/company-settings?company_id=${companyId}`)
+      .then((settings) => {
+        setCurrencyCode((settings?.currency_code || "USD").toUpperCase());
+        setCurrencySymbol((settings?.currency_symbol || "$"));
+      })
+      .catch(() => {
+        setCurrencyCode("USD");
+        setCurrencySymbol("$");
+      });
+  }, [companyId]);
+
+  useEffect(() => {
+    if (!companyId || contacts.length === 0) {
+      setDepositByContactId({});
+      return;
+    }
+
+    let cancelled = false;
+    setDepositLoading(true);
+
+    Promise.all(
+      contacts.map(async (contact) => {
+        try {
+          const data = await apiFetch<DepositBalance>(
+            `/payments/deposits/balance?company_id=${companyId}&contact_id=${contact.id}`,
+          );
+          return [contact.id, data.balance || 0] as const;
+        } catch {
+          return [contact.id, 0] as const;
+        }
+      }),
+    )
+      .then((rows) => {
+        if (cancelled) return;
+        const next: Record<number, number> = {};
+        rows.forEach(([contactId, balance]) => {
+          next[contactId] = balance;
+        });
+        setDepositByContactId(next);
+      })
+      .finally(() => {
+        if (!cancelled) setDepositLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [companyId, contacts]);
+
+  const formatMoney = (value: number) => {
+    try {
+      return new Intl.NumberFormat(undefined, {
+        style: "currency",
+        currency: currencyCode || "USD",
+      }).format(value || 0);
+    } catch {
+      return `${currencySymbol || "$"}${(value || 0).toFixed(2)}`;
+    }
+  };
+
+  const openDepositPayments = (contactId: number) => {
+    if (!companyId) return;
+    navigate(`/payments?company_id=${companyId}&contact_id=${contactId}`);
+  };
 
   const startNew = () => {
     navigate("/contacts/new");
@@ -461,6 +545,7 @@ export default function ContactsPage() {
                   {contactTypeFilter !== "personal" && <th>TIN</th>}
                   <th>Phone</th>
                   <th>Email</th>
+                  <th style={{ textAlign: "right" }}>Deposit</th>
                 </tr>
               </thead>
               <tbody>
@@ -514,6 +599,30 @@ export default function ContactsPage() {
                     >
                       {c.email}
                     </td>
+                    <td style={{ textAlign: "right" }}>
+                      <button
+                        type="button"
+                        className="o-stat-button"
+                        style={{
+                          padding: "6px 10px",
+                          borderLeft: "1px solid var(--color-border-soft)",
+                          borderRadius: 6,
+                          minWidth: 120,
+                          alignItems: "flex-end",
+                        }}
+                        onClick={() => openDepositPayments(c.id)}
+                        title="Open customer deposit payments"
+                      >
+                        <span className="o-stat-button-value" style={{ fontSize: 14 }}>
+                          {depositLoading && depositByContactId[c.id] === undefined
+                            ? "..."
+                            : formatMoney(depositByContactId[c.id] || 0)}
+                        </span>
+                        <span className="o-stat-button-label" style={{ fontSize: 10 }}>
+                          Deposit
+                        </span>
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -557,6 +666,31 @@ export default function ContactsPage() {
                       <div style={{ fontSize: 12, color: "var(--muted)" }}>
                         {c.email || c.phone}
                       </div>
+                      <button
+                        type="button"
+                        className="o-stat-button"
+                        style={{
+                          marginTop: 8,
+                          padding: "6px 10px",
+                          borderLeft: "1px solid var(--color-border-soft)",
+                          borderRadius: 6,
+                          alignItems: "flex-start",
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openDepositPayments(c.id);
+                        }}
+                        title="Open customer deposit payments"
+                      >
+                        <span className="o-stat-button-value" style={{ fontSize: 14 }}>
+                          {depositLoading && depositByContactId[c.id] === undefined
+                            ? "..."
+                            : formatMoney(depositByContactId[c.id] || 0)}
+                        </span>
+                        <span className="o-stat-button-label" style={{ fontSize: 10 }}>
+                          Deposit
+                        </span>
+                      </button>
                     </div>
                   </div>
                 </div>

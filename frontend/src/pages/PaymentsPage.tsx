@@ -140,6 +140,7 @@ export default function PaymentsPage({
   const [methodFilter, setMethodFilter] = useState("");
   const [reconciledFilter, setReconciledFilter] = useState("");
   const [searchFilter, setSearchFilter] = useState("");
+  const [contactFilterId, setContactFilterId] = useState<number | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -168,8 +169,13 @@ export default function PaymentsPage({
   }, [isAdmin, me?.company_ids, searchParams, companyIdProp]);
 
   useEffect(() => {
+    const contactIdParam = Number(searchParams.get("contact_id") || 0);
+    setContactFilterId(contactIdParam > 0 ? contactIdParam : null);
+  }, [searchParams]);
+
+  useEffect(() => {
     loadData();
-  }, [selectedCompanyId, methodFilter, reconciledFilter, searchFilter]);
+  }, [selectedCompanyId, methodFilter, reconciledFilter, searchFilter, contactFilterId]);
 
   useEffect(() => {
     if (!selectedCompanyId) {
@@ -203,6 +209,7 @@ export default function PaymentsPage({
       if (methodFilter) params.append("payment_method", methodFilter);
       if (reconciledFilter) params.append("is_reconciled", reconciledFilter);
       if (searchFilter) params.append("search", searchFilter);
+      if (contactFilterId) params.append("contact_id", String(contactFilterId));
 
       const [paymentsData, summaryData] = await Promise.all([
         apiFetch<Payment[]>(`/payments?${params.toString()}`),
@@ -534,6 +541,11 @@ export default function PaymentsPage({
             <div style={{ fontSize: 13, color: "var(--slate-500)" }}>
               Record money deposited into a customer account balance.
             </div>
+            {contactFilterId && (
+              <div style={{ marginTop: 4, fontSize: 12, color: "var(--blue-600)", fontWeight: 600 }}>
+                Filtered for contact #{contactFilterId}
+              </div>
+            )}
           </div>
           <button className="btn btn-primary" onClick={() => setShowDepositDialog(true)}>
             Record Deposit
