@@ -451,7 +451,6 @@ export default function ContactFormPage() {
         </div>
         </div>
       </div>
-    </div>
   );
 }
 
