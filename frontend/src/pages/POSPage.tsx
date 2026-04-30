@@ -379,11 +379,12 @@ function printReceipt(
   if (oldFrame) oldFrame.remove();
 
   const iframe = document.createElement("iframe");
+  iframe.id = "pos-print-frame";
   iframe.style.cssText =
     "position:fixed;top:-10000px;left:-10000px;width:80mm;height:0;border:none;";
   document.body.appendChild(iframe);
   const doc = iframe.contentDocument || iframe.contentWindow?.document;
-  if (!doc) return;
+  if (!doc) return iframe;
 
   doc.open();
   doc.write(html);
@@ -434,27 +435,37 @@ function printReceipt(
   } else {
     setTimeout(triggerPrint, 200);
   }
+  return iframe;
 }
 
 function buildVoucherHtml(voucher: Voucher, company: CompanyInfo | null): string {
+  const fmt2 = (n: number | null | undefined) =>
+    (n ?? 0).toFixed(2);
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Voucher ${voucher.code}</title>
 <style>
   @page { size: 80mm auto; margin: 0; }
   body { font-family: 'Courier New', monospace; font-size: 12px; width: 80mm; padding: 5mm; color: #111; background: #fff; }
   .center { text-align: center; }
-  .title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
-  .name { font-size: 12px; margin-bottom: 10px; }
+  .logo { max-width: 42mm; max-height: 20mm; margin: 0 auto 4px; display: block; }
+  .title { font-size: 18px; font-weight: 700; margin: 6px 0 4px; }
+  .name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+  .addr { font-size: 10px; color: #444; margin-bottom: 2px; }
   .code { border: 1px dashed #000; padding: 8px; font-weight: 700; font-size: 15px; margin: 8px 0; }
   .row { display: flex; justify-content: space-between; margin: 4px 0; }
+  .divider { border-top: 1px dashed #aaa; margin: 6px 0; }
   .note { margin-top: 10px; font-size: 10px; color: #444; }
 </style></head><body>
   <div class="center">
+    ${company?.logo_data ? `<img class="logo" src="${company.logo_data}" alt="Logo" />` : ""}
     <div class="title">CHANGE VOUCHER</div>
     <div class="name">${company?.name || "365Fiscal"}</div>
-    <div class="code">${voucher.code}</div>
+    ${company?.address ? `<div class="addr">${company.address}</div>` : ""}
+    ${company?.phone ? `<div class="addr">Tel: ${company.phone}</div>` : ""}
   </div>
-  <div class="row"><span>Amount</span><span>${voucher.currency} ${fmt(voucher.amount)}</span></div>
-  <div class="row"><span>Remaining</span><span>${voucher.currency} ${fmt(voucher.remaining_amount)}</span></div>
+  <div class="divider"></div>
+  <div class="center"><div class="code">${voucher.code}</div></div>
+  <div class="row"><span>Amount</span><span>${voucher.currency} ${fmt2(voucher.amount)}</span></div>
+  <div class="row"><span>Remaining</span><span>${voucher.currency} ${fmt2(voucher.remaining_amount)}</span></div>
   <div class="row"><span>Issued</span><span>${new Date(voucher.issued_at).toLocaleString()}</span></div>
   <div class="note">Use this voucher code as payment on your next purchase.</div>
 </body></html>`;
@@ -462,14 +473,47 @@ function buildVoucherHtml(voucher: Voucher, company: CompanyInfo | null): string
 
 function printVoucher(voucher: Voucher, company: CompanyInfo | null) {
   const html = buildVoucherHtml(voucher, company);
-  const w = window.open("", "_blank", "width=320,height=700,scrollbars=yes");
-  if (!w) return;
-  w.document.write(html);
-  w.document.close();
-  w.onload = () => {
-    w.focus();
-    w.print();
+  const oldFrame = document.getElementById("pos-voucher-print-frame");
+  if (oldFrame) oldFrame.remove();
+
+  const iframe = document.createElement("iframe");
+  iframe.id = "pos-voucher-print-frame";
+  iframe.style.cssText =
+    "position:fixed;top:-10000px;left:-10000px;width:80mm;height:0;border:none;";
+  document.body.appendChild(iframe);
+  const doc = iframe.contentDocument || iframe.contentWindow?.document;
+  if (!doc) return;
+  doc.open();
+  doc.write(html);
+  doc.close();
+
+  const triggerPrint = () => {
+    try {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+    } catch {
+      const w = window.open("", "_blank", "width=320,height=700,scrollbars=yes");
+      if (w) {
+        w.document.write(html);
+        w.document.close();
+        w.onload = () => { w.focus(); w.print(); };
+      }
+    }
+    setTimeout(() => iframe.remove(), 5000);
   };
+
+  const imgs = doc.querySelectorAll("img");
+  if (imgs.length > 0) {
+    let loaded = 0;
+    const checkDone = () => { loaded++; if (loaded >= imgs.length) setTimeout(triggerPrint, 100); };
+    imgs.forEach((img) => {
+      if ((img as HTMLImageElement).complete) checkDone();
+      else { img.onload = checkDone; img.onerror = checkDone; }
+    });
+    setTimeout(triggerPrint, 2000);
+  } else {
+    setTimeout(triggerPrint, 200);
+  }
 }
 
 /* ────────────────────────── Component ────────────────────────── */
@@ -1590,9 +1634,25 @@ export default function POSPage() {
       setCashTendered("");
       setCardAmount("");
       setMobileAmount("");
-      printReceipt(order, companyInfo, selectedCustomer, session, activeDevice, issuedVoucher);
+      const receiptFrame = printReceipt(order, companyInfo, selectedCustomer, session, activeDevice, issuedVoucher);
       if (issuedVoucher) {
-        printVoucher(issuedVoucher, companyInfo);
+        const voucherSnapshot = issuedVoucher;
+        const companySnapshot = companyInfo;
+        const doVoucherPrint = () => printVoucher(voucherSnapshot, companySnapshot);
+        if (receiptFrame?.contentWindow) {
+          let fired = false;
+          const onAfterPrint = () => {
+            if (fired) return;
+            fired = true;
+            receiptFrame.contentWindow?.removeEventListener("afterprint", onAfterPrint);
+            setTimeout(doVoucherPrint, 800);
+          };
+          receiptFrame.contentWindow.addEventListener("afterprint", onAfterPrint);
+          // Fallback: if afterprint never fires (e.g. cancelled), still print voucher after delay
+          setTimeout(() => { if (!fired) { fired = true; doVoucherPrint(); } }, 8000);
+        } else {
+          setTimeout(doVoucherPrint, 2000);
+        }
       }
 
       // Refresh session, products & orders
