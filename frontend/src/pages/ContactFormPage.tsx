@@ -1,10 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { apiFetch } from "../api";
 import { useCompanies, Company } from "../hooks/useCompanies";
 import ValidationAlert from "../components/ValidationAlert";
 import ValidatedField from "../components/ValidatedField";
 import BackButton from "../components/BackButton";
+import { Sidebar } from "../components/Sidebar";
+import type { SidebarSection } from "../types/sidebar";
+import { User, MapPin, Tag, Wallet } from "lucide-react";
 import {
   getMissingRequiredFields,
   getRequiredFieldError,
@@ -286,7 +289,15 @@ export default function ContactFormPage() {
 
   return (
     <div className="content">
-      <div className="form-view">
+      <div className="two-panel two-panel-left">
+        <ContactFormSidebar
+          selectedContactId={selectedContactId}
+          depositBalance={depositBalance}
+          companyId={companyId}
+          navigate={navigate}
+          formatMoney={formatMoney}
+        />
+        <div className="form-view" style={{ flex: 1, minWidth: 0 }}>
         <div className="form-shell invoice-form">
           <div className="form-header">
             <div>
@@ -297,6 +308,16 @@ export default function ContactFormPage() {
               </div>
             </div>
             <div className="form-actions">
+              {selectedContactId && (
+                <button
+                  type="button"
+                  className="outline"
+                  title="Open customer deposits"
+                  onClick={() => navigate(`/payments?company_id=${companyId ?? ""}&contact_id=${selectedContactId}`)}
+                >
+                  {formatMoney(depositBalance?.balance || 0)} Deposit
+                </button>
+              )}
               <BackButton
                 className="outline"
                 fallbackTo="/contacts"
@@ -317,32 +338,10 @@ export default function ContactFormPage() {
             </div>
           </div>
 
-          {selectedContactId && (
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
-              <div className="o-stat-buttons" style={{ marginBottom: 0 }}>
-                <button
-                  type="button"
-                  className="o-stat-button"
-                  title="Open customer deposits"
-                  onClick={() =>
-                    navigate(
-                      `/payments?company_id=${companyId ?? ""}&contact_id=${selectedContactId}`,
-                    )
-                  }
-                >
-                  <span className="o-stat-button-value">
-                    {formatMoney(depositBalance?.balance || 0)}
-                  </span>
-                  <span className="o-stat-button-label">Customer Deposit</span>
-                </button>
-              </div>
-            </div>
-          )}
-
           <ValidationAlert message={error} onClose={() => setError(null)} />
 
           <div className="form-grid">
-            <div className="card" style={{ gridColumn: "1 / -1" }}>
+            <div id="section-contact-info" className="card" style={{ gridColumn: "1 / -1" }}>
               <div className="settings-card-title" style={{ marginBottom: 8 }}>Contact Information</div>
               <div className="form-grid">
                 <label className="input">
@@ -378,7 +377,7 @@ export default function ContactFormPage() {
               </div>
             </div>
 
-            <div className="card" style={{ gridColumn: "1 / -1" }}>
+            <div id="section-addresses" className="card" style={{ gridColumn: "1 / -1" }}>
               <div className="settings-card-title" style={{ marginBottom: 8 }}>Addresses</div>
               <div className="form-grid">
                 <label className="input">
@@ -404,7 +403,7 @@ export default function ContactFormPage() {
               </div>
             </div>
 
-            <div className="card" style={{ gridColumn: "1 / -1" }}>
+            <div id="section-tax-tags" className="card" style={{ gridColumn: "1 / -1" }}>
               <div className="settings-card-title" style={{ marginBottom: 8 }}>Tax & Tags</div>
               <div className="form-grid">
                 <label className="input">
@@ -449,7 +448,91 @@ export default function ContactFormPage() {
             </label>
           </div>
         </div>
+        </div>
+        </div>
       </div>
     </div>
   );
+}
+
+type ContactFormSidebarProps = {
+  selectedContactId: number | null;
+  depositBalance: { balance: number } | null;
+  companyId: number | null;
+  navigate: (path: string) => void;
+  formatMoney: (n: number) => string;
+};
+
+function ContactFormSidebar({
+  selectedContactId,
+  depositBalance,
+  companyId,
+  navigate,
+  formatMoney,
+}: ContactFormSidebarProps) {
+  const sections = useMemo<SidebarSection[]>(
+    () => [
+      {
+        id: "contact-sections",
+        title: "CONTACT",
+        items: [
+          {
+            id: "s-info",
+            label: "Contact Information",
+            icon: <User size={16} strokeWidth={1.5} />,
+            iconColor: "#2563eb",
+            iconBackground: "rgba(37, 99, 235, 0.12)",
+            isActive: false,
+            onClick: () =>
+              document
+                .getElementById("section-contact-info")
+                ?.scrollIntoView({ behavior: "smooth" }),
+          },
+          {
+            id: "s-addresses",
+            label: "Addresses",
+            icon: <MapPin size={16} strokeWidth={1.5} />,
+            iconColor: "#0f766e",
+            iconBackground: "rgba(15, 118, 110, 0.15)",
+            isActive: false,
+            onClick: () =>
+              document
+                .getElementById("section-addresses")
+                ?.scrollIntoView({ behavior: "smooth" }),
+          },
+          {
+            id: "s-tax",
+            label: "Tax & Tags",
+            icon: <Tag size={16} strokeWidth={1.5} />,
+            iconColor: "#7c3aed",
+            iconBackground: "rgba(124, 58, 237, 0.14)",
+            isActive: false,
+            onClick: () =>
+              document
+                .getElementById("section-tax-tags")
+                ?.scrollIntoView({ behavior: "smooth" }),
+          },
+          ...(selectedContactId
+            ? [
+                {
+                  id: "s-deposits",
+                  label: "Deposits",
+                  badge: formatMoney(depositBalance?.balance || 0),
+                  icon: <Wallet size={16} strokeWidth={1.5} />,
+                  iconColor: "#b45309",
+                  iconBackground: "rgba(180, 83, 9, 0.15)",
+                  isActive: false,
+                  onClick: () =>
+                    navigate(
+                      `/payments?company_id=${companyId ?? ""}&contact_id=${selectedContactId}`,
+                    ),
+                },
+              ]
+            : []),
+        ],
+      },
+    ],
+    [selectedContactId, depositBalance, companyId, navigate, formatMoney],
+  );
+  return <Sidebar sections={sections} />;
 }
