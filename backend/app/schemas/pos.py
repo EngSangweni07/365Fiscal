@@ -44,10 +44,13 @@ class POSOrderCreate(BaseModel):
     cash_amount: float = 0
     card_amount: float = 0
     mobile_amount: float = 0
+    voucher_code: str = ""
+    voucher_amount: float = 0
     payment_reference: str = ""
     notes: str = ""
     lines: List[POSOrderLineCreate] = []
     auto_fiscalize: bool = False
+    issue_change_voucher: bool = False
     cashier_name: str = ""
     till_id: int | None = None
 

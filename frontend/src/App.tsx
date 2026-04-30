@@ -49,6 +49,7 @@ import ExpensesPage from "./pages/ExpensesPage";
 import UsersRolesPage from "./pages/UsersRolesPage";
 import AuditLogsPage from "./pages/AuditLogsPage";
 import PaymentsPage from "./pages/PaymentsPage";
+import VouchersPage from "./pages/VouchersPage";
 import SubscriptionsPage from "./pages/SubscriptionsPage";
 import POSPage from "./pages/POSPage";
 import CustomerDisplayPage from "./pages/CustomerDisplayPage";
@@ -82,8 +83,10 @@ const adminNav = [
   { to: "/devices", label: "Devices", icon: DeviceIcon },
   { to: "/pos", label: "Point of Sale", icon: POSIcon },
   { to: "/payments", label: "Payments", icon: PaymentIcon },
+  { to: "/vouchers", label: "Vouchers", icon: WalletCardsIcon },
   { to: "/expenses", label: "Expenses", icon: ExpenseIcon },
   { to: "/accounting", label: "Accounting", icon: ReportsIcon },
+  { to: "/vouchers", label: "Vouchers", icon: WalletCardsIcon },
   { to: "/reports", label: "Financial Reports", icon: ReportsIcon },
   { to: "/users-roles", label: "Users & Roles", icon: UsersIcon },
   { to: "/audit-logs", label: "Audit Logs", icon: AuditIcon },
@@ -121,6 +124,7 @@ const PORTAL_NAV_APP_KEYS: Record<string, string> = {
   "/expenses": "expenses",
   "/accounting": "accounting",
   "/payments": "accounting",
+  "/vouchers": "accounting",
   "/accounting/reports": "accounting",
   "/accounting/configuration": "accounting",
   "/reports": "reports",
@@ -138,6 +142,7 @@ const PORTAL_APP_ROUTES: Record<string, string> = {
   devices: "/my-devices",
   expenses: "/expenses",
   accounting: "/accounting",
+  vouchers: "/vouchers",
   reports: "/reports",
   settings: "/settings",
 };
@@ -774,6 +779,7 @@ function AppContent() {
               <Route path="/audit-logs" element={<AuditLogsPage />} />
               <Route path="/leads" element={isPortalMode ? <DashboardPage /> : <LeadsPage />} />
               <Route path="/payments" element={<PaymentsPage />} />
+              <Route path="/vouchers" element={<VouchersPage />} />
               <Route path="/pos" element={<POSWindowLauncher />} />
               <Route path="/pos/window" element={<POSPage />} />
               <Route path="/subscriptions" element={<SubscriptionsPage />} />
@@ -1012,5 +1018,9 @@ function POSIcon() {
 
 function SubscriptionIcon() {
   return <WalletCards size={20} strokeWidth={2} />;
+}
+
+function WalletCardsIcon() {
+  return <WalletCards size={16} />;
 }
 

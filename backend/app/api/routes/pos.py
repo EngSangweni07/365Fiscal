@@ -35,6 +35,7 @@ from app.models.audit_log import AuditAction, ResourceType
 from app.models.pos_employee import POSEmployee
 from app.models.pos_till import POSTill
 from app.models.account import Journal
+from app.models.voucher import Voucher
 from app.schemas.pos import (
     POSSessionOpen, POSSessionClose, POSSessionRead, POSSessionSummary,
     POSOrderCreate, POSOrderRead, POSOrderRefund,
@@ -62,6 +63,13 @@ def _next_order_ref(db: Session) -> str:
     prefix = f"POS-ORD-{today}-"
     count = db.query(POSOrder).filter(POSOrder.reference.like(f"{prefix}%")).count()
     return f"{prefix}{count + 1:04d}"
+
+
+def _next_voucher_code(db: Session) -> str:
+    today = datetime.utcnow().strftime("%Y%m%d")
+    prefix = f"VCH-{today}-"
+    count = db.query(Voucher).filter(Voucher.code.like(f"{prefix}%")).count()
+    return f"{prefix}{count + 1:05d}"
 
 
 def _next_invoice_ref(db: Session, company_id: int | None = None) -> str:
@@ -563,6 +571,37 @@ def create_order(
     order.tax_amount = round(tax_sum, 2)
     order.total_amount = round(total_sum, 2)
 
+    voucher = None
+    voucher_applied = 0.0
+    voucher_code = (payload.voucher_code or "").strip()
+    if voucher_code:
+        voucher = (
+            db.query(Voucher)
+            .filter(
+                Voucher.company_id == payload.company_id,
+                Voucher.code == voucher_code,
+            )
+            .with_for_update()
+            .first()
+        )
+        if not voucher:
+            raise HTTPException(404, "Voucher not found")
+        if voucher.status != "active" or (voucher.remaining_amount or 0) <= 0:
+            raise HTTPException(400, "Voucher is not redeemable")
+        if voucher.currency != payload.currency:
+            raise HTTPException(400, "Voucher currency must match order currency")
+
+        requested_voucher_amount = round(float(payload.voucher_amount or 0), 2)
+        if requested_voucher_amount <= 0:
+            requested_voucher_amount = round(float(voucher.remaining_amount or 0), 2)
+        voucher_applied = min(
+            requested_voucher_amount,
+            round(float(voucher.remaining_amount or 0), 2),
+            order.total_amount,
+        )
+        if voucher_applied <= 0:
+            raise HTTPException(400, "Voucher amount is invalid")
+
     # Deduct inventory for storable products
     for ld in payload.lines:
         if not ld.product_id:
@@ -585,9 +624,36 @@ def create_order(
 
     # Calculate change
     paid = payload.cash_amount + payload.card_amount + payload.mobile_amount
-    if paid < order.total_amount:
-        raise HTTPException(400, f"Insufficient payment: {paid:.2f} < {order.total_amount:.2f}")
-    order.change_amount = round(paid - order.total_amount, 2)
+    net_due = round(max(0, order.total_amount - voucher_applied), 2)
+    if paid < net_due:
+        raise HTTPException(400, f"Insufficient payment: {paid:.2f} < {net_due:.2f}")
+    order.change_amount = round(paid - net_due, 2)
+
+    if voucher and voucher_applied > 0:
+        voucher.remaining_amount = round((voucher.remaining_amount or 0) - voucher_applied, 2)
+        voucher.redeemed_order_id = order.id
+        voucher.redeemed_at = datetime.utcnow()
+        voucher.status = "redeemed" if voucher.remaining_amount <= 0 else "active"
+        order.notes = (
+            (order.notes + "\n") if order.notes else ""
+        ) + f"Voucher redeemed: {voucher.code} ({voucher_applied:.2f} {voucher.currency})"
+
+    if payload.issue_change_voucher and order.change_amount > 0:
+        voucher_amount = order.change_amount
+        voucher = Voucher(
+            company_id=payload.company_id,
+            code=_next_voucher_code(db),
+            source_order_id=order.id,
+            issued_to_contact_id=order.customer_id,
+            amount=voucher_amount,
+            remaining_amount=voucher_amount,
+            currency=payload.currency,
+            status="active",
+            notes=f"Change voucher issued from POS order {order.reference}",
+        )
+        db.add(voucher)
+        # Change is converted into voucher value instead of cash returned.
+        order.change_amount = 0
     order.status = "paid"
 
     # Update session totals

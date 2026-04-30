@@ -60,6 +60,21 @@ type CustomerDepositBalance = {
   total_used: number;
   balance: number;
 };
+type Voucher = {
+  id: number;
+  company_id: number;
+  code: string;
+  source_order_id: number | null;
+  issued_to_contact_id: number | null;
+  amount: number;
+  remaining_amount: number;
+  currency: string;
+  status: string;
+  issued_at: string;
+  redeemed_at: string | null;
+  redeemed_order_id: number | null;
+  notes: string;
+};
 type POSSession = {
   id: number;
   name: string;
@@ -165,6 +180,7 @@ function buildReceiptHtml(
   customer: Customer | null,
   session: POSSession | null,
   device: Device | null,
+  voucher: Voucher | null = null,
 ): string {
   const lines = order.lines || [];
   const hasFiscalReceipt = Boolean(
@@ -257,6 +273,7 @@ function buildReceiptHtml(
     ${order.card_amount ? `<div class="summary-row"><span>Card</span><span>${order.currency} ${fmt(order.card_amount)}</span></div>` : ""}
     ${order.mobile_amount ? `<div class="summary-row"><span>Mobile</span><span>${order.currency} ${fmt(order.mobile_amount)}</span></div>` : ""}
     ${order.change_amount ? `<div class="summary-row"><span>Change</span><span>${order.currency} ${fmt(order.change_amount)}</span></div>` : ""}
+    ${voucher ? `<div class="summary-row"><span>Voucher Issued</span><span>${voucher.code} (${voucher.currency} ${fmt(voucher.amount)})</span></div>` : ""}
   </div>
   <div class="footer">Thank you for your business!<br>Powered by Three65</div>
 </body></html>`;
@@ -337,6 +354,7 @@ function buildReceiptHtml(
   ${order.card_amount ? `<div class="two-col"><div>Card</div><div>${fmt(order.card_amount)}</div></div>` : ""}
   ${order.mobile_amount ? `<div class="two-col"><div>Mobile</div><div>${fmt(order.mobile_amount)}</div></div>` : ""}
   ${order.change_amount ? `<div class="two-col"><div>Change</div><div>${fmt(order.change_amount)}</div></div>` : ""}
+  ${voucher ? `<div class="line">Voucher Issued: ${voucher.code} (${voucher.currency} ${fmt(voucher.amount)})</div>` : ""}
 
   ${qrSrc ? `<div class="center" style="margin-top:6px"><img src="${qrSrc}" alt="QR" /></div>` : ""}
   ${order.zimra_verification_code ? `<div class="center" style="font-size:1rem;margin-top:2px">Verification code: <span class="bold receipt-code">${order.zimra_verification_code}</span></div>` : ""}
@@ -354,8 +372,9 @@ function printReceipt(
   customer: Customer | null,
   session: POSSession | null,
   device: Device | null,
+  voucher: Voucher | null = null,
 ) {
-  const html = buildReceiptHtml(order, company, customer, session, device);
+  const html = buildReceiptHtml(order, company, customer, session, device, voucher);
   const oldFrame = document.getElementById("pos-print-frame");
   if (oldFrame) oldFrame.remove();
 
@@ -415,6 +434,42 @@ function printReceipt(
   } else {
     setTimeout(triggerPrint, 200);
   }
+}
+
+function buildVoucherHtml(voucher: Voucher, company: CompanyInfo | null): string {
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Voucher ${voucher.code}</title>
+<style>
+  @page { size: 80mm auto; margin: 0; }
+  body { font-family: 'Courier New', monospace; font-size: 12px; width: 80mm; padding: 5mm; color: #111; background: #fff; }
+  .center { text-align: center; }
+  .title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+  .name { font-size: 12px; margin-bottom: 10px; }
+  .code { border: 1px dashed #000; padding: 8px; font-weight: 700; font-size: 15px; margin: 8px 0; }
+  .row { display: flex; justify-content: space-between; margin: 4px 0; }
+  .note { margin-top: 10px; font-size: 10px; color: #444; }
+</style></head><body>
+  <div class="center">
+    <div class="title">CHANGE VOUCHER</div>
+    <div class="name">${company?.name || "365Fiscal"}</div>
+    <div class="code">${voucher.code}</div>
+  </div>
+  <div class="row"><span>Amount</span><span>${voucher.currency} ${fmt(voucher.amount)}</span></div>
+  <div class="row"><span>Remaining</span><span>${voucher.currency} ${fmt(voucher.remaining_amount)}</span></div>
+  <div class="row"><span>Issued</span><span>${new Date(voucher.issued_at).toLocaleString()}</span></div>
+  <div class="note">Use this voucher code as payment on your next purchase.</div>
+</body></html>`;
+}
+
+function printVoucher(voucher: Voucher, company: CompanyInfo | null) {
+  const html = buildVoucherHtml(voucher, company);
+  const w = window.open("", "_blank", "width=320,height=700,scrollbars=yes");
+  if (!w) return;
+  w.document.write(html);
+  w.document.close();
+  w.onload = () => {
+    w.focus();
+    w.print();
+  };
 }
 
 /* ────────────────────────── Component ────────────────────────── */
@@ -528,6 +583,12 @@ export default function POSPage() {
   const [cashTendered, setCashTendered] = useState("");
   const [cardAmount, setCardAmount] = useState("");
   const [mobileAmount, setMobileAmount] = useState("");
+  const [issueChangeVoucher, setIssueChangeVoucher] = useState(false);
+  const [lastIssuedVoucher, setLastIssuedVoucher] = useState<Voucher | null>(null);
+  const [voucherCode, setVoucherCode] = useState("");
+  const [voucherLookupLoading, setVoucherLookupLoading] = useState(false);
+  const [voucherLookupError, setVoucherLookupError] = useState("");
+  const [voucherToRedeem, setVoucherToRedeem] = useState<Voucher | null>(null);
   const [autoFiscalize, setAutoFiscalize] = useState(true);
   const [processing, setProcessing] = useState(false);
 
@@ -932,6 +993,11 @@ export default function POSPage() {
   const cartTaxPayment = cartTaxBase * (paymentFxRate || 1);
   const cartTotalPayment = cartTotalBase * (paymentFxRate || 1);
   const cartDiscountPayment = cartDiscountBase * (paymentFxRate || 1);
+  const voucherApplyAmount = useMemo(() => {
+    if (!voucherToRedeem) return 0;
+    return Math.max(0, Math.min(voucherToRedeem.remaining_amount || 0, cartTotalPayment));
+  }, [voucherToRedeem, cartTotalPayment]);
+  const cartTotalAfterVoucherPayment = Math.max(0, cartTotalPayment - voucherApplyAmount);
   const itemCount = cart.reduce((s, l) => s + l.qty, 0);
 
   const closeExpectedCashByCurrency = useMemo(() => {
@@ -1372,6 +1438,10 @@ export default function POSPage() {
     setCashTendered((cartTotalBase * (initialRate || 1)).toFixed(2));
     setCardAmount("");
     setMobileAmount("");
+    setIssueChangeVoucher(false);
+    setVoucherCode("");
+    setVoucherLookupError("");
+    setVoucherToRedeem(null);
     setShowPayment(true);
   }, [
     cartTotalBase,
@@ -1456,11 +1526,11 @@ export default function POSPage() {
       card = 0,
       mobile = 0;
     if (payMethod === "cash") {
-      cash = parseFloat(cashTendered) || cartTotalPayment;
+      cash = parseFloat(cashTendered) || cartTotalAfterVoucherPayment;
     } else if (payMethod === "card") {
-      card = cartTotalPayment;
+      card = cartTotalAfterVoucherPayment;
     } else if (payMethod === "mobile") {
-      mobile = cartTotalPayment;
+      mobile = cartTotalAfterVoucherPayment;
     } else {
       cash = parseFloat(cashTendered) || 0;
       card = parseFloat(cardAmount) || 0;
@@ -1480,6 +1550,9 @@ export default function POSPage() {
           cash_amount: cash,
           card_amount: card,
           mobile_amount: mobile,
+          voucher_code: voucherToRedeem?.code || "",
+          voucher_amount: voucherApplyAmount,
+          issue_change_voucher: issueChangeVoucher,
           auto_fiscalize: autoFiscalize,
           cashier_name: currentCashier?.name || "",
           till_id: selectedTillId,
@@ -1497,13 +1570,30 @@ export default function POSPage() {
         }),
       });
 
+      let issuedVoucher: Voucher | null = null;
+      if (issueChangeVoucher) {
+        try {
+          issuedVoucher = await apiFetch<Voucher>(
+            `/vouchers/by-order/${order.id}?company_id=${session.company_id}`,
+          );
+          setLastIssuedVoucher(issuedVoucher);
+        } catch {
+          setLastIssuedVoucher(null);
+        }
+      } else {
+        setLastIssuedVoucher(null);
+      }
+
       setLastOrder(order);
       setShowPayment(false);
       setShowReceipt(true);
       setCashTendered("");
       setCardAmount("");
       setMobileAmount("");
-      printReceipt(order, companyInfo, selectedCustomer, session, activeDevice);
+      printReceipt(order, companyInfo, selectedCustomer, session, activeDevice, issuedVoucher);
+      if (issuedVoucher) {
+        printVoucher(issuedVoucher, companyInfo);
+      }
 
       // Refresh session, products & orders
       const ordUrl =
@@ -1529,6 +1619,39 @@ export default function POSPage() {
       setError(e.message);
     } finally {
       setProcessing(false);
+    }
+  };
+
+  const lookupVoucher = async () => {
+    if (!companyId || !voucherCode.trim()) {
+      setVoucherLookupError("Enter a voucher code");
+      setVoucherToRedeem(null);
+      return;
+    }
+    setVoucherLookupLoading(true);
+    setVoucherLookupError("");
+    try {
+      const searchCode = voucherCode.trim();
+      const list = await apiFetch<Voucher[]>(
+        `/vouchers?company_id=${companyId}&status=active&search=${encodeURIComponent(searchCode)}`,
+      );
+      const match = (list || []).find((v) => v.code.toUpperCase() === searchCode.toUpperCase());
+      if (!match) {
+        setVoucherToRedeem(null);
+        setVoucherLookupError("Voucher not found or not active");
+        return;
+      }
+      if (match.currency !== (paymentCurrencyCode || posCurrencyCode)) {
+        setVoucherToRedeem(null);
+        setVoucherLookupError("Voucher currency does not match payment currency");
+        return;
+      }
+      setVoucherToRedeem(match);
+    } catch (e: any) {
+      setVoucherToRedeem(null);
+      setVoucherLookupError(e.message || "Failed to find voucher");
+    } finally {
+      setVoucherLookupLoading(false);
     }
   };
 
@@ -3759,11 +3882,53 @@ export default function POSPage() {
                   })}
                 </select>
                 <div className="pos-payment-total">
-                  {moneyPayment(cartTotalPayment)}
+                  {moneyPayment(cartTotalAfterVoucherPayment)}
                 </div>
               </div>
             </div>
             <div className="pos-dialog-body">
+              <div className="pos-pay-section">
+                <label className="pos-label">Redeem Voucher</label>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input
+                    type="text"
+                    className="pos-input"
+                    value={voucherCode}
+                    onChange={(e) => setVoucherCode(e.target.value)}
+                    placeholder="Enter voucher code"
+                    disabled={processing || voucherLookupLoading}
+                  />
+                  <button
+                    className="pos-btn pos-btn-ghost"
+                    onClick={lookupVoucher}
+                    disabled={processing || voucherLookupLoading}
+                  >
+                    {voucherLookupLoading ? "Checking..." : "Apply"}
+                  </button>
+                </div>
+                {voucherLookupError && (
+                  <div className="pos-split-warning" style={{ marginTop: 6 }}>
+                    {voucherLookupError}
+                  </div>
+                )}
+                {voucherToRedeem && (
+                  <div style={{ marginTop: 8, fontSize: 12, color: "var(--slate-700)" }}>
+                    Applied {voucherToRedeem.code}: {moneyPayment(voucherApplyAmount)}
+                    <button
+                      className="pos-btn-inline"
+                      style={{ marginLeft: 8 }}
+                      onClick={() => {
+                        setVoucherToRedeem(null);
+                        setVoucherCode("");
+                        setVoucherLookupError("");
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                )}
+              </div>
+
               {/* Method tabs */}
               <div className="pos-pay-methods">
                 {(["cash", "card", "mobile", "split"] as const).map((m) => (
@@ -3849,7 +4014,7 @@ export default function POSPage() {
                           {moneyPayment(
                             Math.max(
                               0,
-                              (parseFloat(cashTendered) || 0) - cartTotalPayment,
+                              (parseFloat(cashTendered) || 0) - cartTotalAfterVoucherPayment,
                             ),
                           )}
                         </strong>
@@ -3909,9 +4074,29 @@ export default function POSPage() {
                   {(parseFloat(cashTendered) || 0) +
                     (parseFloat(cardAmount) || 0) +
                     (parseFloat(mobileAmount) || 0) <
-                    cartTotalPayment && (
+                    cartTotalAfterVoucherPayment && (
                     <span className="pos-split-warning"> (Insufficient)</span>
                   )}
+                </div>
+              )}
+
+              {((payMethod === "cash" && (parseFloat(cashTendered) || 0) > cartTotalAfterVoucherPayment) ||
+                (payMethod === "split" &&
+                  (parseFloat(cashTendered) || 0) +
+                    (parseFloat(cardAmount) || 0) +
+                    (parseFloat(mobileAmount) || 0) >
+                    cartTotalAfterVoucherPayment)) && (
+                <div className="pos-fiscalize-toggle" style={{ marginTop: 8 }}>
+                  <label className="pos-toggle-label">
+                    <input
+                      type="checkbox"
+                      checked={issueChangeVoucher}
+                      onChange={(e) => setIssueChangeVoucher(e.target.checked)}
+                    />
+                    <span className="pos-toggle-text">
+                      Issue change as voucher (printable)
+                    </span>
+                  </label>
                 </div>
               )}
 
@@ -3969,7 +4154,7 @@ export default function POSPage() {
                     Processing…
                   </>
                 ) : (
-                  `Validate ${moneyPayment(cartTotalPayment)}`
+                  `Validate ${moneyPayment(cartTotalAfterVoucherPayment)}`
                 )}
               </button>
             </div>

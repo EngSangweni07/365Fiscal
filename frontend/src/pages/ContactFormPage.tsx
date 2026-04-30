@@ -295,25 +295,6 @@ export default function ContactFormPage() {
                 <span className={`status-pill ${selectedContactId ? "" : "active"}`}>New</span>
                 <span className={`status-pill ${selectedContactId ? "active" : ""}`}>Saved</span>
               </div>
-              {selectedContactId && (
-                <div className="o-stat-buttons" style={{ marginTop: 12, marginBottom: 0 }}>
-                  <button
-                    type="button"
-                    className="o-stat-button"
-                    title="Open customer deposits"
-                    onClick={() =>
-                      navigate(
-                        `/payments?company_id=${companyId ?? ""}&contact_id=${selectedContactId}`,
-                      )
-                    }
-                  >
-                    <span className="o-stat-button-value">
-                      {formatMoney(depositBalance?.balance || 0)}
-                    </span>
-                    <span className="o-stat-button-label">Customer Deposit</span>
-                  </button>
-                </div>
-              )}
             </div>
             <div className="form-actions">
               <BackButton
@@ -335,6 +316,28 @@ export default function ContactFormPage() {
               )}
             </div>
           </div>
+
+          {selectedContactId && (
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+              <div className="o-stat-buttons" style={{ marginBottom: 0 }}>
+                <button
+                  type="button"
+                  className="o-stat-button"
+                  title="Open customer deposits"
+                  onClick={() =>
+                    navigate(
+                      `/payments?company_id=${companyId ?? ""}&contact_id=${selectedContactId}`,
+                    )
+                  }
+                >
+                  <span className="o-stat-button-value">
+                    {formatMoney(depositBalance?.balance || 0)}
+                  </span>
+                  <span className="o-stat-button-label">Customer Deposit</span>
+                </button>
+              </div>
+            </div>
+          )}
 
           <ValidationAlert message={error} onClose={() => setError(null)} />
 
