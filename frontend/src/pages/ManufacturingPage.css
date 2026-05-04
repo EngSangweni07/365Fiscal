@@ -16,6 +16,8 @@
 
 .manufacturing-toolbar-left {
   align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
 }
 
 .manufacturing-toolbar-right {
@@ -37,6 +39,34 @@
   margin: 4px 0 0;
   font-size: 24px;
   font-weight: 700;
+  color: var(--text, #0f172a);
+}
+
+.manufacturing-top-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.manufacturing-top-metric {
+  min-width: 110px;
+  border: 1px solid var(--stroke, #dbe1ef);
+  background: #fff;
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: grid;
+  gap: 4px;
+}
+
+.manufacturing-top-metric span {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--muted, #64748b);
+  font-weight: 700;
+}
+
+.manufacturing-top-metric strong {
+  font-size: 15px;
   color: var(--text, #0f172a);
 }
 
@@ -108,6 +138,59 @@
   padding: 18px;
 }
 
+.manufacturing-inventory-banner {
+  margin-bottom: 16px;
+  border: 1px solid var(--stroke, #dbe1ef);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #f8fbff 0%, #f3f7fd 100%);
+  padding: 14px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.manufacturing-inventory-banner__copy {
+  display: grid;
+  gap: 4px;
+}
+
+.manufacturing-inventory-banner__copy strong {
+  color: var(--text, #0f172a);
+}
+
+.manufacturing-inventory-banner__copy span {
+  color: var(--muted, #64748b);
+  font-size: 13px;
+}
+
+.manufacturing-inventory-banner__metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.manufacturing-inventory-banner__metrics > div {
+  min-width: 92px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid var(--stroke, #dbe1ef);
+  padding: 10px 12px;
+  display: grid;
+  gap: 4px;
+}
+
+.manufacturing-inventory-banner__metrics span,
+.manufacturing-product-card__eyebrow,
+.manufacturing-product-card__stats span,
+.manufacturing-order-links span {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--muted, #64748b);
+  font-weight: 700;
+}
+
 .manufacturing-panel-header {
   display: flex;
   justify-content: space-between;
@@ -176,6 +259,47 @@
   margin-top: 18px;
   padding-top: 18px;
   border-top: 1px solid var(--stroke, #dbe1ef);
+}
+
+.manufacturing-product-card {
+  margin-top: 14px;
+  border: 1px solid var(--stroke, #dbe1ef);
+  border-radius: 8px;
+  background: var(--slate-50, #f8fafc);
+  padding: 14px 16px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.manufacturing-product-card strong,
+.manufacturing-order-links strong {
+  color: var(--text, #0f172a);
+}
+
+.manufacturing-product-card p {
+  margin: 4px 0 0;
+  color: var(--muted, #64748b);
+  font-size: 13px;
+}
+
+.manufacturing-product-card__stats,
+.manufacturing-order-links {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+  width: min(100%, 420px);
+}
+
+.manufacturing-product-card__stats > div,
+.manufacturing-order-links > div {
+  border: 1px solid var(--stroke, #dbe1ef);
+  border-radius: 8px;
+  background: #fff;
+  padding: 10px 12px;
+  display: grid;
+  gap: 4px;
 }
 
 .manufacturing-subsection-header {
@@ -311,6 +435,11 @@
   margin-top: 14px;
 }
 
+.manufacturing-order-links {
+  margin-top: 14px;
+  width: 100%;
+}
+
 .manufacturing-order-metrics > div {
   border: 1px solid var(--stroke, #dbe1ef);
   border-radius: 8px;
@@ -422,8 +551,17 @@
     align-items: stretch;
   }
 
+  .manufacturing-top-metrics {
+    width: 100%;
+  }
+
   .manufacturing-toolbar-right {
     justify-content: flex-start;
+  }
+
+  .manufacturing-inventory-banner,
+  .manufacturing-product-card {
+    padding: 12px;
   }
 
   .manufacturing-form-grid,
