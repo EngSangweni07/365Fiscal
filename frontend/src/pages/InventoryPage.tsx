@@ -4526,24 +4526,12 @@ export default function InventoryPage() {
                       <>
                         <div className="inventory-products-toolbar-meta">
                           <div className="inventory-products-pager">
-                            {/* <select
-                              value={productsPageSize}
-                              onChange={(event) =>
-                                setProductsPageSize(Number(event.target.value))
-                              }
-                              className="inventory-products-page-size"
-                              aria-label="Products per page"
-                            >
-                              <option value={20}>20</option>
-                              <option value={50}>50</option>
-                              <option value={100}>100</option>
-                            </select> */}
                             <span className="inventory-products-pager-range">
                               {productFromItem}-
                               <input
                                 type="number"
                                 value={productsPageSize}
-                                size={3}
+                                size={2}
                                 onChange={(event) =>
                                   setProductsPageSize(
                                     Number(event.target.value),
