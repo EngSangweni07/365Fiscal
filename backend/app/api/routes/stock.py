@@ -1,11 +1,14 @@
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, ensure_company_access, require_company_access, require_portal_user
+from app.models.location import Location
 from app.models.stock_move import StockMove
 from app.models.stock_quant import StockQuant
 from app.models.product import Product
+from app.models.warehouse import Warehouse
 from app.schemas.stock_move import StockMoveCreate, StockMoveRead, StockMoveUpdate
 from app.schemas.stock_quant import StockQuantRead
 from app.services.accounting import post_stock_move_entry
@@ -84,15 +87,19 @@ def create_stock_move(
 @router.get("/moves", response_model=list[StockMoveRead])
 def list_stock_moves(
     company_id: int,
+    response: Response,
     product_id: int | None = None,
     warehouse_id: int | None = None,
     move_type: str | None = None,
     state: str | None = None,
+    search: str = "",
+    limit: int = Query(500, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
     user=Depends(require_portal_user),
     _=Depends(require_company_access),
 ):
-    query = db.query(StockMove).filter(StockMove.company_id == company_id)
+    query = db.query(StockMove).join(Product, Product.id == StockMove.product_id).filter(StockMove.company_id == company_id)
     if product_id:
         query = query.filter(StockMove.product_id == product_id)
     if warehouse_id:
@@ -101,7 +108,19 @@ def list_stock_moves(
         query = query.filter(StockMove.move_type == move_type)
     if state:
         query = query.filter(StockMove.state == state)
-    return query.order_by(StockMove.created_at.desc()).all()
+    if search.strip():
+        token = f"%{search.strip()}%"
+        query = query.filter(
+            or_(
+                StockMove.reference.ilike(token),
+                StockMove.source_document.ilike(token),
+                StockMove.notes.ilike(token),
+                Product.name.ilike(token),
+                Product.reference.ilike(token),
+            )
+        )
+    response.headers["X-Total-Count"] = str(query.count())
+    return query.order_by(StockMove.created_at.desc()).offset(offset).limit(limit).all()
 
 
 @router.patch("/moves/{move_id}", response_model=StockMoveRead)
@@ -179,21 +198,45 @@ def cancel_stock_move(
 @router.get("/quants", response_model=list[StockQuantRead])
 def list_stock_quants(
     company_id: int,
+    response: Response,
     product_id: int | None = None,
     warehouse_id: int | None = None,
     location_id: int | None = None,
+    search: str = "",
+    limit: int = Query(500, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
     user=Depends(require_portal_user),
     _=Depends(require_company_access),
 ):
-    query = db.query(StockQuant).filter(StockQuant.company_id == company_id)
+    query = (
+        db.query(StockQuant)
+        .join(Product, Product.id == StockQuant.product_id)
+        .outerjoin(Warehouse, Warehouse.id == StockQuant.warehouse_id)
+        .outerjoin(Location, Location.id == StockQuant.location_id)
+        .filter(StockQuant.company_id == company_id)
+    )
     if product_id:
         query = query.filter(StockQuant.product_id == product_id)
     if warehouse_id:
         query = query.filter(StockQuant.warehouse_id == warehouse_id)
     if location_id:
         query = query.filter(StockQuant.location_id == location_id)
-    return query.all()
+    if search.strip():
+        token = f"%{search.strip()}%"
+        query = query.filter(
+            or_(
+                Product.name.ilike(token),
+                Product.reference.ilike(token),
+                Product.barcode.ilike(token),
+                Warehouse.name.ilike(token),
+                Warehouse.code.ilike(token),
+                Location.name.ilike(token),
+                Location.code.ilike(token),
+            )
+        )
+    response.headers["X-Total-Count"] = str(query.count())
+    return query.order_by(StockQuant.id.desc()).offset(offset).limit(limit).all()
 
 
 @router.get("/product/{product_id}/stock", response_model=dict)

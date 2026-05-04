@@ -292,6 +292,7 @@ def list_invoices(
     status: str | None = None,
     customer_id: int | None = None,
     invoice_type: str | None = None,
+    pos_receipt: bool | None = None,
     currency: str | None = None,
     limit: int = Query(500, ge=1, le=500),
     offset: int = Query(0, ge=0),
@@ -312,6 +313,15 @@ def list_invoices(
         query = query.filter(Invoice.currency.in_(codes))
     if invoice_type:
         query = query.filter(Invoice.invoice_type == invoice_type)
+    if pos_receipt is True:
+        query = query.filter(
+            Invoice.reference.like("POS-%") | Invoice.reference.like("CN-POS-%")
+        )
+    elif pos_receipt is False:
+        query = query.filter(
+            ~Invoice.reference.like("POS-%"),
+            ~Invoice.reference.like("CN-POS-%"),
+        )
     response.headers["X-Total-Count"] = str(query.count())
     return query.order_by(Invoice.created_at.desc()).offset(offset).limit(limit).all()
 

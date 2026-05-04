@@ -1,8 +1,9 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import html2pdf from "html2pdf.js";
 import { useNavigate, useParams } from "react-router-dom";
-import { apiFetch } from "../api";
+import { apiFetch, apiFetchWithTotal } from "../api";
 import { Sidebar } from "../components/Sidebar";
+import { TablePagination } from "../components/TablePagination";
 import type { AlertModalVariant } from "../components/AlertModal";
 import type { SidebarSection } from "../types/sidebar";
 import { useAlert } from "../context/AlertContext";
@@ -186,6 +187,9 @@ export default function QuotationsPage({
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [quotations, setQuotations] = useState<Quotation[]>([]);
+  const [totalQuotations, setTotalQuotations] = useState(0);
+  const [quotationsPage, setQuotationsPage] = useState(1);
+  const [quotationsPageSize, setQuotationsPageSize] = useState(10);
   const [companySettings, setCompanySettings] =
     useState<CompanySettings | null>(null);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
@@ -236,19 +240,27 @@ export default function QuotationsPage({
   }, [isAdmin, companies, companyId]);
 
   const loadData = async (cid: number) => {
-    const currencyParam = listCurrency
-      ? `&currency=${encodeURIComponent(listCurrency)}`
-      : "";
-    const [c, p, q, w, settingsData] = await Promise.all([
+    const quotationParams = new URLSearchParams({
+      company_id: String(cid),
+      limit: String(quotationsPageSize),
+      offset: String((quotationsPage - 1) * quotationsPageSize),
+    });
+    if (listCurrency) quotationParams.set("currency", listCurrency);
+    if (listStatus) quotationParams.set("status", listStatus);
+    if (listSearch.trim()) quotationParams.set("search", listSearch.trim());
+    if (listFrom) quotationParams.set("date_from", new Date(listFrom).toISOString());
+    if (listTo) quotationParams.set("date_to", new Date(listTo).toISOString());
+    const [c, p, qResult, w, settingsData] = await Promise.all([
       apiFetch<Contact[]>(`/contacts?company_id=${cid}`),
       apiFetch<Product[]>(`/products/with-stock?company_id=${cid}`),
-      apiFetch<Quotation[]>(`/quotations?company_id=${cid}${currencyParam}`),
+      apiFetchWithTotal<Quotation[]>(`/quotations?${quotationParams.toString()}`),
       apiFetch<Warehouse[]>(`/warehouses?company_id=${cid}`),
       apiFetch<CompanySettings>(`/company-settings?company_id=${cid}`),
     ]);
     setContacts(c);
     setProducts(p);
-    setQuotations(q);
+    setQuotations(qResult.data);
+    setTotalQuotations(qResult.total);
     setWarehouses(w);
     setCompanySettings(settingsData ?? null);
     if (!productWarehouseId && w.length) {
@@ -260,7 +272,20 @@ export default function QuotationsPage({
     if (companyId) {
       loadData(companyId);
     }
-  }, [companyId, listCurrency]);
+  }, [
+    companyId,
+    listCurrency,
+    listStatus,
+    listSearch,
+    listFrom,
+    listTo,
+    quotationsPage,
+    quotationsPageSize,
+  ]);
+
+  useEffect(() => {
+    setQuotationsPage(1);
+  }, [companyId, listCurrency, listStatus, listSearch, listFrom, listTo, quotationsPageSize]);
 
   useEffect(() => {
     if (!productWarehouseId) {
@@ -311,26 +336,7 @@ export default function QuotationsPage({
     [companies, companyId],
   );
 
-  const filteredQuotations = useMemo(() => {
-    const term = listSearch.trim().toLowerCase();
-    const fromDate = listFrom ? new Date(listFrom) : null;
-    const toDate = listTo ? new Date(listTo) : null;
-    return quotations.filter((q) => {
-      if (listStatus && q.status !== listStatus) return false;
-      if (fromDate || toDate) {
-        if (!q.expires_at) return false;
-        const expDate = new Date(q.expires_at);
-        if (fromDate && expDate < fromDate) return false;
-        if (toDate && expDate > toDate) return false;
-      }
-      if (!term) return true;
-      const customerName =
-        contacts.find((c) => c.id === q.customer_id)?.name?.toLowerCase() ?? "";
-      return (
-        q.reference.toLowerCase().includes(term) || customerName.includes(term)
-      );
-    });
-  }, [quotations, contacts, listSearch, listStatus, listFrom, listTo]);
+  const filteredQuotations = useMemo(() => quotations, [quotations]);
 
   const quotationSidebarSections = useMemo<SidebarSection[]>(() => {
     const items = QUOTATION_STATUS_FILTERS.map((filter) => {
@@ -1140,6 +1146,13 @@ export default function QuotationsPage({
                       </tfoot>
                     </table>
                   </div>
+                  <TablePagination
+                    page={quotationsPage}
+                    pageSize={quotationsPageSize}
+                    totalItems={totalQuotations}
+                    onPageChange={setQuotationsPage}
+                    onPageSizeChange={setQuotationsPageSize}
+                  />
                 </div>
               </div>
             </div>

@@ -1,8 +1,9 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { apiFetch, apiRequest } from "../api";
+import { apiFetch, apiFetchWithTotal, apiRequest } from "../api";
 import { useCompanies, Company } from "../hooks/useCompanies";
 import { useListView } from "../context/ListViewContext";
 import BackButton from "../components/BackButton";
+import { TablePagination } from "../components/TablePagination";
 
 import { Trash2 } from "lucide-react";
 
@@ -225,6 +226,9 @@ export default function DevicesPage() {
 
   /* ---- data ---- */
   const [devices, setDevices] = useState<Device[]>([]);
+  const [totalDevices, setTotalDevices] = useState(0);
+  const [devicesPage, setDevicesPage] = useState(1);
+  const [devicesPageSize, setDevicesPageSize] = useState(10);
   const [certStatus, setCertStatus] = useState<"loading" | "ready" | "missing">(
     "loading",
   );
@@ -288,6 +292,7 @@ export default function DevicesPage() {
     setSelectedCompany(c);
     setView("devices");
     setDevices([]);
+    setDevicesPage(1);
     setActionLog([]);
     setDeviceMessages({});
     setGlobalMsg(null);
@@ -307,9 +312,14 @@ export default function DevicesPage() {
         params.set(key, value),
       ),
     );
+    params.set("limit", String(devicesPageSize));
+    params.set("offset", String((devicesPage - 1) * devicesPageSize));
     try {
-      const data = await apiFetch<Device[]>(`/devices?${params.toString()}`);
+      const { data, total } = await apiFetchWithTotal<Device[]>(
+        `/devices?${params.toString()}`,
+      );
       setDevices(data);
+      setTotalDevices(total);
     } catch (err: any) {
       pushGlobal("error", err.message || "Failed to load devices");
     } finally {
@@ -322,7 +332,11 @@ export default function DevicesPage() {
       const t = setTimeout(() => loadDevices(selectedCompany.id), 200);
       return () => clearTimeout(t);
     }
-  }, [selectedCompany, view, state.filters]);
+  }, [selectedCompany, view, state.filters, devicesPage, devicesPageSize]);
+
+  useEffect(() => {
+    setDevicesPage(1);
+  }, [selectedCompany, state.filters, devicesPageSize]);
 
   /* ---- cert status ---- */
   useEffect(() => {
@@ -1276,6 +1290,15 @@ export default function DevicesPage() {
           </div>
         </Fragment>
       ))}
+      {!loadingDevices && (
+        <TablePagination
+          page={devicesPage}
+          pageSize={devicesPageSize}
+          totalItems={totalDevices}
+          onPageChange={setDevicesPage}
+          onPageSizeChange={setDevicesPageSize}
+        />
+      )}
       {/* activity log */}
       {actionLog.length > 0 && (
         <details style={{ marginBottom: 16 }}>

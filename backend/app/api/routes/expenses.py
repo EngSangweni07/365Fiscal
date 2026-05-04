@@ -37,6 +37,8 @@ def list_expenses(
     _=Depends(require_company_access),
     supplier_id: int | None = None,
     search: str | None = None,
+    status: str | None = None,
+    category: str | None = None,
     start_date: datetime | None = None,
     end_date: datetime | None = None,
     currency: str | None = None,
@@ -48,6 +50,10 @@ def list_expenses(
     q = db.query(Expense).filter(Expense.company_id == company_id)
     if supplier_id:
         q = q.filter(Expense.supplier_id == supplier_id)
+    if status:
+        q = q.filter(Expense.status == status)
+    if category:
+        q = q.filter(Expense.category == category)
     if search:
         like = f"%{search}%"
         q = q.filter(

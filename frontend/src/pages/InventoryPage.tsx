@@ -10,8 +10,9 @@ import {
 import html2pdf from "html2pdf.js";
 import * as XLSX from "xlsx";
 import { useNavigate } from "react-router-dom";
-import { apiFetch } from "../api";
+import { apiFetch, apiFetchWithTotal } from "../api";
 import JournalEntryPreviewDrawer from "../components/JournalEntryPreviewDrawer";
+import { TablePagination } from "../components/TablePagination";
 import { useMe } from "../hooks/useMe";
 import { useCompanies, Company } from "../hooks/useCompanies";
 import {
@@ -434,6 +435,8 @@ export default function InventoryPage() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [stockMoves, setStockMoves] = useState<StockMove[]>([]);
   const [stockQuants, setStockQuants] = useState<StockQuant[]>([]);
+  const [stockMovesTotal, setStockMovesTotal] = useState(0);
+  const [stockQuantsTotal, setStockQuantsTotal] = useState(0);
   const [taxSettings, setTaxSettings] = useState<TaxSetting[]>([]);
   const [companySettings, setCompanySettings] =
     useState<CompanySettings | null>(null);
@@ -452,6 +455,10 @@ export default function InventoryPage() {
     useState(false);
   const [productsPage, setProductsPage] = useState(1);
   const [productsPageSize, setProductsPageSize] = useState(20);
+  const [stockMovesPage, setStockMovesPage] = useState(1);
+  const [stockMovesPageSize, setStockMovesPageSize] = useState(20);
+  const [stockQuantsPage, setStockQuantsPage] = useState(1);
+  const [stockQuantsPageSize, setStockQuantsPageSize] = useState(20);
 
   const [showImportExportModal, setShowImportExportModal] = useState(false);
   const [importExportTarget, setImportExportTarget] = useState<
@@ -815,7 +822,36 @@ export default function InventoryPage() {
     if (companyId) {
       loadAllData();
     }
-  }, [companyId]);
+  }, [
+    companyId,
+    mainView,
+    operationsTab,
+    searchQuery,
+    filterState,
+    filterMoveType,
+    filterWarehouseId,
+    filterLocationId,
+    stockMovesPage,
+    stockMovesPageSize,
+    stockQuantsPage,
+    stockQuantsPageSize,
+  ]);
+
+  useEffect(() => {
+    setStockMovesPage(1);
+    setStockQuantsPage(1);
+  }, [
+    companyId,
+    mainView,
+    operationsTab,
+    searchQuery,
+    filterState,
+    filterMoveType,
+    filterWarehouseId,
+    filterLocationId,
+    stockMovesPageSize,
+    stockQuantsPageSize,
+  ]);
 
   useEffect(() => {
     if (!stockQuants.length) {
@@ -847,6 +883,31 @@ export default function InventoryPage() {
     console.log("loadAllData starting for companyId:", companyId);
     setLoading(true);
     try {
+      const stockMoveParams = new URLSearchParams({
+        company_id: String(companyId),
+        limit: String(stockMovesPageSize),
+        offset: String((stockMovesPage - 1) * stockMovesPageSize),
+      });
+      if (filterState !== "all") stockMoveParams.append("state", filterState);
+      if (filterMoveType !== "all")
+        stockMoveParams.append("move_type", filterMoveType);
+      if (mainView === "operations" && operationsTab === "moves" && searchQuery.trim()) {
+        stockMoveParams.append("search", searchQuery.trim());
+      }
+
+      const stockQuantParams = new URLSearchParams({
+        company_id: String(companyId),
+        limit: String(stockQuantsPageSize),
+        offset: String((stockQuantsPage - 1) * stockQuantsPageSize),
+      });
+      if (filterWarehouseId !== null)
+        stockQuantParams.append("warehouse_id", String(filterWarehouseId));
+      if (filterLocationId !== null)
+        stockQuantParams.append("location_id", String(filterLocationId));
+      if (mainView === "operations" && operationsTab === "quants" && searchQuery.trim()) {
+        stockQuantParams.append("search", searchQuery.trim());
+      }
+
       const [prods, cats, whs, moves, quants, taxes, settings] =
         await Promise.all([
           apiFetch<ProductWithStock[]>(
@@ -854,8 +915,8 @@ export default function InventoryPage() {
           ),
           apiFetch<Category[]>(`/categories?company_id=${companyId}`),
           apiFetch<Warehouse[]>(`/warehouses?company_id=${companyId}`),
-          apiFetch<StockMove[]>(`/stock/moves?company_id=${companyId}`),
-          apiFetch<StockQuant[]>(`/stock/quants?company_id=${companyId}`),
+          apiFetchWithTotal<StockMove[]>(`/stock/moves?${stockMoveParams.toString()}`),
+          apiFetchWithTotal<StockQuant[]>(`/stock/quants?${stockQuantParams.toString()}`),
           apiFetch<TaxSetting[]>(`/tax-settings?company_id=${companyId}`),
           apiFetch<CompanySettings>(
             `/company-settings?company_id=${companyId}`,
@@ -865,12 +926,12 @@ export default function InventoryPage() {
         prods: prods.length,
         cats: cats.length,
         whs: whs.length,
-        moves: moves.length,
-        quants: quants.length,
+        moves: moves.data.length,
+        quants: quants.data.length,
       });
       console.log("Warehouses loaded:", whs);
       const stockValueByProductId = new Map<number, number>();
-      for (const quant of quants) {
+      for (const quant of quants.data) {
         const current = stockValueByProductId.get(quant.product_id) ?? 0;
         stockValueByProductId.set(
           quant.product_id,
@@ -881,7 +942,7 @@ export default function InventoryPage() {
       const productsWithStockValue = prods.map((p) => {
         const valueFromQuants = stockValueByProductId.get(p.id);
         const computedValue =
-          valueFromQuants ??
+          (Number.isFinite(p.stock_value) ? p.stock_value : valueFromQuants) ??
           (Number.isFinite(p.quantity_on_hand) &&
           Number.isFinite(p.purchase_cost)
             ? p.quantity_on_hand * p.purchase_cost
@@ -891,8 +952,10 @@ export default function InventoryPage() {
       setProducts(productsWithStockValue);
       setCategories(cats);
       setWarehouses(whs);
-      setStockMoves(moves);
-      setStockQuants(quants);
+      setStockMoves(moves.data);
+      setStockQuants(quants.data);
+      setStockMovesTotal(moves.total);
+      setStockQuantsTotal(quants.total);
       setTaxSettings(taxes);
       setCompanySettings(settings ?? null);
 
@@ -3802,7 +3865,7 @@ export default function InventoryPage() {
     totalWarehouses: warehouses.length,
     totalLocations: locations.length,
     pendingMoves: stockMoves.filter((m) => m.state === "draft").length,
-    totalStockValue: stockQuants.reduce((sum, q) => sum + q.total_value, 0),
+    totalStockValue: products.reduce((sum, product) => sum + product.stock_value, 0),
   };
 
   const lowStockProducts = useMemo(
@@ -7141,6 +7204,16 @@ export default function InventoryPage() {
                           </button>
                         </div>
                       )}
+                      <TablePagination
+                        page={stockMovesPage}
+                        pageSize={stockMovesPageSize}
+                        totalItems={stockMovesTotal}
+                        onPageChange={setStockMovesPage}
+                        onPageSizeChange={(size) => {
+                          setStockMovesPageSize(size);
+                          setStockMovesPage(1);
+                        }}
+                      />
                     </div>
                   )}
 
@@ -7352,6 +7425,16 @@ export default function InventoryPage() {
                           )}
                         </tbody>
                       </table>
+                      <TablePagination
+                        page={stockQuantsPage}
+                        pageSize={stockQuantsPageSize}
+                        totalItems={stockQuantsTotal}
+                        onPageChange={setStockQuantsPage}
+                        onPageSizeChange={(size) => {
+                          setStockQuantsPageSize(size);
+                          setStockQuantsPage(1);
+                        }}
+                      />
                     </div>
                   )}
 

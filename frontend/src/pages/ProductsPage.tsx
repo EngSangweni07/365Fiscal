@@ -1,5 +1,6 @@
 ﻿import { useEffect, useState, useRef } from "react";
-import { apiFetch } from "../api";
+import { apiFetch, apiFetchWithTotal } from "../api";
+import { TablePagination } from "../components/TablePagination";
 import { useCompanies, Company } from "../hooks/useCompanies";
 import ValidationAlert from "../components/ValidationAlert";
 import ValidatedField from "../components/ValidatedField";
@@ -54,6 +55,9 @@ export default function ProductsPage() {
   const { companies, loading: companiesLoading } = useCompanies();
   const [companyId, setCompanyId] = useState<number | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  const [totalProducts, setTotalProducts] = useState(0);
+  const [productsPage, setProductsPage] = useState(1);
+  const [productsPageSize, setProductsPageSize] = useState(10);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<number | null>(
     null,
@@ -103,9 +107,18 @@ export default function ProductsPage() {
   }, [companies, companyId]);
 
   const loadProducts = async (cid: number) => {
-    const data = await apiFetch<Product[]>(`/products?company_id=${cid}`);
+    const params = new URLSearchParams({
+      company_id: String(cid),
+      limit: String(productsPageSize),
+      offset: String((productsPage - 1) * productsPageSize),
+    });
+    const { data, total } = await apiFetchWithTotal<Product[]>(
+      `/products?${params.toString()}`,
+    );
     setProducts(data);
-    if (data.length && selectedProductId === null) {
+    setTotalProducts(total);
+    const selectedVisible = data.some((product) => product.id === selectedProductId);
+    if (data.length && (selectedProductId === null || !selectedVisible)) {
       const first = data[0];
       setSelectedProductId(first.id);
       setProductImageUrl(first.image_url || "");
@@ -146,6 +159,10 @@ export default function ProductsPage() {
       loadProducts(companyId);
       loadCategories(companyId);
     }
+  }, [companyId, productsPage, productsPageSize]);
+
+  useEffect(() => {
+    setProductsPage(1);
   }, [companyId]);
 
   const clearInvalidField = (key: string, value: unknown) => {
@@ -357,6 +374,13 @@ export default function ProductsPage() {
               ))
             )}
           </div>
+          <TablePagination
+            page={productsPage}
+            pageSize={productsPageSize}
+            totalItems={totalProducts}
+            onPageChange={setProductsPage}
+            onPageSizeChange={setProductsPageSize}
+          />
         </div>
 
         <div className="form-shell-pro">

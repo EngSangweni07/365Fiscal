@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
-import { apiFetch } from "../api";
+import { apiFetchWithTotal } from "../api";
+import { TablePagination } from "../components/TablePagination";
 import { useMe } from "../hooks/useMe";
 
 
@@ -84,6 +85,9 @@ export default function VouchersPage() {
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [statusFilter, setStatusFilter] = useState("");
   const [search, setSearch] = useState("");
+  const [totalVouchers, setTotalVouchers] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -103,11 +107,18 @@ export default function VouchersPage() {
     setLoading(true);
     setError("");
     try {
-      const params = new URLSearchParams({ company_id: String(companyId) });
+      const params = new URLSearchParams({
+        company_id: String(companyId),
+        limit: String(pageSize),
+        offset: String((page - 1) * pageSize),
+      });
       if (statusFilter) params.append("status", statusFilter);
       if (search.trim()) params.append("search", search.trim());
-      const data = await apiFetch<Voucher[]>(`/vouchers?${params.toString()}`);
+      const { data, total } = await apiFetchWithTotal<Voucher[]>(
+        `/vouchers?${params.toString()}`,
+      );
       setVouchers(data || []);
+      setTotalVouchers(total);
     } catch (err: any) {
       setError(err?.message || "Failed to load vouchers");
     } finally {
@@ -117,7 +128,11 @@ export default function VouchersPage() {
 
   useEffect(() => {
     load();
-  }, [companyId, statusFilter, search]);
+  }, [companyId, statusFilter, search, page, pageSize]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [companyId, statusFilter, search, pageSize]);
 
   const activeCount = useMemo(
     () => vouchers.filter((v) => v.status === "active" && v.remaining_amount > 0).length,
@@ -194,6 +209,16 @@ export default function VouchersPage() {
               )}
             </tbody>
           </table>
+          <TablePagination
+            page={page}
+            pageSize={pageSize}
+            totalItems={totalVouchers}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(1);
+            }}
+          />
         </div>
       </div>
     </div>

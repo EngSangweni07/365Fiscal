@@ -1,7 +1,8 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiFetch, apiRequest } from "../api";
+import { apiFetch, apiFetchWithTotal, apiRequest } from "../api";
 import { Sidebar } from "../components/Sidebar";
+import { TablePagination } from "../components/TablePagination";
 import type { AlertModalVariant } from "../components/AlertModal";
 import type { SidebarSection } from "../types/sidebar";
 import { useCompanies } from "../hooks/useCompanies";
@@ -47,6 +48,9 @@ export default function ContactsPage() {
   const [companyQuery, setCompanyQuery] = useState("");
   const companyId = selectedCompanyId;
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [totalContacts, setTotalContacts] = useState(0);
+  const [contactsPage, setContactsPage] = useState(1);
+  const [contactsPageSize, setContactsPageSize] = useState(10);
   const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
   const [contactTypeFilter, setContactTypeFilter] = useState<
     "all" | "personal" | "company"
@@ -81,8 +85,19 @@ export default function ContactsPage() {
   }, [allCompanies, companyQuery]);
 
   const loadContacts = async (cid: number) => {
-    const data = await apiFetch<Contact[]>(`/contacts?company_id=${cid}`);
+    const params = new URLSearchParams({
+      company_id: String(cid),
+      limit: String(contactsPageSize),
+      offset: String((contactsPage - 1) * contactsPageSize),
+    });
+    if (contactTypeFilter !== "all") {
+      params.set("contact_type", contactTypeFilter);
+    }
+    const { data, total } = await apiFetchWithTotal<Contact[]>(
+      `/contacts?${params.toString()}`,
+    );
     setContacts(data);
+    setTotalContacts(total);
     setSelectedIds(new Set());
   };
 
@@ -90,7 +105,11 @@ export default function ContactsPage() {
     if (companyId) {
       loadContacts(companyId);
     }
-  }, [companyId]);
+  }, [companyId, contactTypeFilter, contactsPage, contactsPageSize]);
+
+  useEffect(() => {
+    setContactsPage(1);
+  }, [companyId, contactTypeFilter, contactsPageSize]);
 
   useEffect(() => {
     if (!companyId) return;
@@ -182,12 +201,7 @@ export default function ContactsPage() {
       (contact.tin && contact.tin.trim().length),
     );
 
-  const filteredContacts = contacts.filter((c) => {
-    if (contactTypeFilter === "all") return true;
-    return contactTypeFilter === "company"
-      ? isCompanyContact(c)
-      : !isCompanyContact(c);
-  });
+  const filteredContacts = contacts;
 
   const toggleSelectAll = () => {
     const visibleIds = filteredContacts.map((c) => c.id);
@@ -431,6 +445,13 @@ export default function ContactsPage() {
                 : "No companies found. Create a company first."}
             </div>
           )}
+          <TablePagination
+            page={contactsPage}
+            pageSize={contactsPageSize}
+            totalItems={totalContacts}
+            onPageChange={setContactsPage}
+            onPageSizeChange={setContactsPageSize}
+          />
         </div>
       </div>
     );

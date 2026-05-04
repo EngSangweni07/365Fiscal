@@ -177,8 +177,11 @@ def list_purchase_orders(
     _=Depends(require_company_access),
     search: str | None = None,
     status: str | None = None,
+    paid_state: str | None = None,
     supplier_id: int | None = None,
     currency: str | None = None,
+    date_from: datetime | None = Query(default=None),
+    date_to: datetime | None = Query(default=None),
     limit: int = Query(500, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ):
@@ -188,6 +191,8 @@ def list_purchase_orders(
         query = query.filter(PurchaseOrder.reference.ilike(like))
     if status:
         query = query.filter(PurchaseOrder.status == status)
+    if paid_state:
+        query = query.filter(PurchaseOrder.paid_state == paid_state)
     if supplier_id:
         query = query.filter(PurchaseOrder.supplier_id == supplier_id)
     if currency:
@@ -196,6 +201,10 @@ def list_purchase_orders(
         if cur in {"ZWG", "ZWL"}:
             codes = ["ZWG", "ZWL"]
         query = query.filter(PurchaseOrder.currency.in_(codes))
+    if date_from:
+        query = query.filter(PurchaseOrder.order_date >= date_from)
+    if date_to:
+        query = query.filter(PurchaseOrder.order_date <= date_to)
     response.headers["X-Total-Count"] = str(query.count())
     return query.order_by(PurchaseOrder.created_at.desc()).offset(offset).limit(limit).all()
 

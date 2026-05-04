@@ -16,7 +16,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { apiFetch } from "../api";
+import { apiFetch, apiFetchWithTotal } from "../api";
 import JournalEntryPreviewDrawer from "../components/JournalEntryPreviewDrawer";
 import { useMe } from "../hooks/useMe";
 import { useCompanies, Company } from "../hooks/useCompanies";
@@ -25,6 +25,7 @@ import ValidationAlert from "../components/ValidationAlert";
 import ValidatedField from "../components/ValidatedField";
 import BackButton from "../components/BackButton";
 import { Sidebar } from "../components/Sidebar";
+import { TablePagination } from "../components/TablePagination";
 import type { SidebarSection } from "../types/sidebar";
 import type { CurrencyItem, CurrencyRateRead } from "../types/currency";
 import "./InvoicesPage.css";
@@ -544,6 +545,9 @@ export default function InvoicesPage({
   }, [allCompanies, companyQuery]);
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [totalInvoices, setTotalInvoices] = useState(0);
+  const [invoicesPage, setInvoicesPage] = useState(1);
+  const [invoicesPageSize, setInvoicesPageSize] = useState(10);
   const [quotations, setQuotations] = useState<Quotation[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -711,14 +715,8 @@ export default function InvoicesPage({
     ];
   }, [invoices, listStatus, listType]);
   const visibleInvoices = useMemo(() => {
-    if (listType === "pos_receipt") {
-      return invoices.filter((inv) => isPOSReceiptInvoice(inv));
-    }
-    if (listType) {
-      return invoices.filter((inv) => inv.invoice_type === listType);
-    }
-    return invoices.filter((inv) => !isPOSReceiptInvoice(inv));
-  }, [invoices, listType]);
+    return invoices;
+  }, [invoices]);
   const [linesPage, setLinesPage] = useState(1);
   const [linesPerPage, setLinesPerPage] = useState(10);
   const [paymentOpen, setPaymentOpen] = useState(false);
@@ -915,15 +913,20 @@ export default function InvoicesPage({
     try {
       const query = new URLSearchParams({
         company_id: String(companyId),
+        limit: String(invoicesPageSize),
+        offset: String((invoicesPage - 1) * invoicesPageSize),
         ...(listSearch ? { search: listSearch } : {}),
         ...(listStatus ? { status: listStatus } : {}),
         ...(listType && listType !== "pos_receipt"
           ? { invoice_type: listType }
           : {}),
+        ...(listType === "pos_receipt"
+          ? { pos_receipt: "true" }
+          : { pos_receipt: "false" }),
         ...(listCurrency ? { currency: listCurrency } : {}),
       }).toString();
       const [
-        invoiceData,
+        invoiceResult,
         quotationData,
         contactData,
         productData,
@@ -933,7 +936,7 @@ export default function InvoicesPage({
         settingsData,
         currenciesData,
       ] = await Promise.all([
-        apiFetch<Invoice[]>(`/invoices?${query}`),
+        apiFetchWithTotal<Invoice[]>(`/invoices?${query}`),
         apiFetch<Quotation[]>(`/quotations?company_id=${companyId}`),
         apiFetch<Contact[]>(`/contacts?company_id=${companyId}`),
         apiFetch<Product[]>(`/products/with-stock?company_id=${companyId}`),
@@ -947,7 +950,8 @@ export default function InvoicesPage({
           `/currencies?company_id=${companyId}&active_only=true`,
         ),
       ]);
-      setInvoices(invoiceData);
+      setInvoices(invoiceResult.data);
+      setTotalInvoices(invoiceResult.total);
       setQuotations(quotationData);
       setContacts(contactData);
       setProducts(productData);
@@ -964,7 +968,7 @@ export default function InvoicesPage({
       }
       if (
         selectedInvoiceId &&
-        !invoiceData.find((inv) => inv.id === selectedInvoiceId)
+        !invoiceResult.data.find((inv) => inv.id === selectedInvoiceId)
       ) {
         setSelectedInvoiceId(null);
       }
@@ -977,11 +981,23 @@ export default function InvoicesPage({
 
   useEffect(() => {
     loadAll();
-  }, [companyId, listSearch, listStatus, listType, listCurrency]);
+  }, [
+    companyId,
+    listSearch,
+    listStatus,
+    listType,
+    listCurrency,
+    invoicesPage,
+    invoicesPageSize,
+  ]);
 
   useEffect(() => {
     setSelectedInvoiceIds(new Set());
   }, [companyId, listSearch, listStatus, listType, listCurrency]);
+
+  useEffect(() => {
+    setInvoicesPage(1);
+  }, [companyId, listSearch, listStatus, listType, listCurrency, invoicesPageSize]);
 
   const allInvoicesSelected =
     visibleInvoices.length > 0 &&
@@ -2478,6 +2494,13 @@ export default function InvoicesPage({
                       </tfoot>
                     </table>
                   </div>
+                  <TablePagination
+                    page={invoicesPage}
+                    pageSize={invoicesPageSize}
+                    totalItems={totalInvoices}
+                    onPageChange={setInvoicesPage}
+                    onPageSizeChange={setInvoicesPageSize}
+                  />
                 </div>
               </div>
             </div>

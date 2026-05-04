@@ -141,6 +141,8 @@ def list_quotations(
     customer_id: int | None = None,
     search: str | None = None,
     currency: str | None = None,
+    date_from: datetime | None = Query(default=None),
+    date_to: datetime | None = Query(default=None),
     limit: int = Query(500, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ):
@@ -158,6 +160,10 @@ def list_quotations(
         if cur in {"ZWG", "ZWL"}:
             codes = ["ZWG", "ZWL"]
         query = query.filter(Quotation.currency.in_(codes))
+    if date_from:
+        query = query.filter(Quotation.quotation_date >= date_from)
+    if date_to:
+        query = query.filter(Quotation.quotation_date <= date_to)
     response.headers["X-Total-Count"] = str(query.count())
     return query.order_by(Quotation.created_at.desc()).offset(offset).limit(limit).all()
 

@@ -24,10 +24,11 @@ import {
   WalletCards,
   X,
 } from "lucide-react";
-import { apiFetch, apiRequest } from "../api";
+import { apiFetch, apiFetchWithTotal, apiRequest } from "../api";
 import JournalEntryPreviewDrawer from "../components/JournalEntryPreviewDrawer";
 import { Sidebar } from "../components/Sidebar";
 import BackButton from "../components/BackButton";
+import { TablePagination } from "../components/TablePagination";
 import type { SidebarSection } from "../types/sidebar";
 import { useMe } from "../hooks/useMe";
 import { useCompanies, Company } from "../hooks/useCompanies";
@@ -244,6 +245,7 @@ export default function ExpensesPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [totalExpenses, setTotalExpenses] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -319,6 +321,41 @@ export default function ExpensesPage() {
     return { tax, total: subtotal + tax };
   }, [form.subtotal, form.vat_rate]);
 
+  const buildExpenseQuery = () => {
+    const params = new URLSearchParams({
+      company_id: String(companyId),
+      limit: String(transactionsPageSize),
+      offset: String((transactionsPage - 1) * transactionsPageSize),
+    });
+    if (search.trim()) params.set("search", search.trim());
+    if (supplierFilter !== "") params.set("supplier_id", String(supplierFilter));
+    if (statusFilter) params.set("status", statusFilter);
+    if (categoryFilter) params.set("category", categoryFilter);
+    const now = new Date();
+    const range =
+      dateFilter === "this_year"
+        ? {
+            start: new Date(now.getFullYear(), 0, 1),
+            end: new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999),
+          }
+        : dateFilter === "last_month"
+          ? {
+              start: new Date(now.getFullYear(), now.getMonth() - 1, 1),
+              end: new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999),
+            }
+          : dateFilter === "this_month"
+            ? {
+                start: new Date(now.getFullYear(), now.getMonth(), 1),
+                end: new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999),
+              }
+            : null;
+    if (range) {
+      params.set("start_date", range.start.toISOString());
+      params.set("end_date", range.end.toISOString());
+    }
+    return params;
+  };
+
   /* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Data loading ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */
   const loadData = async () => {
     if (!companyId) return;
@@ -329,15 +366,16 @@ export default function ExpensesPage() {
         apiFetch<Contact[]>(`/contacts?company_id=${companyId}`).catch(
           () => [] as Contact[],
         ),
-        apiFetch<Expense[]>(`/expenses?company_id=${companyId}`).catch(
-          () => [] as Expense[],
-        ),
+        apiFetchWithTotal<Expense[]>(
+          `/expenses?${buildExpenseQuery().toString()}`,
+        ).catch(() => ({ data: [] as Expense[], total: 0 })),
         apiFetch<ExpenseCategory[]>(
           `/expense-categories?company_id=${companyId}`,
         ).catch(() => [] as ExpenseCategory[]),
       ]);
       setContacts(contactsData);
-      setExpenses(expensesData);
+      setExpenses(expensesData.data);
+      setTotalExpenses(expensesData.total);
       setCategories(categoriesData);
     } catch (err: any) {
       setError(err.message || "Failed to load expenses");
@@ -349,8 +387,16 @@ export default function ExpensesPage() {
   useEffect(() => {
     if (!companyId) return;
     loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [companyId]);
+  }, [
+    companyId,
+    search,
+    supplierFilter,
+    statusFilter,
+    categoryFilter,
+    dateFilter,
+    transactionsPage,
+    transactionsPageSize,
+  ]);
 
   /* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Filtering ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */
   const filteredExpenses = useMemo(() => {
@@ -624,13 +670,10 @@ export default function ExpensesPage() {
 
   const transactionTotalPages = Math.max(
     1,
-    Math.ceil(sortedTransactions.length / transactionsPageSize),
+    Math.ceil(totalExpenses / transactionsPageSize),
   );
 
-  const pagedTransactions = useMemo(() => {
-    const start = (transactionsPage - 1) * transactionsPageSize;
-    return sortedTransactions.slice(start, start + transactionsPageSize);
-  }, [sortedTransactions, transactionsPage, transactionsPageSize]);
+  const pagedTransactions = sortedTransactions;
 
   const hasActiveFilters =
     search.trim().length > 0 ||
@@ -2548,6 +2591,13 @@ export default function ExpensesPage() {
                             )}
                           </table>
                         </div>
+                        <TablePagination
+                          page={transactionsPage}
+                          pageSize={transactionsPageSize}
+                          totalItems={totalExpenses}
+                          onPageChange={setTransactionsPage}
+                          onPageSizeChange={setTransactionsPageSize}
+                        />
                       </div>
                     </div>
                   </div>

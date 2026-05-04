@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import html2pdf from "html2pdf.js";
 import { useNavigate, useParams } from "react-router-dom";
-import { apiFetch } from "../api";
+import { apiFetch, apiFetchWithTotal } from "../api";
 import JournalEntryPreviewDrawer from "../components/JournalEntryPreviewDrawer";
 import { Sidebar } from "../components/Sidebar";
+import { TablePagination } from "../components/TablePagination";
 import type { SidebarSection } from "../types/sidebar";
 import { useMe } from "../hooks/useMe";
 import { useCompanies, Company } from "../hooks/useCompanies";
@@ -218,6 +219,9 @@ export default function PurchasesPage({
   }, [allCompanies, companyQuery]);
 
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
+  const [totalOrders, setTotalOrders] = useState(0);
+  const [ordersPage, setOrdersPage] = useState(1);
+  const [ordersPageSize, setOrdersPageSize] = useState(10);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
@@ -258,37 +262,59 @@ export default function PurchasesPage({
 
   const currencySymbol = companySettings?.currency_symbol || "$";
 
-  useEffect(() => {
+  const loadData = async () => {
     if (!companyId) return;
-    const loadData = async () => {
-      setLoadingData(true);
-      const currencyParam = listCurrency
-        ? `&currency=${encodeURIComponent(listCurrency)}`
-        : "";
-      const [c, p, o, w, settingsData] = await Promise.all([
-        apiFetch<Contact[]>(`/contacts?company_id=${companyId}`),
-        apiFetch<Product[]>(`/products/with-stock?company_id=${companyId}`),
-        apiFetch<PurchaseOrder[]>(
-          `/purchases?company_id=${companyId}${currencyParam}`,
-        ),
-        apiFetch<Warehouse[]>(`/warehouses?company_id=${companyId}`),
-        apiFetch<CompanySettings>(`/company-settings?company_id=${companyId}`),
-      ]);
-      setContacts(c);
-      setProducts(
-        p.filter((prod) => prod.is_active && prod.can_be_purchased === true),
-      );
-      setOrders(o);
-      setSelectedOrderIds(new Set());
-      setWarehouses(w);
-      setCompanySettings(settingsData ?? null);
-      if (!form.warehouse_id && w.length) {
-        setForm((prev) => ({ ...prev, warehouse_id: w[0].id }));
-      }
-      setLoadingData(false);
-    };
+    setLoadingData(true);
+    const purchaseParams = new URLSearchParams({
+      company_id: String(companyId),
+      limit: String(ordersPageSize),
+      offset: String((ordersPage - 1) * ordersPageSize),
+    });
+    if (listCurrency) purchaseParams.set("currency", listCurrency);
+    if (listStatus) purchaseParams.set("status", listStatus);
+    if (listPaidState) purchaseParams.set("paid_state", listPaidState);
+    if (listSearch.trim()) purchaseParams.set("search", listSearch.trim());
+    if (listFrom) purchaseParams.set("date_from", new Date(listFrom).toISOString());
+    if (listTo) purchaseParams.set("date_to", new Date(`${listTo}T23:59:59`).toISOString());
+    const [c, p, oResult, w, settingsData] = await Promise.all([
+      apiFetch<Contact[]>(`/contacts?company_id=${companyId}`),
+      apiFetch<Product[]>(`/products/with-stock?company_id=${companyId}`),
+      apiFetchWithTotal<PurchaseOrder[]>(`/purchases?${purchaseParams.toString()}`),
+      apiFetch<Warehouse[]>(`/warehouses?company_id=${companyId}`),
+      apiFetch<CompanySettings>(`/company-settings?company_id=${companyId}`),
+    ]);
+    setContacts(c);
+    setProducts(
+      p.filter((prod) => prod.is_active && prod.can_be_purchased === true),
+    );
+    setOrders(oResult.data);
+    setTotalOrders(oResult.total);
+    setSelectedOrderIds(new Set());
+    setWarehouses(w);
+    setCompanySettings(settingsData ?? null);
+    if (!form.warehouse_id && w.length) {
+      setForm((prev) => ({ ...prev, warehouse_id: w[0].id }));
+    }
+    setLoadingData(false);
+  };
+
+  useEffect(() => {
     loadData();
-  }, [companyId, listCurrency]);
+  }, [
+    companyId,
+    listCurrency,
+    listStatus,
+    listPaidState,
+    listSearch,
+    listFrom,
+    listTo,
+    ordersPage,
+    ordersPageSize,
+  ]);
+
+  useEffect(() => {
+    setOrdersPage(1);
+  }, [companyId, listCurrency, listStatus, listPaidState, listSearch, listFrom, listTo, ordersPageSize]);
 
   useEffect(() => {
     if (!form.warehouse_id) {
@@ -647,10 +673,7 @@ export default function PurchasesPage({
         setSelectedOrderId(created.id);
         navigate(`/purchases/${created.id}`);
       }
-      const updated = await apiFetch<PurchaseOrder[]>(
-        `/purchases?company_id=${companyId}`,
-      );
-      setOrders(updated);
+      await loadData();
       setIsEditing(false);
     } finally {
       setSaving(false);
@@ -700,10 +723,7 @@ export default function PurchasesPage({
     await apiFetch<PurchaseOrder>(`/purchases/${selectedOrderId}/confirm`, {
       method: "POST",
     });
-    const updated = await apiFetch<PurchaseOrder[]>(
-      `/purchases?company_id=${companyId}`,
-    );
-    setOrders(updated);
+    await loadData();
   };
 
   const receiveOrder = async () => {
@@ -721,10 +741,7 @@ export default function PurchasesPage({
       method: "POST",
       body: JSON.stringify(payload),
     });
-    const updated = await apiFetch<PurchaseOrder[]>(
-      `/purchases?company_id=${companyId}`,
-    );
-    setOrders(updated);
+    await loadData();
   };
 
   const cancelOrder = async () => {
@@ -732,39 +749,10 @@ export default function PurchasesPage({
     await apiFetch<PurchaseOrder>(`/purchases/${selectedOrderId}/cancel`, {
       method: "POST",
     });
-    const updated = await apiFetch<PurchaseOrder[]>(
-      `/purchases?company_id=${companyId}`,
-    );
-    setOrders(updated);
+    await loadData();
   };
 
-  const filteredOrders = useMemo(() => {
-    const term = listSearch.trim().toLowerCase();
-    const fromDate = listFrom ? new Date(listFrom) : null;
-    const toDate = listTo ? new Date(listTo + "T23:59:59") : null;
-    return orders.filter((o) => {
-      if (listStatus && o.status !== listStatus) return false;
-      if (listPaidState && (o.paid_state || "unpaid") !== listPaidState)
-        return false;
-      const dateValue = o.order_date ? new Date(o.order_date) : null;
-      if (fromDate && dateValue && dateValue < fromDate) return false;
-      if (toDate && dateValue && dateValue > toDate) return false;
-      if (!term) return true;
-      const supplierName =
-        contacts.find((c) => c.id === o.supplier_id)?.name?.toLowerCase() || "";
-      return (
-        o.reference.toLowerCase().includes(term) || supplierName.includes(term)
-      );
-    });
-  }, [
-    orders,
-    listSearch,
-    listStatus,
-    listPaidState,
-    listFrom,
-    listTo,
-    contacts,
-  ]);
+  const filteredOrders = useMemo(() => orders, [orders]);
   const allFilteredOrdersSelected =
     filteredOrders.length > 0 &&
     filteredOrders.every((order) => selectedOrderIds.has(order.id));
@@ -1330,6 +1318,13 @@ export default function PurchasesPage({
                       </tfoot>
                     </table>
                   </div>
+                  <TablePagination
+                    page={ordersPage}
+                    pageSize={ordersPageSize}
+                    totalItems={totalOrders}
+                    onPageChange={setOrdersPage}
+                    onPageSizeChange={setOrdersPageSize}
+                  />
                 </div>
               </div>
             </div>
