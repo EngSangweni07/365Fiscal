@@ -6,11 +6,6 @@ import linkedinIcon from "../assets/linkedin-icon.svg";
 import facebookIcon from "../assets/facebook-icon.svg";
 import twitterIcon from "../assets/twitter-icon.svg";
 
-type VerifyResponse = {
-  access_token: string;
-  token_type: string;
-};
-
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -43,22 +38,21 @@ export default function LoginPage() {
           password: password.trim(),
         }),
       });
-      // Prefer JSON when available; fall back to text so we can surface
-      // backend error messages even if the response isn't JSON.
+
       const contentType = res.headers.get("content-type") || "";
       let data: any = null;
       let rawText: string | null = null;
       if (contentType.includes("application/json")) {
         try {
           data = await res.json();
-        } catch (_) {
-          // leave data as null and try text below
+        } catch {
+          data = null;
         }
       }
       if (!data) {
         try {
           rawText = await res.text();
-        } catch (_) {
+        } catch {
           rawText = null;
         }
       }
@@ -74,8 +68,7 @@ export default function LoginPage() {
 
       const token = data?.access_token;
       if (!token) {
-        const msg = rawText || "Unexpected server response (missing token)";
-        throw new Error(msg);
+        throw new Error(rawText || "Unexpected server response (missing token)");
       }
 
       localStorage.setItem("access_token", token);
@@ -97,14 +90,18 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="login-shell">
-      {/* Centered Login Card */}
-      <div className="login-card ">
-        <div className="login-card-body">
-          <img src="/three65.png" alt="Three65" className="logo-365" />
-          <form className="login-form" onSubmit={signIn}>
-            <div>
-              <div className="input-group">
+    <div className="login-canvas">
+      <div className="login-canvas__bg" />
+      <div className="login-canvas__overlay" />
+      <div className="login-canvas__panel-wrap">
+        <div className="login-canvas__panel">
+          <div className="login-canvas__panel-inner">
+            <div className="login-canvas__brand">
+              <img src="/three65.png" alt="Three65" className="login-canvas__logo" />
+            </div>
+
+            <form className="login-canvas__form" onSubmit={signIn}>
+              <div className="login-canvas__field">
                 <input
                   id="email"
                   type="email"
@@ -116,8 +113,8 @@ export default function LoginPage() {
                 />
               </div>
 
-              <div className="input-group">
-                <div className="input-with-action">
+              <div className="login-canvas__field">
+                <div className="login-canvas__password-wrap">
                   <input
                     id="password"
                     type={showPassword ? "text" : "password"}
@@ -126,14 +123,12 @@ export default function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     autoComplete="current-password"
                     disabled={isLoading}
-                    className="input-has-action"
                   />
                   <button
                     type="button"
-                    className="input-action-btn"
+                    className="login-canvas__password-btn"
                     onClick={() => setShowPassword((prev) => !prev)}
                     aria-label={showPassword ? "Hide password" : "Show password"}
-                    aria-pressed={showPassword}
                     disabled={isLoading}
                   >
                     <img
@@ -144,102 +139,34 @@ export default function LoginPage() {
                   </button>
                 </div>
               </div>
-            </div>
 
-            <button className="login-btn" type="submit" disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <span className="spinner"></span>
-                  <span>Signing in...</span>
-                </>
-              ) : (
-                <>
-                  <span>Sign In</span>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <line x1="5" y1="12" x2="19" y2="12" />
-                    <polyline points="12 5 19 12 12 19" />
-                  </svg>
-                </>
-              )}
-            </button>
-          </form>
+              <button className="login-canvas__submit" type="submit" disabled={isLoading}>
+                {isLoading ? "Signing in..." : "Sign In"}
+              </button>
+            </form>
 
-          {status && !error && (
-            <div className="login-status">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                <polyline points="22 4 12 14.01 9 11.01" />
-              </svg>
-              {status}
-            </div>
-          )}
-          {error && (
-            <div className="login-error">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
-              {error}
-            </div>
-          )}
-        </div>
+            {status && !error && <div className="login-canvas__message login-canvas__message--success">{status}</div>}
+            {error && <div className="login-canvas__message login-canvas__message--error">{error}</div>}
 
-        <div className="login-card-footer">
-          <span>
-            <strong>
-              <a
-                style={{ textDecoration: "underline", color: "var(--blue-50)" }}
-                target="_blank"
-                rel="noreferrer"
-                href="http://www.geenet.co.zw"
-              >
-                Powered by GeeNet
+            <div className="login-canvas__powered">
+              Powered by{" "}
+              <a href="http://www.geenet.co.zw" target="_blank" rel="noreferrer">
+                GeeNet
               </a>
-            </strong>
-          </span>
-        </div>
-        
-        <div className="login-socials">
-          <a href="#linkedin" target="_blank" rel="noreferrer">
-            <img src={linkedinIcon} alt="LinkedIn" />
-          </a>
-          <a href="#facebook" target="_blank" rel="noreferrer">
-            <img src={facebookIcon} alt="Facebook" />
-          </a>
-          <a href="#twitter" target="_blank" rel="noreferrer">
-            <img src={twitterIcon} alt="Twitter" />
-          </a>
+            </div>
+          </div>
+
+          <div className="login-canvas__social-strip">
+            <a href="#linkedin" aria-label="LinkedIn">
+              <img src={linkedinIcon} alt="" aria-hidden="true" />
+            </a>
+            <a href="#facebook" aria-label="Facebook">
+              <img src={facebookIcon} alt="" aria-hidden="true" />
+            </a>
+            <a href="#twitter" aria-label="X">
+              <img src={twitterIcon} alt="" aria-hidden="true" />
+            </a>
+          </div>
         </div>
       </div>
     </div>
