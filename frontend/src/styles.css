@@ -2294,6 +2294,10 @@ thead.table-light th {
   overflow: hidden;
 }
 
+.login-shell > .login-card {
+  grid-column: 2;
+}
+
 @keyframes card-fade-in {
   from { 
     opacity: 0; 

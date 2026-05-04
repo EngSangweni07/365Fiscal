@@ -102,44 +102,46 @@ export default function LoginPage() {
         <div className="login-card-body">
           <img src="/three65.png" alt="Three65" className="logo-365" />
           <form className="login-form" onSubmit={signIn}>
-            <div className="input-group">
-              <input
-                id="email"
-                type="email"
-                placeholder="Email Address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
-                disabled={isLoading}
-              />
-            </div>
-
-            <div className="input-group">
-              <div className="input-with-action">
+            <div>
+              <div className="input-group">
                 <input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
+                  id="email"
+                  type="email"
+                  placeholder="Email Address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
                   disabled={isLoading}
-                  className="input-has-action"
                 />
-                <button
-                  type="button"
-                  className="input-action-btn"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  aria-pressed={showPassword}
-                  disabled={isLoading}
-                >
-                  <img
-                    src={showPassword ? eyeSlashIcon : eyeIcon}
-                    alt=""
-                    aria-hidden="true"
+              </div>
+
+              <div className="input-group">
+                <div className="input-with-action">
+                  <input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="current-password"
+                    disabled={isLoading}
+                    className="input-has-action"
                   />
-                </button>
+                  <button
+                    type="button"
+                    className="input-action-btn"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-pressed={showPassword}
+                    disabled={isLoading}
+                  >
+                    <img
+                      src={showPassword ? eyeSlashIcon : eyeIcon}
+                      alt=""
+                      aria-hidden="true"
+                    />
+                  </button>
+                </div>
               </div>
             </div>
 
