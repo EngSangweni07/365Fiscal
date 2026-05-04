@@ -1,5 +1,5 @@
 ﻿from datetime import datetime, timedelta, timezone
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 
 from app.api.deps import (
@@ -133,6 +133,7 @@ def create_quotation(
 @router.get("", response_model=list[QuotationRead])
 def list_quotations(
     company_id: int,
+    response: Response,
     db: Session = Depends(get_db),
     user=Depends(require_portal_user),
     _=Depends(require_company_access),
@@ -140,6 +141,8 @@ def list_quotations(
     customer_id: int | None = None,
     search: str | None = None,
     currency: str | None = None,
+    limit: int = Query(500, ge=1, le=500),
+    offset: int = Query(0, ge=0),
 ):
     query = db.query(Quotation).filter(Quotation.company_id == company_id)
     if status:
@@ -155,7 +158,8 @@ def list_quotations(
         if cur in {"ZWG", "ZWL"}:
             codes = ["ZWG", "ZWL"]
         query = query.filter(Quotation.currency.in_(codes))
-    return query.order_by(Quotation.created_at.desc()).all()
+    response.headers["X-Total-Count"] = str(query.count())
+    return query.order_by(Quotation.created_at.desc()).offset(offset).limit(limit).all()
 
 
 @router.get("/{quotation_id}", response_model=QuotationRead)

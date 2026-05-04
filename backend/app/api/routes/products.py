@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+﻿from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, Response
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 import base64
@@ -53,10 +53,13 @@ def create_product(
 @router.get("", response_model=list[ProductRead])
 def list_products(
     company_id: int,
+    response: Response,
     category_id: int | None = None,
     search: str | None = None,
     is_active: bool | None = None,
     can_be_sold: bool | None = None,
+    limit: int = Query(500, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
     user=Depends(require_portal_user),
     _=Depends(require_company_access),
@@ -75,18 +78,44 @@ def list_products(
         query = query.filter(Product.is_active == is_active)
     if can_be_sold is not None:
         query = query.filter(Product.can_be_sold == can_be_sold)
-    return query.order_by(Product.name).all()
+    response.headers["X-Total-Count"] = str(query.count())
+    return query.order_by(Product.name).offset(offset).limit(limit).all()
 
 
 @router.get("/with-stock", response_model=list[ProductWithStock])
 def list_products_with_stock(
     company_id: int,
+    response: Response,
+    category_id: int | None = None,
+    search: str | None = None,
+    is_active: bool | None = None,
+    can_be_sold: bool | None = None,
+    can_be_purchased: bool | None = None,
+    limit: int = Query(500, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
     user=Depends(require_portal_user),
     _=Depends(require_company_access),
 ):
     """List products with their stock quantities."""
-    products = db.query(Product).filter(Product.company_id == company_id).all()
+    query = db.query(Product).filter(Product.company_id == company_id)
+    if category_id:
+        query = query.filter(Product.category_id == category_id)
+    if search:
+        like = f"%{search}%"
+        query = query.filter(
+            Product.name.ilike(like) |
+            Product.barcode.ilike(like) |
+            Product.reference.ilike(like)
+        )
+    if is_active is not None:
+        query = query.filter(Product.is_active == is_active)
+    if can_be_sold is not None:
+        query = query.filter(Product.can_be_sold == can_be_sold)
+    if can_be_purchased is not None:
+        query = query.filter(Product.can_be_purchased == can_be_purchased)
+    response.headers["X-Total-Count"] = str(query.count())
+    products = query.order_by(Product.name).offset(offset).limit(limit).all()
     result = []
     for product in products:
         stock_data = db.query(

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, UploadFile, File, Query, HTTPException, status
+from fastapi import APIRouter, Depends, UploadFile, File, Query, HTTPException, status, Response
 from sqlalchemy.orm import Session
 from typing import Optional
 
@@ -71,12 +71,15 @@ def create_device(
 @router.get("", response_model=list[DeviceRead])
 def list_devices(
     company_id: int,
+    response: Response,
     db: Session = Depends(get_db),
     user=Depends(require_portal_user),
     search: str | None = None,
     status: str | None = None,
     date_from: datetime | None = Query(default=None),
     date_to: datetime | None = Query(default=None),
+    limit: int = Query(500, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     _=Depends(require_company_access),
 ):
     query = db.query(Device).filter(Device.company_id == company_id)
@@ -93,7 +96,8 @@ def list_devices(
         query = query.filter(Device.created_at >= date_from)
     if date_to:
         query = query.filter(Device.created_at <= date_to)
-    return query.all()
+    response.headers["X-Total-Count"] = str(query.count())
+    return query.order_by(Device.id.desc()).offset(offset).limit(limit).all()
 
 
 @router.put("/{device_id}", response_model=DeviceRead)

@@ -1,5 +1,5 @@
 ﻿from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 
 from app.api.deps import (
@@ -284,6 +284,7 @@ def invoice_values(field: str, company_id: int | None = None, q: str | None = No
 @router.get("", response_model=list[InvoiceRead])
 def list_invoices(
     company_id: int,
+    response: Response,
     db: Session = Depends(get_db),
     user=Depends(require_portal_user),
     _=Depends(require_company_access),
@@ -292,6 +293,8 @@ def list_invoices(
     customer_id: int | None = None,
     invoice_type: str | None = None,
     currency: str | None = None,
+    limit: int = Query(500, ge=1, le=500),
+    offset: int = Query(0, ge=0),
 ):
     query = db.query(Invoice).filter(Invoice.company_id == company_id)
     if search:
@@ -309,7 +312,8 @@ def list_invoices(
         query = query.filter(Invoice.currency.in_(codes))
     if invoice_type:
         query = query.filter(Invoice.invoice_type == invoice_type)
-    return query.order_by(Invoice.created_at.desc()).all()
+    response.headers["X-Total-Count"] = str(query.count())
+    return query.order_by(Invoice.created_at.desc()).offset(offset).limit(limit).all()
 
 
 @router.get("/{invoice_id}", response_model=InvoiceRead)

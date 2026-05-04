@@ -2,7 +2,7 @@
 import io
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -84,11 +84,32 @@ def create_contact(
 @router.get("", response_model=list[ContactRead])
 def list_contacts(
     company_id: int,
+    response: Response,
+    search: str | None = None,
+    contact_type: str | None = None,
+    limit: int = Query(500, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
     user=Depends(require_portal_user),
     _=Depends(require_company_access),
 ):
-    return db.query(Contact).filter(Contact.company_id == company_id).all()
+    query = db.query(Contact).filter(Contact.company_id == company_id)
+    if search:
+        like = f"%{search.strip()}%"
+        query = query.filter(
+            Contact.name.ilike(like)
+            | Contact.email.ilike(like)
+            | Contact.phone.ilike(like)
+            | Contact.reference.ilike(like)
+            | Contact.tin.ilike(like)
+            | Contact.vat.ilike(like)
+        )
+    if contact_type == "company":
+        query = query.filter((Contact.vat != "") | (Contact.tin != ""))
+    elif contact_type == "personal":
+        query = query.filter((Contact.vat == "") & (Contact.tin == ""))
+    response.headers["X-Total-Count"] = str(query.count())
+    return query.order_by(Contact.name).offset(offset).limit(limit).all()
 
 
 @router.post("/batch-delete")

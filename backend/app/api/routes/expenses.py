@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, ensure_company_access, require_company_access, require_portal_user
@@ -31,6 +31,7 @@ def recalc_amounts(exp: Expense) -> None:
 @router.get("", response_model=list[ExpenseRead])
 def list_expenses(
     company_id: int,
+    response: Response,
     db: Session = Depends(get_db),
     user=Depends(require_portal_user),
     _=Depends(require_company_access),
@@ -65,6 +66,7 @@ def list_expenses(
             codes = ["ZWG", "ZWL"]
         q = q.filter(Expense.currency.in_(codes))
 
+    response.headers["X-Total-Count"] = str(q.count())
     return (
         q.order_by(Expense.expense_date.desc())
         .offset(offset)

@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 
 from app.api.deps import ensure_company_access, get_db, require_portal_user
@@ -21,6 +21,7 @@ def _next_voucher_code(db: Session) -> str:
 @router.get("", response_model=list[VoucherRead])
 def list_vouchers(
     company_id: int,
+    response: Response,
     status: Optional[str] = None,
     search: str = "",
     limit: int = Query(200, le=500),
@@ -35,6 +36,7 @@ def list_vouchers(
     if search.strip():
         token = search.strip()
         q = q.filter(Voucher.code.ilike(f"%{token}%"))
+    response.headers["X-Total-Count"] = str(q.count())
     return q.order_by(Voucher.issued_at.desc()).offset(offset).limit(limit).all()
 
 

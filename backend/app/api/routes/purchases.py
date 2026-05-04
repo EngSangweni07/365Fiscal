@@ -1,5 +1,5 @@
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, ensure_company_access, require_company_access, require_portal_user
@@ -171,6 +171,7 @@ def purchase_values(field: str, company_id: int | None = None, q: str | None = N
 @router.get("", response_model=list[PurchaseOrderRead])
 def list_purchase_orders(
     company_id: int,
+    response: Response,
     db: Session = Depends(get_db),
     user=Depends(require_portal_user),
     _=Depends(require_company_access),
@@ -178,6 +179,8 @@ def list_purchase_orders(
     status: str | None = None,
     supplier_id: int | None = None,
     currency: str | None = None,
+    limit: int = Query(500, ge=1, le=500),
+    offset: int = Query(0, ge=0),
 ):
     query = db.query(PurchaseOrder).filter(PurchaseOrder.company_id == company_id)
     if search:
@@ -193,7 +196,8 @@ def list_purchase_orders(
         if cur in {"ZWG", "ZWL"}:
             codes = ["ZWG", "ZWL"]
         query = query.filter(PurchaseOrder.currency.in_(codes))
-    return query.order_by(PurchaseOrder.created_at.desc()).all()
+    response.headers["X-Total-Count"] = str(query.count())
+    return query.order_by(PurchaseOrder.created_at.desc()).offset(offset).limit(limit).all()
 
 
 @router.get("/{order_id}", response_model=PurchaseOrderRead)
