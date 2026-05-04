@@ -3284,6 +3284,13 @@ thead.table-light th {
     padding: 10px;
   }
 
+  .login-socials {
+    display: flex;  
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
   .login-shell > .login-card .login-card-body {
     gap: 18px;
   }
