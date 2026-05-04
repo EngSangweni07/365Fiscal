@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import SplashScreen from "../components/SplashScreen";
 import eyeIcon from "../assets/eye.svg";
 import eyeSlashIcon from "../assets/eye-slash.svg";
-import Eye from "../assets/eye.svg?react";
-import EyeSlash from "../assets/eye-slash.svg?react";
+import linkedinIcon from "../assets/linkedin-icon.svg";
+import facebookIcon from "../assets/facebook-icon.svg";
+import twitterIcon from "../assets/twitter-icon.svg";
 
 type VerifyResponse = {
   access_token: string;
@@ -230,13 +231,13 @@ export default function LoginPage() {
         </div>
         <div className="login-socials">
           <a href="#linkedin" target="_blank" rel="noreferrer">
-            <img src="/linkedin-icon.svg" alt="LinkedIn" />
+            <img src={linkedinIcon} alt="LinkedIn" />
           </a>
           <a href="#facebook" target="_blank" rel="noreferrer">
-            <img src="/facebook-icon.svg" alt="Facebook" />
+            <img src={facebookIcon} alt="Facebook" />
           </a>
           <a href="#twitter" target="_blank" rel="noreferrer">
-            <img src="/twitter-icon.svg" alt="Twitter" />
+            <img src={twitterIcon} alt="Twitter" />
           </a>
         </div>
       </div>
