@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Boxes,
   CheckCircle2,
@@ -218,6 +218,7 @@ function formatInventoryNumber(value: number | null | undefined) {
 
 export default function ManufacturingPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { me } = useMe();
   const { companies } = useCompanies();
   const { showAlert, showConfirm } = useAlert();
@@ -303,20 +304,6 @@ export default function ManufacturingPage() {
     [products, bomForm.product_id],
   );
 
-  const inventorySnapshot = useMemo(() => {
-    const quantCount = stockQuants.filter((quant) => quant.available_quantity > 0).length;
-    const totalAvailable = products.reduce(
-      (sum, product) => sum + Number(product.quantity_available ?? 0),
-      0,
-    );
-    return {
-      itemCount: selectedCompanyProducts.length,
-      warehouseCount: warehouses.length,
-      liveQuantCount: quantCount,
-      totalAvailable,
-    };
-  }, [products, selectedCompanyProducts.length, warehouses.length, stockQuants]);
-
   const bomById = useMemo(
     () => Object.fromEntries(boms.map((bom) => [bom.id, bom])),
     [boms],
@@ -351,28 +338,28 @@ export default function ManufacturingPage() {
             label: "Overview",
             icon: <Factory size={18} />,
             isActive: activeView === "overview",
-            onClick: () => setActiveView("overview"),
+            onClick: () => navigate("/manufacturing"),
           },
           {
             id: "boms",
             label: "Bills of Materials",
             icon: <ClipboardList size={18} />,
             isActive: activeView === "boms",
-            onClick: () => setActiveView("boms"),
+            onClick: () => navigate("/manufacturing/boms"),
           },
           {
             id: "orders",
             label: "Production Orders",
             icon: <Hammer size={18} />,
             isActive: activeView === "orders",
-            onClick: () => setActiveView("orders"),
+            onClick: () => navigate("/manufacturing/orders"),
           },
           {
             id: "workcenters",
             label: "Work Centers",
             icon: <Settings2 size={18} />,
             isActive: activeView === "workcenters",
-            onClick: () => setActiveView("workcenters"),
+            onClick: () => navigate("/manufacturing/workcenters"),
           },
         ],
       },
@@ -397,6 +384,123 @@ export default function ManufacturingPage() {
     ],
     [activeView, navigate],
   );
+
+  useEffect(() => {
+    const path = location.pathname.replace(/\/+$/, "");
+    if (
+      path === "/manufacturing" ||
+      path === "/manufacturing/overview"
+    ) {
+      setActiveView("overview");
+      setBomScreen("list");
+      setOrderScreen("list");
+      setWorkCenterScreen("list");
+      return;
+    }
+    if (path === "/manufacturing/boms") {
+      setActiveView("boms");
+      setBomScreen("list");
+      return;
+    }
+    if (path === "/manufacturing/boms/new") {
+      setActiveView("boms");
+      setBomScreen("form");
+      setEditingBOMId(null);
+      setBomForm({
+        product_id: 0,
+        warehouse_id: 0,
+        output_location_id: 0,
+        code: "",
+        name: "",
+        version: "1.0",
+        quantity: 1,
+        notes: "",
+      });
+      setBomLines([{ component_product_id: 0, sequence: 10, quantity: 1, uom: "Units", scrap_rate_percent: 0, notes: "" }]);
+      setRoutingSteps([{ work_center_id: null, sequence: 10, name: "Assembly", duration_minutes: 60, instructions: "" }]);
+      return;
+    }
+    if (/^\/manufacturing\/boms\/\d+\/edit$/.test(path)) {
+      setActiveView("boms");
+      setBomScreen("form");
+      return;
+    }
+    if (path === "/manufacturing/orders") {
+      setActiveView("orders");
+      setOrderScreen("list");
+      return;
+    }
+    if (path === "/manufacturing/orders/new") {
+      setActiveView("orders");
+      setOrderScreen("form");
+      setOrderForm({
+        bom_id: 0,
+        planned_quantity: 1,
+        priority: "normal",
+        scheduled_start: "",
+        scheduled_end: "",
+        notes: "",
+      });
+      return;
+    }
+    if (path === "/manufacturing/workcenters") {
+      setActiveView("workcenters");
+      setWorkCenterScreen("list");
+      return;
+    }
+    if (path === "/manufacturing/workcenters/new") {
+      setActiveView("workcenters");
+      setWorkCenterScreen("form");
+      setWorkCenterForm({
+        name: "",
+        code: "",
+        capacity_per_cycle: 1,
+        hourly_cost: 0,
+        efficiency_percent: 100,
+        time_uom: "hours",
+        notes: "",
+      });
+    }
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const match = location.pathname.match(/^\/manufacturing\/boms\/(\d+)\/edit$/);
+    if (!match) return;
+    const bomId = Number(match[1]);
+    if (!bomId || editingBOMId === bomId) return;
+    const bom = boms.find((item) => item.id === bomId);
+    if (!bom) return;
+    setEditingBOMId(bom.id);
+    setBomForm({
+      product_id: bom.product_id,
+      warehouse_id: bom.warehouse_id || 0,
+      output_location_id: bom.output_location_id || 0,
+      code: bom.code,
+      name: bom.name,
+      version: bom.version,
+      quantity: bom.quantity,
+      notes: bom.notes,
+    });
+    setBomLines(
+      bom.lines.map((line) => ({
+        component_product_id: line.component_product_id,
+        sequence: line.sequence,
+        quantity: line.quantity,
+        uom: line.uom,
+        scrap_rate_percent: line.scrap_rate_percent,
+        notes: line.notes,
+      })),
+    );
+    setRoutingSteps(
+      bom.steps.map((step) => ({
+        work_center_id: step.work_center_id,
+        sequence: step.sequence,
+        name: step.name,
+        duration_minutes: step.duration_minutes,
+        instructions: step.instructions,
+      })),
+    );
+  }, [location.pathname, boms, editingBOMId]);
 
   const loadLocations = async (warehouseList: Warehouse[]) => {
     const entries = await Promise.all(
@@ -456,7 +560,7 @@ export default function ManufacturingPage() {
 
   const resetBOMForm = () => {
     setEditingBOMId(null);
-    setBomScreen("list");
+    navigate("/manufacturing/boms");
     setBomForm({
       product_id: 0,
       warehouse_id: 0,
@@ -472,7 +576,7 @@ export default function ManufacturingPage() {
   };
 
   const resetOrderForm = () => {
-    setOrderScreen("list");
+    navigate("/manufacturing/orders");
     setOrderForm({
       bom_id: 0,
       planned_quantity: 1,
@@ -499,7 +603,7 @@ export default function ManufacturingPage() {
         time_uom: "hours",
         notes: "",
       });
-      setWorkCenterScreen("list");
+      navigate("/manufacturing/workcenters");
       await loadAll(selectedCompanyId);
     } catch (error) {
       showAlert({ message: error instanceof Error ? error.message : "Failed to create work center", variant: "danger" });
@@ -525,7 +629,7 @@ export default function ManufacturingPage() {
       });
       resetBOMForm();
       await loadAll(selectedCompanyId);
-      setActiveView("boms");
+      navigate("/manufacturing/boms");
     } catch (error) {
       showAlert({ message: error instanceof Error ? error.message : "Failed to create BOM", variant: "danger" });
     }
@@ -551,7 +655,7 @@ export default function ManufacturingPage() {
       });
       resetOrderForm();
       await loadAll(selectedCompanyId);
-      setActiveView("orders");
+      navigate("/manufacturing/orders");
     } catch (error) {
       showAlert({ message: error instanceof Error ? error.message : "Failed to create order", variant: "danger" });
     }
@@ -598,8 +702,7 @@ export default function ManufacturingPage() {
         instructions: step.instructions,
       })),
     );
-    setActiveView("boms");
-    setBomScreen("form");
+    navigate(`/manufacturing/boms/${bom.id}/edit`);
   };
 
   const deleteBOM = async (bom: BOM) => {
@@ -705,7 +808,6 @@ export default function ManufacturingPage() {
         <div className="manufacturing-panel-header">
           <div>
             <h3>Recent Production Orders</h3>
-            <p>Latest manufacturing activity across this company.</p>
           </div>
         </div>
         <div className="manufacturing-table-wrap">
@@ -740,7 +842,6 @@ export default function ManufacturingPage() {
         <div className="manufacturing-panel-header">
           <div>
             <h3>Shortages</h3>
-            <p>Materials still required before open work orders can proceed.</p>
           </div>
         </div>
         {dashboard?.shortages?.length ? (
@@ -780,31 +881,10 @@ export default function ManufacturingPage() {
       <div className="manufacturing-panel-header">
         <div>
           <h3>{editingBOMId ? "Edit BOM" : "New BOM"}</h3>
-          <p>Pick finished items and components directly from inventory.</p>
         </div>
         <button className="o-btn o-btn-secondary" onClick={resetBOMForm}>
           Back to BOMs
         </button>
-      </div>
-      <div className="manufacturing-inventory-banner">
-        <div className="manufacturing-inventory-banner__copy">
-          <strong>Inventory-linked BOM</strong>
-          <span>Finished items and components come from the same item and inventory records used elsewhere in the app.</span>
-        </div>
-        <div className="manufacturing-inventory-banner__metrics">
-          <div>
-            <span>Items</span>
-            <strong>{inventorySnapshot.itemCount}</strong>
-          </div>
-          <div>
-            <span>Warehouses</span>
-            <strong>{inventorySnapshot.warehouseCount}</strong>
-          </div>
-          <div>
-            <span>Live stock lines</span>
-            <strong>{inventorySnapshot.liveQuantCount}</strong>
-          </div>
-        </div>
       </div>
       <div className="manufacturing-form-grid">
         <label className="manufacturing-field">
@@ -1025,13 +1105,12 @@ export default function ManufacturingPage() {
       <div className="manufacturing-panel-header">
         <div>
           <h3>Bills of Materials</h3>
-          <p>Configured manufacturing recipes using inventory items.</p>
         </div>
         <button
           className="o-btn o-btn-primary"
           onClick={() => {
             setEditingBOMId(null);
-            setBomScreen("form");
+            navigate("/manufacturing/boms/new");
           }}
         >
           <Plus size={16} /> New BOM
@@ -1080,7 +1159,6 @@ export default function ManufacturingPage() {
       <div className="manufacturing-panel-header">
         <div>
           <h3>New Production Order</h3>
-          <p>Launch work orders from an existing bill of materials.</p>
         </div>
         <button className="o-btn o-btn-secondary" onClick={resetOrderForm}>
           Back to Orders
@@ -1137,9 +1215,8 @@ export default function ManufacturingPage() {
       <div className="manufacturing-panel-header">
         <div>
           <h3>Production Orders</h3>
-          <p>Execution, traceability, and finished goods recording.</p>
         </div>
-        <button className="o-btn o-btn-primary" onClick={() => setOrderScreen("form")}>
+        <button className="o-btn o-btn-primary" onClick={() => navigate("/manufacturing/orders/new")}>
           <Plus size={16} /> New Order
         </button>
       </div>
@@ -1433,12 +1510,11 @@ export default function ManufacturingPage() {
       <div className="manufacturing-panel-header">
         <div>
           <h3>New Work Center</h3>
-          <p>Define capacity and operating cost for production resources.</p>
         </div>
         <button
           className="o-btn o-btn-secondary"
           onClick={() => {
-            setWorkCenterScreen("list");
+            navigate("/manufacturing/workcenters");
             setWorkCenterForm({
               name: "",
               code: "",
@@ -1496,9 +1572,8 @@ export default function ManufacturingPage() {
       <div className="manufacturing-panel-header">
         <div>
           <h3>Configured Work Centers</h3>
-          <p>Centers available to routing and production planning.</p>
         </div>
-        <button className="o-btn o-btn-primary" onClick={() => setWorkCenterScreen("form")}>
+        <button className="o-btn o-btn-primary" onClick={() => navigate("/manufacturing/workcenters/new")}>
           <Plus size={16} /> New Work Center
         </button>
       </div>
@@ -1554,20 +1629,6 @@ export default function ManufacturingPage() {
             <div>
               <div className="manufacturing-eyebrow">Manufacturing</div>
               <h2 className="manufacturing-title">Production, materials, and finished goods</h2>
-            </div>
-            <div className="manufacturing-top-metrics">
-              <div className="manufacturing-top-metric">
-                <span>Inventory items</span>
-                <strong>{inventorySnapshot.itemCount}</strong>
-              </div>
-              <div className="manufacturing-top-metric">
-                <span>Available qty</span>
-                <strong>{formatInventoryNumber(inventorySnapshot.totalAvailable)}</strong>
-              </div>
-              <div className="manufacturing-top-metric">
-                <span>Warehouses</span>
-                <strong>{inventorySnapshot.warehouseCount}</strong>
-              </div>
             </div>
           </div>
           <div className="o-control-panel-right manufacturing-toolbar-right">

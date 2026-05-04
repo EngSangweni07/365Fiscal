@@ -12,11 +12,15 @@
 .manufacturing-toolbar {
   margin: 0;
   border-radius: 0;
+  width: auto;
+  flex: 1;
+  justify-content: space-between;
+  align-items: flex-start;
 }
 
 .manufacturing-toolbar-left {
-  align-items: center;
-  gap: 18px;
+  align-items: flex-start;
+  gap: 10px;
   flex-wrap: wrap;
 }
 

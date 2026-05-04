@@ -766,6 +766,14 @@ function AppContent() {
               />
               <Route path="/inventory" element={<InventoryPage />} />
               <Route path="/manufacturing" element={<ManufacturingPage />} />
+              <Route path="/manufacturing/overview" element={<ManufacturingPage />} />
+              <Route path="/manufacturing/boms" element={<ManufacturingPage />} />
+              <Route path="/manufacturing/boms/new" element={<ManufacturingPage />} />
+              <Route path="/manufacturing/boms/:bomId/edit" element={<ManufacturingPage />} />
+              <Route path="/manufacturing/orders" element={<ManufacturingPage />} />
+              <Route path="/manufacturing/orders/new" element={<ManufacturingPage />} />
+              <Route path="/manufacturing/workcenters" element={<ManufacturingPage />} />
+              <Route path="/manufacturing/workcenters/new" element={<ManufacturingPage />} />
               <Route path="/expenses" element={<ExpensesPage />} />
               <Route path="/reports" element={<ReportsPage />} />
               <Route path="/accounting" element={<AccountingPage />} />
