@@ -2284,19 +2284,15 @@ thead.table-light th {
 
 /* Login Card */
 .login-card {
-  width: 100%;
-  max-width: 400px;
-  background: #ffffffff;
-  border-radius: 32px;
-  padding: 0;
-  animation: card-fade-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
-  animation-delay: 0.15s;
-  position: relative;
-  overflow: visible;
   z-index: 2;
-  display: flex;
-  flex-direction: column;
   border: solid 2px var(--color-brand-primary);
+  background: #fff;
+  border-radius: 2rem;
+  height: 100%;
+  animation: .8s cubic-bezier(0.165, 0.84, 0.44, 1) .15s both card-fade-in;
+  display: grid;
+  grid-template-columns: 3fr 1fr;
+  overflow: hidden;
 }
 
 .login-card-glass {
@@ -2424,7 +2420,7 @@ thead.table-light th {
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-end;
   gap: 8px;
 }
 

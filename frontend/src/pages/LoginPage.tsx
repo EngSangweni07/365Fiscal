@@ -96,12 +96,9 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="login-shell login-centered">
+    <div className="login-shell">
       {/* Centered Login Card */}
-      <div className="login-card login-card-glass">
-        {/* <div className="login-floating-logo">
-          <img src="/three.png" alt="Three65" className="logo-365" />
-        </div> */}
+      <div className="login-card ">
         <div className="login-card-body">
           <img src="/three65.png" alt="Three65" className="logo-365" />
           <form className="login-form" onSubmit={signIn}>
