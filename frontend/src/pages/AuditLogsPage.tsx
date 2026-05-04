@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { apiFetch } from "../api";
+import { apiFetch, apiFetchWithTotal } from "../api";
 import { TablePagination } from "../components/TablePagination";
 import { useMe } from "../hooks/useMe";
 
@@ -107,6 +107,7 @@ export default function AuditLogsPage() {
   const companyId = me?.company_ids?.[0];
 
   const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [totalLogs, setTotalLogs] = useState(0);
   const [summary, setSummary] = useState<AuditSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -133,7 +134,7 @@ export default function AuditLogsPage() {
 
   useEffect(() => {
     loadData();
-  }, [companyId, actionFilter, resourceFilter, statusFilter, searchFilter, daysFilter]);
+  }, [companyId, actionFilter, resourceFilter, statusFilter, searchFilter, daysFilter, page, pageSize]);
 
   const loadFilterOptions = async () => {
     try {
@@ -158,14 +159,16 @@ export default function AuditLogsPage() {
       if (resourceFilter) params.append("resource_type", resourceFilter);
       if (statusFilter) params.append("status", statusFilter);
       if (searchFilter) params.append("search", searchFilter);
-      params.append("limit", "100");
+      params.append("limit", String(pageSize));
+      params.append("offset", String((page - 1) * pageSize));
 
-      const [logsData, summaryData] = await Promise.all([
-        apiFetch<AuditLog[]>(`/audit-logs?${params.toString()}`),
+      const [{ data: logsData, total }, summaryData] = await Promise.all([
+        apiFetchWithTotal<AuditLog[]>(`/audit-logs?${params.toString()}`),
         apiFetch<AuditSummary>(`/audit-logs/summary?days=${daysFilter}${companyId ? `&company_id=${companyId}` : ""}`).catch(() => null),
       ]);
 
       setLogs(logsData);
+      setTotalLogs(total);
       setSummary(summaryData);
       setSelectedIds(new Set());
     } catch (err: any) {
@@ -182,11 +185,8 @@ export default function AuditLogsPage() {
     setSearchFilter("");
   };
 
-  const totalPages = Math.max(1, Math.ceil(logs.length / pageSize));
-  const pagedLogs = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return logs.slice(start, start + pageSize);
-  }, [logs, page, pageSize]);
+  const totalPages = Math.max(1, Math.ceil(totalLogs / pageSize));
+  const pagedLogs = useMemo(() => logs, [logs]);
   const visibleLogIds = pagedLogs.map((log) => log.id);
   const allVisibleSelected =
     visibleLogIds.length > 0 &&
@@ -541,7 +541,7 @@ export default function AuditLogsPage() {
           <TablePagination
             page={page}
             pageSize={pageSize}
-            totalItems={logs.length}
+            totalItems={totalLogs}
             onPageChange={setPage}
             onPageSizeChange={setPageSize}
           />

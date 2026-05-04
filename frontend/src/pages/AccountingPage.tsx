@@ -20,7 +20,7 @@ import {
   Users,
   XCircle,
 } from "lucide-react";
-import { apiFetch } from "../api";
+import { apiFetch, apiFetchWithTotal } from "../api";
 import { useCompanies } from "../hooks/useCompanies";
 import { useMe } from "../hooks/useMe";
 import { Sidebar } from "../components/Sidebar";
@@ -243,6 +243,7 @@ export default function AccountingPage() {
   const [error, setError] = useState<string | null>(null);
   const [overview, setOverview] = useState<AccountingOverview | null>(null);
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
+  const [totalJournalEntries, setTotalJournalEntries] = useState(0);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [journals, setJournals] = useState<Journal[]>([]);
   const [showJournalForm, setShowJournalForm] = useState(false);
@@ -341,17 +342,40 @@ export default function AccountingPage() {
     setJournalEntriesPage(1);
   }, [journalEntrySearch, journalEntryStatusFilter, journalEntryJournalFilter, journalEntriesPageSize]);
 
+  useEffect(() => {
+    const totalPages = Math.max(
+      1,
+      Math.ceil(totalJournalEntries / journalEntriesPageSize),
+    );
+    setJournalEntriesPage((prev) => Math.min(prev, totalPages));
+  }, [totalJournalEntries, journalEntriesPageSize]);
+
   const fetchJournalEntries = useCallback(async () => {
     if (!companyId) return;
     setLoading(true);
     setError(null);
     try {
-      const [entries, accountList, journalList] = await Promise.all([
-        apiFetch<JournalEntry[]>(`/accounting/journal-entries?company_id=${companyId}`),
+      const params = new URLSearchParams();
+      params.set("company_id", String(companyId));
+      const referenceFilter = searchParams.get("reference") || "";
+      const searchValue = (referenceFilter || journalEntrySearch).trim();
+      if (searchValue) params.set("search", searchValue);
+      if (journalEntryStatusFilter !== "all") {
+        params.set("status", journalEntryStatusFilter);
+      }
+      if (journalEntryJournalFilter !== "all") {
+        params.set("journal_id", journalEntryJournalFilter);
+      }
+      params.set("limit", String(journalEntriesPageSize));
+      params.set("offset", String((journalEntriesPage - 1) * journalEntriesPageSize));
+
+      const [entriesResult, accountList, journalList] = await Promise.all([
+        apiFetchWithTotal<JournalEntry[]>(`/accounting/journal-entries?${params.toString()}`),
         apiFetch<Account[]>(`/accounting/accounts?company_id=${companyId}`),
         apiFetch<Journal[]>(`/accounting/journals?company_id=${companyId}`),
       ]);
-      setJournalEntries(entries);
+      setJournalEntries(entriesResult.data);
+      setTotalJournalEntries(entriesResult.total);
       setAccounts(accountList.filter((a) => a.is_active));
       setJournals(journalList.filter((j) => j.is_active));
       setJournalForm((prev) => ({
@@ -363,7 +387,15 @@ export default function AccountingPage() {
     } finally {
       setLoading(false);
     }
-  }, [companyId]);
+  }, [
+    companyId,
+    journalEntriesPage,
+    journalEntriesPageSize,
+    journalEntryJournalFilter,
+    journalEntrySearch,
+    journalEntryStatusFilter,
+    searchParams,
+  ]);
 
   useEffect(() => {
     if (activeSection === "journal_entries") fetchJournalEntries();
@@ -1217,37 +1249,9 @@ export default function AccountingPage() {
       return account ? `${account.code} ${account.name}` : "Account";
     };
     const referenceFilter = searchParams.get("reference") || "";
-    const filteredEntries = journalEntries.filter((entry) => {
-      if (referenceFilter && entry.reference !== referenceFilter) {
-        return false;
-      }
-      if (journalEntryStatusFilter !== "all" && entry.status !== journalEntryStatusFilter) {
-        return false;
-      }
-      if (journalEntryJournalFilter !== "all" && String(entry.journal_id) !== journalEntryJournalFilter) {
-        return false;
-      }
-      const searchValue = journalEntrySearch.trim().toLowerCase();
-      if (!searchValue) {
-        return true;
-      }
-      const searchHaystack = [
-        entry.reference,
-        entry.narration,
-        journalName(entry.journal_id),
-        ...entry.lines.map((line) => line.label),
-        ...entry.lines.map((line) => accountLabel(line.account_id)),
-      ]
-        .join(" ")
-        .toLowerCase();
-      return searchHaystack.includes(searchValue);
-    });
-    const totalJournalEntryPages = Math.max(1, Math.ceil(filteredEntries.length / journalEntriesPageSize));
-    const safeJournalEntriesPage = Math.min(journalEntriesPage, totalJournalEntryPages);
-    const visibleEntries = filteredEntries.slice(
-      (safeJournalEntriesPage - 1) * journalEntriesPageSize,
-      safeJournalEntriesPage * journalEntriesPageSize,
-    );
+    const filteredEntries = journalEntries;
+    const safeJournalEntriesPage = journalEntriesPage;
+    const visibleEntries = journalEntries;
 
     return (
       <>
@@ -1599,7 +1603,7 @@ export default function AccountingPage() {
                 <TablePagination
                   page={safeJournalEntriesPage}
                   pageSize={journalEntriesPageSize}
-                  totalItems={filteredEntries.length}
+                  totalItems={totalJournalEntries}
                   onPageChange={setJournalEntriesPage}
                   onPageSizeChange={setJournalEntriesPageSize}
                 />

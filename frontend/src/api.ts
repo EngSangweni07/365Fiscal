@@ -43,3 +43,18 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
   }
   return res.json() as Promise<T>;
 }
+
+export async function apiFetchWithTotal<T>(
+  path: string,
+  options: ApiOptions = {},
+): Promise<{ data: T; total: number }> {
+  const res = await apiRequest(path, options);
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || res.statusText);
+  }
+  const totalHeader = res.headers.get("X-Total-Count");
+  const total = Number(totalHeader ?? 0);
+  const data = (await res.json()) as T;
+  return { data, total: Number.isFinite(total) ? total : 0 };
+}

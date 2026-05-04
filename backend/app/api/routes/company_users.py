@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db, get_user_company_link, require_admin
@@ -151,13 +151,23 @@ def link_user(payload: CompanyUserCreate, db: Session = Depends(get_db)):
 
 
 @router.get("", response_model=list[CompanyUserRead], dependencies=[Depends(require_admin)])
-def list_links(company_id: int | None = None, user_id: int | None = None, db: Session = Depends(get_db)):
+def list_links(
+    company_id: int | None = None,
+    user_id: int | None = None,
+    response: Response = None,
+    limit: int = Query(500, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+):
     query = db.query(CompanyUser)
     if company_id is not None:
         query = query.filter(CompanyUser.company_id == company_id)
     if user_id is not None:
         query = query.filter(CompanyUser.user_id == user_id)
-    return query.all()
+    total_count = query.count()
+    if response is not None:
+        response.headers["X-Total-Count"] = str(total_count)
+    return query.order_by(CompanyUser.id.desc()).offset(offset).limit(limit).all()
 
 
 @router.get("/portal-users", dependencies=[Depends(require_admin)])

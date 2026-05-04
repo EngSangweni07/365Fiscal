@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { apiFetch } from "../api";
+import { apiFetch, apiFetchWithTotal } from "../api";
 import { TablePagination } from "../components/TablePagination";
 import { useMe } from "../hooks/useMe";
 
@@ -93,6 +93,7 @@ export default function UsersRolesPage() {
   const [activeTab, setActiveTab] = useState<"users" | "roles">("users");
   const [roles, setRoles] = useState<Role[]>([]);
   const [companyUsers, setCompanyUsers] = useState<CompanyUser[]>([]);
+  const [totalCompanyUsers, setTotalCompanyUsers] = useState(0);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -110,18 +111,25 @@ export default function UsersRolesPage() {
 
   useEffect(() => {
     loadData();
-  }, [companyId]);
+  }, [companyId, usersPage, usersPageSize]);
 
   const loadData = async () => {
     setLoading(true);
     setError(null);
     try {
-      const [rolesData, usersData] = await Promise.all([
+      const userParams = new URLSearchParams();
+      if (companyId) userParams.set("company_id", String(companyId));
+      userParams.set("limit", String(usersPageSize));
+      userParams.set("offset", String((usersPage - 1) * usersPageSize));
+      const [rolesData, usersResult] = await Promise.all([
         apiFetch<Role[]>("/roles"),
-        companyId ? apiFetch<CompanyUser[]>(`/company-users?company_id=${companyId}`) : Promise.resolve([]),
+        companyId
+          ? apiFetchWithTotal<CompanyUser[]>(`/company-users?${userParams.toString()}`)
+          : Promise.resolve({ data: [] as CompanyUser[], total: 0 }),
       ]);
       setRoles(rolesData);
-      setCompanyUsers(usersData);
+      setCompanyUsers(usersResult.data);
+      setTotalCompanyUsers(usersResult.total);
       
       if (isSystemAdmin) {
         const allUsersData = await apiFetch<User[]>("/users");
@@ -218,12 +226,9 @@ export default function UsersRolesPage() {
 
   const usersTotalPages = Math.max(
     1,
-    Math.ceil(companyUsers.length / usersPageSize),
+    Math.ceil(totalCompanyUsers / usersPageSize),
   );
-  const pagedCompanyUsers = useMemo(() => {
-    const start = (usersPage - 1) * usersPageSize;
-    return companyUsers.slice(start, start + usersPageSize);
-  }, [companyUsers, usersPage, usersPageSize]);
+  const pagedCompanyUsers = useMemo(() => companyUsers, [companyUsers]);
 
   useEffect(() => {
     setUsersPage((prev) => Math.min(prev, usersTotalPages));
@@ -423,7 +428,7 @@ export default function UsersRolesPage() {
             <TablePagination
               page={usersPage}
               pageSize={usersPageSize}
-              totalItems={companyUsers.length}
+              totalItems={totalCompanyUsers}
               onPageChange={setUsersPage}
               onPageSizeChange={setUsersPageSize}
             />

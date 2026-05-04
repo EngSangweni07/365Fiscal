@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query, HTTPException, Response
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, require_admin, get_current_user
@@ -282,6 +282,7 @@ def delete_company(company_id: int, db: Session = Depends(get_db)):
 
 @router.get("", response_model=list[CompanyRead], dependencies=[Depends(require_admin)])
 def list_companies(
+    response: Response,
     db: Session = Depends(get_db),
     search: str | None = None,
     tin: str | None = None,
@@ -302,6 +303,8 @@ def list_companies(
     phone_ends: str | None = None,
     date_from: datetime | None = Query(default=None),
     date_to: datetime | None = Query(default=None),
+    limit: int = Query(500, ge=1, le=500),
+    offset: int = Query(0, ge=0),
 ):
     query = db.query(Company)
     query = apply_company_filters(
@@ -326,11 +329,20 @@ def list_companies(
         date_from,
         date_to,
     )
-    return [serialize_company(company) for company in query.all()]
+    total_count = query.count()
+    response.headers["X-Total-Count"] = str(total_count)
+    rows = (
+        query.order_by(Company.id.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+    return [serialize_company(company) for company in rows]
 
 
 @router.get("/me", response_model=list[CompanyRead])
 def list_my_companies(
+    response: Response,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
     search: str | None = None,
@@ -352,6 +364,8 @@ def list_my_companies(
     phone_ends: str | None = None,
     date_from: datetime | None = Query(default=None),
     date_to: datetime | None = Query(default=None),
+    limit: int = Query(500, ge=1, le=500),
+    offset: int = Query(0, ge=0),
 ):
     if user.is_admin:
         query = db.query(Company)
@@ -377,12 +391,21 @@ def list_my_companies(
             date_from,
             date_to,
         )
-        return query.all()
+        total_count = query.count()
+        response.headers["X-Total-Count"] = str(total_count)
+        rows = (
+            query.order_by(Company.id.desc())
+            .offset(offset)
+            .limit(limit)
+            .all()
+        )
+        return [serialize_company(company) for company in rows]
     company_ids = [
         link.company_id
         for link in db.query(CompanyUser).filter(CompanyUser.user_id == user.id, CompanyUser.is_active == True).all()
     ]
     if not company_ids:
+        response.headers["X-Total-Count"] = "0"
         return []
     query = db.query(Company).filter(Company.id.in_(company_ids))
     query = apply_company_filters(
@@ -407,7 +430,15 @@ def list_my_companies(
         date_from,
         date_to,
     )
-    return [serialize_company(company) for company in query.all()]
+    total_count = query.count()
+    response.headers["X-Total-Count"] = str(total_count)
+    rows = (
+        query.order_by(Company.id.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+    return [serialize_company(company) for company in rows]
 
 
 @router.get("/{company_id}/portal-user")

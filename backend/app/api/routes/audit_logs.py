@@ -1,6 +1,6 @@
 """Audit log API routes."""
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Optional
@@ -55,6 +55,7 @@ def list_audit_logs(
     search: Optional[str] = None,
     limit: int = Query(50, le=500),
     offset: int = 0,
+    response: Response = None,
     db: Session = Depends(get_db),
     user=Depends(get_current_user),
 ):
@@ -81,6 +82,8 @@ def list_audit_logs(
             ).all()
             company_ids = [link.company_id for link in links]
             if not company_ids:
+                if response is not None:
+                    response.headers["X-Total-Count"] = "0"
                 return []
             query = query.filter(AuditLog.company_id.in_(company_ids))
     
@@ -110,6 +113,10 @@ def list_audit_logs(
             (AuditLog.changes_summary.ilike(search_term))
         )
     
+    total_count = query.count()
+    if response is not None:
+        response.headers["X-Total-Count"] = str(total_count)
+
     # Order and paginate
     query = query.order_by(AuditLog.action_at.desc())
     query = query.offset(offset).limit(limit)

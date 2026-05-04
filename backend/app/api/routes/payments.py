@@ -1,6 +1,6 @@
 """Payment API routes."""
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
 from typing import List, Optional
@@ -69,6 +69,7 @@ def list_payments(
     end_date: Optional[datetime] = None,
     limit: int = Query(100, le=500),
     offset: int = 0,
+    response: Response = None,
     db: Session = Depends(get_db),
     user=Depends(require_portal_user),
 ):
@@ -97,6 +98,10 @@ def list_payments(
     if end_date:
         query = query.filter(Payment.payment_date <= end_date)
     
+    total_count = query.count()
+    if response is not None:
+        response.headers["X-Total-Count"] = str(total_count)
+
     query = query.order_by(Payment.payment_date.desc())
     query = query.offset(offset).limit(limit)
     

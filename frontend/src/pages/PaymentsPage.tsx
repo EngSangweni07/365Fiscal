@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { apiFetch } from "../api";
+import { apiFetch, apiFetchWithTotal } from "../api";
 import JournalEntryPreviewDrawer from "../components/JournalEntryPreviewDrawer";
 import { Sidebar } from "../components/Sidebar";
 import { TablePagination } from "../components/TablePagination";
@@ -132,6 +132,7 @@ export default function PaymentsPage({
   const selectedCompanyId = companyIdProp ?? companyId;
 
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [totalPayments, setTotalPayments] = useState(0);
   const [summary, setSummary] = useState<PaymentSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -175,7 +176,7 @@ export default function PaymentsPage({
 
   useEffect(() => {
     loadData();
-  }, [selectedCompanyId, methodFilter, reconciledFilter, searchFilter, contactFilterId]);
+  }, [selectedCompanyId, methodFilter, reconciledFilter, searchFilter, contactFilterId, page, pageSize]);
 
   useEffect(() => {
     if (!selectedCompanyId) {
@@ -210,13 +211,16 @@ export default function PaymentsPage({
       if (reconciledFilter) params.append("is_reconciled", reconciledFilter);
       if (searchFilter) params.append("search", searchFilter);
       if (contactFilterId) params.append("contact_id", String(contactFilterId));
+      params.append("limit", String(pageSize));
+      params.append("offset", String((page - 1) * pageSize));
 
-      const [paymentsData, summaryData] = await Promise.all([
-        apiFetch<Payment[]>(`/payments?${params.toString()}`),
+      const [{ data: paymentsData, total }, summaryData] = await Promise.all([
+        apiFetchWithTotal<Payment[]>(`/payments?${params.toString()}`),
         apiFetch<PaymentSummary>(`/payments/summary?company_id=${selectedCompanyId}`).catch(() => null),
       ]);
 
       setPayments(paymentsData);
+      setTotalPayments(total);
       setSummary(summaryData);
       setSelectedIds(new Set());
     } catch (err: any) {
@@ -289,11 +293,8 @@ export default function PaymentsPage({
     return colors[method] || "var(--slate-500)";
   };
 
-  const totalPages = Math.max(1, Math.ceil(payments.length / pageSize));
-  const pagedPayments = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return payments.slice(start, start + pageSize);
-  }, [payments, page, pageSize]);
+  const totalPages = Math.max(1, Math.ceil(totalPayments / pageSize));
+  const pagedPayments = useMemo(() => payments, [payments]);
   const visiblePaymentIds = pagedPayments.map((payment) => payment.id);
   const allVisibleSelected =
     visiblePaymentIds.length > 0 &&
@@ -390,7 +391,7 @@ export default function PaymentsPage({
 
   useEffect(() => {
     setPage(1);
-  }, [methodFilter, reconciledFilter, searchFilter, selectedCompanyId, pageSize]);
+  }, [methodFilter, reconciledFilter, searchFilter, selectedCompanyId, contactFilterId, pageSize]);
 
   const handleSidebarSelect = (key: string) => {
     if (key === "overview") {
@@ -737,7 +738,7 @@ export default function PaymentsPage({
           <TablePagination
             page={page}
             pageSize={pageSize}
-            totalItems={payments.length}
+            totalItems={totalPayments}
             onPageChange={setPage}
             onPageSizeChange={setPageSize}
           />

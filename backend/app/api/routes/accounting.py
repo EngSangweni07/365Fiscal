@@ -1,6 +1,6 @@
 """API routes for accounting configuration: Chart of Accounts, Journals, Payment Terms, Fiscal Positions, Budgets, Overview."""
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
@@ -541,6 +541,11 @@ def delete_journal(
 def list_journal_entries(
     company_id: int,
     status: str | None = None,
+    search: str | None = None,
+    journal_id: int | None = None,
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+    response: Response = None,
     db: Session = Depends(get_db),
     user=Depends(get_current_user),
     _=Depends(require_company_access),
@@ -548,7 +553,22 @@ def list_journal_entries(
     query = db.query(JournalEntry).filter(JournalEntry.company_id == company_id)
     if status:
         query = query.filter(JournalEntry.status == status)
-    return query.order_by(JournalEntry.entry_date.desc(), JournalEntry.id.desc()).all()
+    if search:
+        like = f"%{search.strip()}%"
+        query = query.filter(
+            or_(JournalEntry.reference.ilike(like), JournalEntry.narration.ilike(like))
+        )
+    if journal_id:
+        query = query.filter(JournalEntry.journal_id == journal_id)
+    total_count = query.count()
+    if response is not None:
+        response.headers["X-Total-Count"] = str(total_count)
+    return (
+        query.order_by(JournalEntry.entry_date.desc(), JournalEntry.id.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
 
 
 @router.post("/journal-entries", response_model=JournalEntryRead)

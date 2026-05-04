@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
-import { apiFetch } from "../api";
+import { apiFetch, apiFetchWithTotal } from "../api";
 import { TablePagination } from "../components/TablePagination";
 import { useMe } from "../hooks/useMe";
 import { useListView } from "../context/ListViewContext";
@@ -221,6 +221,7 @@ export default function CompaniesPage() {
   const { me } = useMe();
   const { state } = useListView();
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [totalCompanies, setTotalCompanies] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -268,20 +269,27 @@ export default function CompaniesPage() {
         params.set(key, value);
       });
     });
+    if (search.trim()) {
+      params.set("search", search.trim());
+    }
+    params.set("limit", String(pageSize));
+    params.set("offset", String((page - 1) * pageSize));
     const query = params.toString();
     try {
       setError(null);
       if (me?.is_admin) {
-        const data = await apiFetch<Company[]>(
+        const { data, total } = await apiFetchWithTotal<Company[]>(
           `/companies${query ? `?${query}` : ""}`,
         );
         setCompanies(data);
+        setTotalCompanies(total);
         setSelectedIds(new Set());
       } else {
-        const data = await apiFetch<Company[]>(
+        const { data, total } = await apiFetchWithTotal<Company[]>(
           `/companies/me${query ? `?${query}` : ""}`,
         );
         setCompanies(data);
+        setTotalCompanies(total);
         setSelectedIds(new Set());
       }
     } catch (err: any) {
@@ -294,7 +302,7 @@ export default function CompaniesPage() {
       loadCompanies();
     }, 300);
     return () => clearTimeout(timeout);
-  }, [me?.is_admin, state.filters]);
+  }, [me?.is_admin, state.filters, search, page, pageSize]);
 
   const togglePortalApp = (
     appKey: string,
@@ -486,27 +494,9 @@ export default function CompaniesPage() {
     }
   };
 
-  const filteredCompanies = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    if (!term) return companies;
-    return companies.filter((company) =>
-      [
-        company.name,
-        company.tin,
-        company.vat,
-        company.phone,
-        company.email,
-        company.address,
-      ]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(term)),
-    );
-  }, [companies, search]);
+  const filteredCompanies = useMemo(() => companies, [companies]);
 
-  const pagedCompanies = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return filteredCompanies.slice(start, start + pageSize);
-  }, [filteredCompanies, page, pageSize]);
+  const pagedCompanies = useMemo(() => filteredCompanies, [filteredCompanies]);
 
   const groupedCompanies = useMemo<GroupedCompanies[]>(() => {
     if (!state.groupBy || state.groupBy === "") {
@@ -523,7 +513,7 @@ export default function CompaniesPage() {
     return [{ label: "", items: pagedCompanies }];
   }, [pagedCompanies, state.groupBy]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredCompanies.length / pageSize));
+  const totalPages = Math.max(1, Math.ceil(totalCompanies / pageSize));
   const visibleCompanyIds = pagedCompanies.map((company) => company.id);
   const allVisibleSelected =
     visibleCompanyIds.length > 0 &&
@@ -1579,7 +1569,7 @@ export default function CompaniesPage() {
         <TablePagination
           page={page}
           pageSize={pageSize}
-          totalItems={filteredCompanies.length}
+          totalItems={totalCompanies}
           onPageChange={setPage}
           onPageSizeChange={setPageSize}
         />

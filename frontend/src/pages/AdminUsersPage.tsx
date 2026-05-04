@@ -1,5 +1,5 @@
 ﻿import { useEffect, useMemo, useState } from "react";
-import { apiFetch } from "../api";
+import { apiFetch, apiFetchWithTotal } from "../api";
 import { TablePagination } from "../components/TablePagination";
 import { useAlert } from "../context/AlertContext";
 
@@ -60,8 +60,8 @@ const ToggleOffIcon = () => (
 );
 
 export default function AdminUsersPage() {
-  const [users, setUsers] = useState<User[]>([]);
   const [admins, setAdmins] = useState<User[]>([]);
+  const [totalAdmins, setTotalAdmins] = useState(0);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -75,9 +75,15 @@ export default function AdminUsersPage() {
   const loadUsers = async () => {
     try {
       setError(null);
-      const data = await apiFetch<User[]>("/users");
-      setUsers(data);
-      setAdmins(data.filter((u) => u.is_admin));
+      const params = new URLSearchParams();
+      params.set("is_admin", "true");
+      params.set("limit", String(pageSize));
+      params.set("offset", String((page - 1) * pageSize));
+      const { data, total } = await apiFetchWithTotal<User[]>(
+        `/users?${params.toString()}`,
+      );
+      setAdmins(data);
+      setTotalAdmins(total);
     } catch (err: any) {
       setError(err.message || "Failed to load users");
     }
@@ -85,7 +91,7 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     loadUsers();
-  }, []);
+  }, [page, pageSize]);
 
   const createAdmin = async () => {
     if (!email || !password) {
@@ -174,11 +180,8 @@ export default function AdminUsersPage() {
     }
   };
 
-  const totalPages = Math.max(1, Math.ceil(admins.length / pageSize));
-  const pagedAdmins = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return admins.slice(start, start + pageSize);
-  }, [admins, page, pageSize]);
+  const totalPages = Math.max(1, Math.ceil(totalAdmins / pageSize));
+  const pagedAdmins = useMemo(() => admins, [admins]);
 
   useEffect(() => {
     setPage((prev) => Math.min(prev, totalPages));
@@ -314,7 +317,7 @@ export default function AdminUsersPage() {
           <TablePagination
             page={page}
             pageSize={pageSize}
-            totalItems={admins.length}
+            totalItems={totalAdmins}
             onPageChange={setPage}
             onPageSizeChange={setPageSize}
           />

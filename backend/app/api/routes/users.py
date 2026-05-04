@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, require_admin, get_current_user
@@ -111,8 +111,23 @@ def create_user(payload: UserCreate, db: Session = Depends(get_db)):
 
 
 @router.get("", response_model=list[UserRead], dependencies=[Depends(require_admin)])
-def list_users(db: Session = Depends(get_db)):
-    return db.query(User).all()
+def list_users(
+    response: Response,
+    is_admin: bool | None = None,
+    search: str | None = None,
+    limit: int = Query(500, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+):
+    query = db.query(User)
+    if is_admin is not None:
+        query = query.filter(User.is_admin == is_admin)
+    if search:
+        like = f"%{search.strip()}%"
+        query = query.filter(User.email.ilike(like))
+    total_count = query.count()
+    response.headers["X-Total-Count"] = str(total_count)
+    return query.order_by(User.id.desc()).offset(offset).limit(limit).all()
 
 
 @router.patch("/{user_id}", response_model=UserRead, dependencies=[Depends(require_admin)])
