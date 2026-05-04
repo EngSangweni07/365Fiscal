@@ -132,6 +132,7 @@ const AccountingIcon = BookOpen;
 const LeadsIcon = BriefcaseBusiness;
 const SupportIcon = Headset;
 const ManufacturingIcon = Factory;
+const TokensIcon = BoomBox;
 const SUPPORT_EMAIL = "courageg@geenet.co.zw";
 const SUPPORT_SUBJECT = "Three65 Support Request";
 const SUPPORT_BODY = `Hello Courage,
@@ -254,6 +255,15 @@ const adminApps: AppItem[] = [
     color: "var(--white-500)",
     background: "linear-gradient(145deg, #f08c53 0%, #ea6a3b 100%)",
     glowColor: "rgba(234, 106, 59, 0.18)",
+  },
+  {
+    to: "/vouchers",
+    key: "vouchers",
+    label: "Tokens",
+    icon: TokensIcon,
+    color: "var(--white-500)",
+    background: "linear-gradient(145deg, #64748b 0%, #475569 100%)",
+    glowColor: "rgba(71, 85, 105, 0.18)",
   },
   // {
   //   to: "/pos",
@@ -392,6 +402,15 @@ const portalApps: AppItem[] = [
     glowColor: "rgba(234, 106, 59, 0.18)",
   },
   {
+    to: "/vouchers",
+    key: "vouchers",
+    label: "Tokens",
+    icon: TokensIcon,
+    color: "var(--white-500)",
+    background: "linear-gradient(145deg, #64748b 0%, #475569 100%)",
+    glowColor: "rgba(71, 85, 105, 0.18)",
+  },
+  {
     to: "/pos",
     key: "pos",
     label: "Point of Sale",
@@ -460,6 +479,7 @@ const demoInterestAppOptions = [
   { key: "quotations", label: "Quotations" },
   { key: "inventory", label: "Inventory" },
   { key: "manufacturing", label: "Manufacturing" },
+  { key: "vouchers", label: "Tokens" },
   { key: "pos", label: "Point of Sale" },
   { key: "expenses", label: "Expenses" },
   { key: "reports", label: "Financial Reports" },

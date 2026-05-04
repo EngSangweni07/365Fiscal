@@ -97,14 +97,6 @@ export default function LoginPage() {
       <div className="login-canvas__orb login-canvas__orb--blue-top" />
       <div className="login-canvas__orb login-canvas__orb--blue-bottom" />
       <div className="login-canvas__content">
-        <div className="login-canvas__hero">
-          <div className="login-canvas__hero-copy">
-            <div className="login-canvas__eyebrow">three65</div>
-            <h1>Manufacturing, inventory, and finance in one workspace</h1>
-            <p>Run production, track stock, and move finished goods without leaving the same operating view.</p>
-          </div>
-        </div>
-
         <div className="login-canvas__panel-wrap">
           <div className="login-canvas__panel">
             <div className="login-canvas__panel-inner">
@@ -202,11 +194,6 @@ export default function LoginPage() {
         <a href="#linkedin" aria-label="LinkedIn">in</a>
         <a href="#instagram" aria-label="Instagram">ig</a>
         <a href="#whatsapp" aria-label="WhatsApp">wa</a>
-      </div>
-      <div className="login-canvas__mobile-copy">
-        <div className="login-canvas__eyebrow">three65</div>
-        <strong>Manufacturing, inventory, and finance in one workspace</strong>
-        <p>Production orders, BOMs, and finished goods stay tied to live inventory records.</p>
       </div>
     </div>
   );
