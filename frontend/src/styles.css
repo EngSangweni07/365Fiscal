@@ -2296,6 +2296,26 @@ thead.table-light th {
 
 .login-shell > .login-card {
   grid-column: 2;
+  justify-self: end;
+  width: min(100%, 460px);
+}
+
+.login-shell > .login-card .login-card-body {
+  justify-content: center;
+  gap: 24px;
+}
+
+.login-shell > .login-card .logo-365 {
+  margin: 0 auto;
+  padding: 0;
+}
+
+.login-shell > .login-card .login-form {
+  gap: 18px;
+}
+
+.login-shell > .login-card .login-btn {
+  margin-top: 14px;
 }
 
 @keyframes card-fade-in {
@@ -3177,8 +3197,15 @@ thead.table-light th {
 
 @media (max-width: 768px) {
   .login-shell {
+    grid-template-columns: 1fr;
     padding: 16px;
     align-items: flex-start;
+  }
+
+  .login-shell > .login-card {
+    grid-column: 1;
+    justify-self: stretch;
+    width: 100%;
   }
 
   .demo-page-shell {
@@ -3255,6 +3282,18 @@ thead.table-light th {
 @media (max-width: 480px) {
   .login-shell {
     padding: 10px;
+  }
+
+  .login-shell > .login-card .login-card-body {
+    gap: 18px;
+  }
+
+  .login-shell > .login-card .login-form {
+    gap: 14px;
+  }
+
+  .login-shell > .login-card .login-btn {
+    margin-top: 10px;
   }
 
   .demo-page-shell {
