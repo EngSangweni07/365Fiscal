@@ -22,6 +22,8 @@
   align-items: flex-start;
   gap: 10px;
   flex-wrap: wrap;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .manufacturing-toolbar-right {
@@ -29,6 +31,13 @@
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  margin-left: auto;
+  justify-content: flex-end;
+}
+
+.manufacturing-toolbar-left > div:first-child {
+  flex: 1 1 320px;
+  min-width: 320px;
 }
 
 .manufacturing-eyebrow {
@@ -44,6 +53,7 @@
   font-size: 24px;
   font-weight: 700;
   color: var(--text, #0f172a);
+  max-width: 560px;
 }
 
 .manufacturing-top-metrics {
@@ -562,6 +572,10 @@
   .manufacturing-toolbar {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .manufacturing-toolbar-left > div:first-child {
+    min-width: 0;
   }
 
   .manufacturing-top-metrics {
