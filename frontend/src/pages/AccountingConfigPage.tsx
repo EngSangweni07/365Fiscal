@@ -1498,10 +1498,6 @@ export default function AccountingConfigPage({
           <>
             {/* Header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>
-                <Calculator size={20} style={{ marginRight: 8, verticalAlign: "text-bottom" }} />
-                {getSectionTitle()}s
-              </h2>
               <div style={{ display: "flex", gap: 8 }}>
                 {selectedActiveSection === "chart_of_accounts" && (
                   <button
