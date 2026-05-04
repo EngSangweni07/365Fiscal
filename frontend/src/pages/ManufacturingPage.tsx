@@ -1628,7 +1628,6 @@ export default function ManufacturingPage() {
           <div className="o-control-panel-left manufacturing-toolbar-left">
             <div>
               <div className="manufacturing-eyebrow">Manufacturing</div>
-              <h2 className="manufacturing-title">Production, materials, and finished goods</h2>
             </div>
           </div>
           <div className="o-control-panel-right manufacturing-toolbar-right">
