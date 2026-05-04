@@ -2010,9 +2010,8 @@ thead.table-light th {
   min-height: 100vh;
   min-height: 100dvh;
   width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: 3fr 1fr;
   padding: 24px;
   position: fixed;
   top: 0;
@@ -2290,12 +2289,9 @@ thead.table-light th {
   border-radius: 2rem;
   height: 100%;
   animation: .8s cubic-bezier(0.165, 0.84, 0.44, 1) .15s both card-fade-in;
-  display: grid;
-  grid-template-columns: 3fr 1fr;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
-}
-
-.login-card-glass {
 }
 
 @keyframes card-fade-in {
