@@ -13,6 +13,7 @@ from app.api.routes import demo
 from app.api.routes import support
 from app.api.routes import accounting
 from app.api.routes import accounting_reports
+from app.api.routes import manufacturing
 from app.api.routes import vouchers
 
 api_router = APIRouter()
@@ -47,4 +48,5 @@ api_router.include_router(demo.router)
 api_router.include_router(support.router)
 api_router.include_router(accounting.router)
 api_router.include_router(accounting_reports.router)
+api_router.include_router(manufacturing.router)
 api_router.include_router(vouchers.router)

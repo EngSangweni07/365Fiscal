@@ -9,6 +9,7 @@ class StockQuantRead(ORMBase):
     warehouse_id: int | None
     location_id: int | None
     lot_number: str
+    serial_number: str
     quantity: float
     reserved_quantity: float
     available_quantity: float
@@ -20,3 +21,5 @@ class StockQuantUpdate(BaseModel):
     quantity: float | None = None
     reserved_quantity: float | None = None
     unit_cost: float | None = None
+    lot_number: str | None = None
+    serial_number: str | None = None

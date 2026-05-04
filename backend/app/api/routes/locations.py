@@ -17,10 +17,14 @@ def _normalize_location_payload(
     warehouse_id: int,
     is_primary: bool,
     is_scrap: bool,
+    is_finished_goods: bool,
     current_location_id: int | None = None,
 ) -> bool:
     if is_scrap:
         is_primary = False
+        is_finished_goods = False
+    if is_finished_goods:
+        is_scrap = False
 
     if is_primary:
         query = db.query(Location).filter(Location.warehouse_id == warehouse_id)
@@ -47,6 +51,7 @@ def create_location(
         warehouse_id=payload.warehouse_id,
         is_primary=payload.is_primary,
         is_scrap=payload.is_scrap,
+        is_finished_goods=payload.is_finished_goods,
     )
 
     location = Location(**payload_data)
@@ -100,15 +105,18 @@ def update_location(
     update_data = payload.dict(exclude_unset=True)
     next_is_scrap = update_data.get("is_scrap", location.is_scrap)
     next_is_primary = update_data.get("is_primary", location.is_primary)
+    next_is_finished_goods = update_data.get("is_finished_goods", location.is_finished_goods)
     update_data["is_primary"] = _normalize_location_payload(
         db,
         warehouse_id=location.warehouse_id,
         is_primary=next_is_primary,
         is_scrap=next_is_scrap,
+        is_finished_goods=next_is_finished_goods,
         current_location_id=location.id,
     )
     if next_is_scrap:
         update_data["is_primary"] = False
+        update_data["is_finished_goods"] = False
 
     for key, value in update_data.items():
         setattr(location, key, value)

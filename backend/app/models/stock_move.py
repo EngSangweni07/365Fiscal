@@ -14,6 +14,8 @@ class StockMove(Base, TimestampMixin):
     product_id: Mapped[int] = mapped_column(ForeignKey("products.id"), index=True)
     warehouse_id: Mapped[int | None] = mapped_column(ForeignKey("warehouses.id"), nullable=True)
     location_id: Mapped[int | None] = mapped_column(ForeignKey("locations.id"), nullable=True)
+    lot_number: Mapped[str] = mapped_column(String(100), default="")
+    serial_number: Mapped[str] = mapped_column(String(100), default="")
     reference: Mapped[str] = mapped_column(String(100), default="")
     move_type: Mapped[str] = mapped_column(String(50), default="in")  # in, out, internal, adjustment
     quantity: Mapped[float] = mapped_column(Float, default=0)

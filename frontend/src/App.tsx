@@ -16,6 +16,7 @@ import {
   ExternalLink,
   FilePenLine,
   FileText,
+  Factory,
   House,
   LayoutDashboard,
   Monitor,
@@ -59,6 +60,7 @@ import LeadsPage from "./pages/LeadsPage";
 import AccountingPage from "./pages/AccountingPage";
 import AccountingReportsPage from "./pages/AccountingReportsPage";
 import AccountingConfigPage from "./pages/AccountingConfigPage";
+import ManufacturingPage from "./pages/ManufacturingPage";
 import { apiFetch } from "./api";
 import { useMe } from "./hooks/useMe";
 import ListViewContext, {
@@ -80,6 +82,7 @@ const adminNav = [
   { to: "/contacts", label: "Contacts", icon: ContactIcon },
   { to: "/quotations", label: "Quotations", icon: QuoteIcon },
   { to: "/inventory", label: "Inventory", icon: InventoryIcon },
+  { to: "/manufacturing", label: "Manufacturing", icon: ManufacturingIcon },
   { to: "/devices", label: "Devices", icon: DeviceIcon },
   { to: "/pos", label: "Point of Sale", icon: POSIcon },
   { to: "/payments", label: "Payments", icon: PaymentIcon },
@@ -104,6 +107,7 @@ const portalNav = [
   { to: "/quotations", label: "Quotations", icon: QuoteIcon },
   { to: "/pos", label: "Point of Sale", icon: POSIcon },
   { to: "/inventory", label: "Inventory", icon: InventoryIcon },
+  { to: "/manufacturing", label: "Manufacturing", icon: ManufacturingIcon },
   { to: "/my-devices", label: "Devices", icon: DeviceIcon },
   { to: "/expenses", label: "Expenses", icon: ExpenseIcon },
   { to: "/accounting", label: "Accounting", icon: ReportsIcon },
@@ -120,6 +124,7 @@ const PORTAL_NAV_APP_KEYS: Record<string, string> = {
   "/quotations": "quotations",
   "/pos": "pos",
   "/inventory": "inventory",
+  "/manufacturing": "manufacturing",
   "/my-devices": "devices",
   "/expenses": "expenses",
   "/accounting": "accounting",
@@ -139,6 +144,7 @@ const PORTAL_APP_ROUTES: Record<string, string> = {
   quotations: "/quotations",
   pos: "/pos",
   inventory: "/inventory",
+  manufacturing: "/manufacturing",
   devices: "/my-devices",
   expenses: "/expenses",
   accounting: "/accounting",
@@ -758,6 +764,7 @@ function AppContent() {
                 element={<QuotationsPage mode="detail" />}
               />
               <Route path="/inventory" element={<InventoryPage />} />
+              <Route path="/manufacturing" element={<ManufacturingPage />} />
               <Route path="/expenses" element={<ExpensesPage />} />
               <Route path="/reports" element={<ReportsPage />} />
               <Route path="/accounting" element={<AccountingPage />} />
@@ -998,6 +1005,10 @@ function QuoteIcon() {
 
 function InventoryIcon() {
   return <Boxes size={20} strokeWidth={2} />;
+}
+
+function ManufacturingIcon() {
+  return <Factory size={20} strokeWidth={2} />;
 }
 
 function UsersIcon() {

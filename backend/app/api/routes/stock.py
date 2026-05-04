@@ -23,7 +23,9 @@ def update_stock_quant(db: Session, move: StockMove):
 
     quant = db.query(StockQuant).filter(
         StockQuant.product_id == move.product_id,
-        StockQuant.location_id == move.location_id
+        StockQuant.location_id == move.location_id,
+        StockQuant.lot_number == (move.lot_number or ""),
+        StockQuant.serial_number == (move.serial_number or ""),
     ).first()
 
     if move.move_type == "adjustment" and move.quantity <= 0:
@@ -38,6 +40,8 @@ def update_stock_quant(db: Session, move: StockMove):
             product_id=move.product_id,
             warehouse_id=move.warehouse_id,
             location_id=move.location_id,
+            lot_number=move.lot_number or "",
+            serial_number=move.serial_number or "",
             quantity=0,
             reserved_quantity=0,
             available_quantity=0,
@@ -92,9 +96,14 @@ def list_stock_moves(
     warehouse_id: int | None = None,
     move_type: str | None = None,
     state: str | None = None,
+<<<<<<< HEAD
     search: str = "",
     limit: int = Query(500, ge=1, le=500),
     offset: int = Query(0, ge=0),
+=======
+    lot_number: str | None = None,
+    serial_number: str | None = None,
+>>>>>>> a3bc5d6 (Refactor code structure for improved readability and maintainability)
     db: Session = Depends(get_db),
     user=Depends(require_portal_user),
     _=Depends(require_company_access),
@@ -108,6 +117,7 @@ def list_stock_moves(
         query = query.filter(StockMove.move_type == move_type)
     if state:
         query = query.filter(StockMove.state == state)
+<<<<<<< HEAD
     if search.strip():
         token = f"%{search.strip()}%"
         query = query.filter(
@@ -121,6 +131,13 @@ def list_stock_moves(
         )
     response.headers["X-Total-Count"] = str(query.count())
     return query.order_by(StockMove.created_at.desc()).offset(offset).limit(limit).all()
+=======
+    if lot_number is not None:
+        query = query.filter(StockMove.lot_number == lot_number)
+    if serial_number is not None:
+        query = query.filter(StockMove.serial_number == serial_number)
+    return query.order_by(StockMove.created_at.desc()).all()
+>>>>>>> a3bc5d6 (Refactor code structure for improved readability and maintainability)
 
 
 @router.patch("/moves/{move_id}", response_model=StockMoveRead)
@@ -202,9 +219,14 @@ def list_stock_quants(
     product_id: int | None = None,
     warehouse_id: int | None = None,
     location_id: int | None = None,
+<<<<<<< HEAD
     search: str = "",
     limit: int = Query(500, ge=1, le=500),
     offset: int = Query(0, ge=0),
+=======
+    lot_number: str | None = None,
+    serial_number: str | None = None,
+>>>>>>> a3bc5d6 (Refactor code structure for improved readability and maintainability)
     db: Session = Depends(get_db),
     user=Depends(require_portal_user),
     _=Depends(require_company_access),
@@ -222,6 +244,7 @@ def list_stock_quants(
         query = query.filter(StockQuant.warehouse_id == warehouse_id)
     if location_id:
         query = query.filter(StockQuant.location_id == location_id)
+<<<<<<< HEAD
     if search.strip():
         token = f"%{search.strip()}%"
         query = query.filter(
@@ -237,6 +260,13 @@ def list_stock_quants(
         )
     response.headers["X-Total-Count"] = str(query.count())
     return query.order_by(StockQuant.id.desc()).offset(offset).limit(limit).all()
+=======
+    if lot_number is not None:
+        query = query.filter(StockQuant.lot_number == lot_number)
+    if serial_number is not None:
+        query = query.filter(StockQuant.serial_number == serial_number)
+    return query.all()
+>>>>>>> a3bc5d6 (Refactor code structure for improved readability and maintainability)
 
 
 @router.get("/product/{product_id}/stock", response_model=dict)
@@ -272,6 +302,8 @@ def get_product_stock(
             {
                 "location_id": q.location_id,
                 "warehouse_id": q.warehouse_id,
+                "lot_number": q.lot_number,
+                "serial_number": q.serial_number,
                 "quantity": q.quantity,
                 "available_quantity": q.available_quantity
             }

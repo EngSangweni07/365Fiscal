@@ -96,6 +96,92 @@ def ensure_new_columns():
                     _startup_logger.info(">>> is_scrap column added successfully")
                 else:
                     _startup_logger.info(">>> is_scrap column already exists")
+                if "is_finished_goods" not in location_cols:
+                    _startup_logger.info(">>> Adding is_finished_goods column to locations")
+                    conn.execute(text(
+                        "ALTER TABLE locations ADD COLUMN is_finished_goods BOOLEAN DEFAULT FALSE"
+                    ))
+                    _startup_logger.info(">>> is_finished_goods column added successfully")
+                else:
+                    _startup_logger.info(">>> is_finished_goods column already exists")
+                if "warehouses" in table_names:
+                    warehouse_rows = conn.execute(text("SELECT id, name, code FROM warehouses")).fetchall()
+                    for warehouse_id, warehouse_name, warehouse_code in warehouse_rows:
+                        prefix_parts = [part for part in (warehouse_name or "").upper().split() if part]
+                        if len(prefix_parts) >= 2:
+                            prefix = "".join(part[0] for part in prefix_parts[:2])
+                        elif prefix_parts:
+                            prefix = prefix_parts[0][:2]
+                        else:
+                            prefix = ((warehouse_code or "WH").upper())[:2] or "WH"
+                        fg_exists = conn.execute(
+                            text("SELECT 1 FROM locations WHERE warehouse_id = :warehouse_id AND is_finished_goods = TRUE"),
+                            {"warehouse_id": warehouse_id},
+                        ).fetchone()
+                        if not fg_exists:
+                            _startup_logger.info(">>> Creating Finished Goods location for warehouse %s", warehouse_id)
+                            conn.execute(
+                                text(
+                                    "INSERT INTO locations (warehouse_id, name, code, is_primary, is_scrap, is_finished_goods, created_at, updated_at) "
+                                    "VALUES (:warehouse_id, 'Finished Goods', :code, FALSE, FALSE, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+                                ),
+                                {"warehouse_id": warehouse_id, "code": f"{prefix}/FG"},
+                            )
+
+            if "stock_quants" in table_names:
+                stock_quant_cols = {c["name"] for c in insp.get_columns("stock_quants")}
+                if "serial_number" not in stock_quant_cols:
+                    _startup_logger.info(">>> Adding serial_number column to stock_quants")
+                    conn.execute(text(
+                        "ALTER TABLE stock_quants ADD COLUMN serial_number VARCHAR(100) DEFAULT ''"
+                    ))
+                unique_constraints = {c["name"] for c in insp.get_unique_constraints("stock_quants") if c.get("name")}
+                if "uq_product_location" in unique_constraints:
+                    try:
+                        _startup_logger.info(">>> Replacing uq_product_location on stock_quants")
+                        conn.execute(text("ALTER TABLE stock_quants DROP CONSTRAINT uq_product_location"))
+                        conn.execute(text(
+                            "ALTER TABLE stock_quants ADD CONSTRAINT uq_product_location_traceability UNIQUE (product_id, location_id, lot_number, serial_number)"
+                        ))
+                    except Exception:
+                        _startup_logger.exception(">>> Failed updating stock_quants unique constraint")
+
+            if "stock_moves" in table_names:
+                stock_move_cols = {c["name"] for c in insp.get_columns("stock_moves")}
+                if "lot_number" not in stock_move_cols:
+                    _startup_logger.info(">>> Adding lot_number column to stock_moves")
+                    conn.execute(text(
+                        "ALTER TABLE stock_moves ADD COLUMN lot_number VARCHAR(100) DEFAULT ''"
+                    ))
+                if "serial_number" not in stock_move_cols:
+                    _startup_logger.info(">>> Adding serial_number column to stock_moves")
+                    conn.execute(text(
+                        "ALTER TABLE stock_moves ADD COLUMN serial_number VARCHAR(100) DEFAULT ''"
+                    ))
+
+            if "manufacturing_order_materials" in table_names:
+                material_cols = {c["name"] for c in insp.get_columns("manufacturing_order_materials")}
+                if "lot_number" not in material_cols:
+                    _startup_logger.info(">>> Adding lot_number column to manufacturing_order_materials")
+                    conn.execute(text(
+                        "ALTER TABLE manufacturing_order_materials ADD COLUMN lot_number VARCHAR(100) DEFAULT ''"
+                    ))
+                if "serial_number" not in material_cols:
+                    _startup_logger.info(">>> Adding serial_number column to manufacturing_order_materials")
+                    conn.execute(text(
+                        "ALTER TABLE manufacturing_order_materials ADD COLUMN serial_number VARCHAR(100) DEFAULT ''"
+                    ))
+
+            if "manufacturing_orders" in table_names:
+                manufacturing_cols = {c["name"] for c in insp.get_columns("manufacturing_orders")}
+                if "scrapped_quantity" not in manufacturing_cols:
+                    _startup_logger.info(">>> Adding scrapped_quantity column to manufacturing_orders")
+                    conn.execute(text(
+                        "ALTER TABLE manufacturing_orders ADD COLUMN scrapped_quantity DOUBLE PRECISION DEFAULT 0"
+                    ))
+                    _startup_logger.info(">>> scrapped_quantity column added successfully")
+                else:
+                    _startup_logger.info(">>> scrapped_quantity column already exists")
 
             if "companies" in table_names:
                 company_cols = {c["name"] for c in insp.get_columns("companies")}

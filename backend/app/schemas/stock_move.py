@@ -8,6 +8,8 @@ class StockMoveCreate(BaseModel):
     product_id: int
     warehouse_id: int | None = None
     location_id: int | None = None
+    lot_number: str = ""
+    serial_number: str = ""
     reference: str = ""
     move_type: str = "in"  # in, out, internal, adjustment
     quantity: float = 0
@@ -20,6 +22,8 @@ class StockMoveCreate(BaseModel):
 class StockMoveUpdate(BaseModel):
     warehouse_id: int | None = None
     location_id: int | None = None
+    lot_number: str | None = None
+    serial_number: str | None = None
     reference: str | None = None
     move_type: str | None = None
     quantity: float | None = None
@@ -36,6 +40,8 @@ class StockMoveRead(ORMBase):
     product_id: int
     warehouse_id: int | None
     location_id: int | None
+    lot_number: str
+    serial_number: str
     reference: str
     move_type: str
     quantity: float

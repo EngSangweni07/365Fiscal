@@ -34,6 +34,33 @@ def _warehouse_location_prefix(name: str, fallback_code: str = "") -> str:
     return prefix or "WH"
 
 
+def _ensure_default_locations(db: Session, warehouse: Warehouse) -> None:
+    stock_prefix = _warehouse_location_prefix(warehouse.name, warehouse.code)
+    existing_locations = db.query(Location).filter(Location.warehouse_id == warehouse.id).all()
+    if not any(location.is_primary for location in existing_locations):
+        db.add(
+            Location(
+                warehouse_id=warehouse.id,
+                name="Stock",
+                code=f"{stock_prefix}/Stock",
+                is_primary=True,
+                is_scrap=False,
+                is_finished_goods=False,
+            )
+        )
+    if not any(location.is_finished_goods for location in existing_locations):
+        db.add(
+            Location(
+                warehouse_id=warehouse.id,
+                name="Finished Goods",
+                code=f"{stock_prefix}/FG",
+                is_primary=False,
+                is_scrap=False,
+                is_finished_goods=True,
+            )
+        )
+
+
 @router.post("", response_model=WarehouseRead)
 def create_warehouse(
     payload: WarehouseCreate,
@@ -44,17 +71,7 @@ def create_warehouse(
     warehouse = Warehouse(**payload.dict())
     db.add(warehouse)
     db.flush()
-
-    stock_prefix = _warehouse_location_prefix(warehouse.name, warehouse.code)
-    db.add(
-        Location(
-            warehouse_id=warehouse.id,
-            name="Stock",
-            code=f"{stock_prefix}/Stock",
-            is_primary=True,
-            is_scrap=False,
-        )
-    )
+    _ensure_default_locations(db, warehouse)
 
     db.commit()
     db.refresh(warehouse)

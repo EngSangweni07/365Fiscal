@@ -9,6 +9,7 @@ class LocationCreate(BaseModel):
     code: str = ""
     is_primary: bool = False
     is_scrap: bool = False
+    is_finished_goods: bool = False
 
 
 class LocationUpdate(BaseModel):
@@ -16,6 +17,7 @@ class LocationUpdate(BaseModel):
     code: Optional[str] = None
     is_primary: Optional[bool] = None
     is_scrap: Optional[bool] = None
+    is_finished_goods: Optional[bool] = None
 
 
 class LocationRead(ORMBase):
@@ -25,3 +27,4 @@ class LocationRead(ORMBase):
     code: str
     is_primary: bool
     is_scrap: bool
+    is_finished_goods: bool

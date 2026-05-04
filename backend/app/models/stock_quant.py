@@ -9,7 +9,7 @@ class StockQuant(Base, TimestampMixin):
     """Represents the current quantity of a product at a specific location."""
     __tablename__ = "stock_quants"
     __table_args__ = (
-        UniqueConstraint('product_id', 'location_id', name='uq_product_location'),
+        UniqueConstraint('product_id', 'location_id', 'lot_number', 'serial_number', name='uq_product_location_traceability'),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -18,6 +18,7 @@ class StockQuant(Base, TimestampMixin):
     warehouse_id: Mapped[int | None] = mapped_column(ForeignKey("warehouses.id"), nullable=True)
     location_id: Mapped[int | None] = mapped_column(ForeignKey("locations.id"), nullable=True)
     lot_number: Mapped[str] = mapped_column(String(100), default="")
+    serial_number: Mapped[str] = mapped_column(String(100), default="")
     quantity: Mapped[float] = mapped_column(Float, default=0)
     reserved_quantity: Mapped[float] = mapped_column(Float, default=0)
     available_quantity: Mapped[float] = mapped_column(Float, default=0)

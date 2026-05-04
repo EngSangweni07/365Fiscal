@@ -14,6 +14,7 @@ import {
   CreditCard,
   FilePenLine,
   FileText,
+  Factory,
   Headset,
   LayoutDashboard,
   Monitor,
@@ -130,6 +131,7 @@ const POSLauncherIcon = Calculator;
 const AccountingIcon = BookOpen;
 const LeadsIcon = BriefcaseBusiness;
 const SupportIcon = Headset;
+const ManufacturingIcon = Factory;
 const SUPPORT_EMAIL = "courageg@geenet.co.zw";
 const SUPPORT_SUBJECT = "Three65 Support Request";
 const SUPPORT_BODY = `Hello Courage,
@@ -243,6 +245,15 @@ const adminApps: AppItem[] = [
     color: "var(--white-500)",
     background: "linear-gradient(145deg, #a087ef 0%, #8e61e5 100%)",
     glowColor: "rgba(124, 58, 237, 0.18)",
+  },
+  {
+    to: "/manufacturing",
+    key: "manufacturing",
+    label: "Manufacturing",
+    icon: ManufacturingIcon,
+    color: "var(--white-500)",
+    background: "linear-gradient(145deg, #f08c53 0%, #ea6a3b 100%)",
+    glowColor: "rgba(234, 106, 59, 0.18)",
   },
   // {
   //   to: "/pos",
@@ -372,6 +383,15 @@ const portalApps: AppItem[] = [
     glowColor: "rgba(124, 58, 237, 0.18)",
   },
   {
+    to: "/manufacturing",
+    key: "manufacturing",
+    label: "Manufacturing",
+    icon: ManufacturingIcon,
+    color: "var(--white-500)",
+    background: "linear-gradient(145deg, #f08c53 0%, #ea6a3b 100%)",
+    glowColor: "rgba(234, 106, 59, 0.18)",
+  },
+  {
     to: "/pos",
     key: "pos",
     label: "Point of Sale",
@@ -439,6 +459,7 @@ const demoInterestAppOptions = [
   { key: "contacts", label: "Contacts" },
   { key: "quotations", label: "Quotations" },
   { key: "inventory", label: "Inventory" },
+  { key: "manufacturing", label: "Manufacturing" },
   { key: "pos", label: "Point of Sale" },
   { key: "expenses", label: "Expenses" },
   { key: "reports", label: "Financial Reports" },
