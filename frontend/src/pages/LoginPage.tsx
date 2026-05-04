@@ -93,81 +93,120 @@ export default function LoginPage() {
     <div className="login-canvas">
       <div className="login-canvas__bg" />
       <div className="login-canvas__overlay" />
-      <div className="login-canvas__panel-wrap">
-        <div className="login-canvas__panel">
-          <div className="login-canvas__panel-inner">
-            <div className="login-canvas__brand">
-              <img src="/three65.png" alt="Three65" className="login-canvas__logo" />
-            </div>
+      <div className="login-canvas__orb login-canvas__orb--green" />
+      <div className="login-canvas__orb login-canvas__orb--blue-top" />
+      <div className="login-canvas__orb login-canvas__orb--blue-bottom" />
+      <div className="login-canvas__content">
+        <div className="login-canvas__hero">
+          <div className="login-canvas__hero-copy">
+            <div className="login-canvas__eyebrow">three65</div>
+            <h1>Manufacturing, inventory, and finance in one workspace</h1>
+            <p>Run production, track stock, and move finished goods without leaving the same operating view.</p>
+          </div>
+        </div>
 
-            <form className="login-canvas__form" onSubmit={signIn}>
-              <div className="login-canvas__field">
-                <input
-                  id="email"
-                  type="email"
-                  placeholder="Email Address"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="email"
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div className="login-canvas__field">
-                <div className="login-canvas__password-wrap">
-                  <input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    autoComplete="current-password"
-                    disabled={isLoading}
-                  />
-                  <button
-                    type="button"
-                    className="login-canvas__password-btn"
-                    onClick={() => setShowPassword((prev) => !prev)}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                    disabled={isLoading}
-                  >
-                    <img
-                      src={showPassword ? eyeSlashIcon : eyeIcon}
-                      alt=""
-                      aria-hidden="true"
-                    />
-                  </button>
+        <div className="login-canvas__panel-wrap">
+          <div className="login-canvas__panel">
+            <div className="login-canvas__panel-inner">
+              <div className="login-canvas__brand">
+                <img src="/three65.png" alt="Three65" className="login-canvas__logo" />
+                <div className="login-canvas__brand-copy">
+                  <strong>Welcome back</strong>
+                  <span>Sign in to continue to three65</span>
                 </div>
               </div>
 
-              <button className="login-canvas__submit" type="submit" disabled={isLoading}>
-                {isLoading ? "Signing in..." : "Sign In"}
-              </button>
-            </form>
+              <form className="login-canvas__form" onSubmit={signIn}>
+                <div className="login-canvas__field">
+                  <input
+                    id="email"
+                    type="email"
+                    placeholder="Email address"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="email"
+                    disabled={isLoading}
+                  />
+                </div>
 
-            {status && !error && <div className="login-canvas__message login-canvas__message--success">{status}</div>}
-            {error && <div className="login-canvas__message login-canvas__message--error">{error}</div>}
+                <div className="login-canvas__field">
+                  <div className="login-canvas__password-wrap">
+                    <input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      autoComplete="current-password"
+                      disabled={isLoading}
+                    />
+                    <button
+                      type="button"
+                      className="login-canvas__password-btn"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      disabled={isLoading}
+                    >
+                      <img
+                        src={showPassword ? eyeSlashIcon : eyeIcon}
+                        alt=""
+                        aria-hidden="true"
+                      />
+                    </button>
+                  </div>
+                </div>
 
-            <div className="login-canvas__powered">
-              Powered by{" "}
-              <a href="http://www.geenet.co.zw" target="_blank" rel="noreferrer">
-                GeeNet
+                <button className="login-canvas__submit" type="submit" disabled={isLoading}>
+                  {isLoading ? "Signing in..." : "Login"}
+                </button>
+              </form>
+
+              {status && !error && <div className="login-canvas__message login-canvas__message--success">{status}</div>}
+              {error && <div className="login-canvas__message login-canvas__message--error">{error}</div>}
+
+              <div className="login-canvas__powered">
+                Powered by{" "}
+                <a href="http://www.geenet.co.zw" target="_blank" rel="noreferrer">
+                  GeeNet
+                </a>
+              </div>
+            </div>
+
+            <div className="login-canvas__promo">
+              <strong>Operations Hub</strong>
+              <p>Manufacturing pulls from item and inventory records so production uses live stock data.</p>
+            </div>
+
+            <div className="login-canvas__social-strip">
+              <a href="#linkedin" aria-label="LinkedIn">
+                <img src={linkedinIcon} alt="" aria-hidden="true" />
+              </a>
+              <a href="#facebook" aria-label="Facebook">
+                <img src={facebookIcon} alt="" aria-hidden="true" />
+              </a>
+              <a href="#twitter" aria-label="X">
+                <img src={twitterIcon} alt="" aria-hidden="true" />
               </a>
             </div>
           </div>
-
-          <div className="login-canvas__social-strip">
-            <a href="#linkedin" aria-label="LinkedIn">
-              <img src={linkedinIcon} alt="" aria-hidden="true" />
-            </a>
-            <a href="#facebook" aria-label="Facebook">
-              <img src={facebookIcon} alt="" aria-hidden="true" />
-            </a>
-            <a href="#twitter" aria-label="X">
-              <img src={twitterIcon} alt="" aria-hidden="true" />
-            </a>
-          </div>
         </div>
+      </div>
+      <div className="login-canvas__footer">
+        <a href="#contact">Contact Us</a>
+        <a href="#privacy">Privacy Policy</a>
+        <a href="#terms">Terms &amp; Conditions</a>
+        <a href="#faq">FAQs</a>
+        <span className="login-canvas__footer-divider" />
+        <a href="#facebook" aria-label="Facebook">f</a>
+        <a href="#twitter" aria-label="X">x</a>
+        <a href="#linkedin" aria-label="LinkedIn">in</a>
+        <a href="#instagram" aria-label="Instagram">ig</a>
+        <a href="#whatsapp" aria-label="WhatsApp">wa</a>
+      </div>
+      <div className="login-canvas__mobile-copy">
+        <div className="login-canvas__eyebrow">three65</div>
+        <strong>Manufacturing, inventory, and finance in one workspace</strong>
+        <p>Production orders, BOMs, and finished goods stay tied to live inventory records.</p>
       </div>
     </div>
   );
