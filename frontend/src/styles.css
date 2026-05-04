@@ -2076,28 +2076,12 @@ thead.table-light th {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  margin-bottom: 26px;
+  margin-bottom: 30px;
 }
 
 .login-canvas__logo {
-  width: 132px;
+  width: 178px;
   height: auto;
-}
-
-.login-canvas__brand-copy {
-  margin-top: 10px;
-  display: grid;
-  gap: 4px;
-}
-
-.login-canvas__brand-copy strong {
-  font-size: 16px;
-  color: #fff;
-}
-
-.login-canvas__brand-copy span {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.82);
 }
 
 .login-canvas__form {
@@ -2277,6 +2261,10 @@ thead.table-light th {
   color: rgba(255, 255, 255, 0.9);
   text-decoration: none;
   font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 .login-canvas__footer-divider {

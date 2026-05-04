@@ -1,4 +1,11 @@
 import { useEffect, useState } from "react";
+import {
+  Facebook,
+  Instagram,
+  Linkedin,
+  MessageCircleMore,
+  Twitter,
+} from "lucide-react";
 import SplashScreen from "../components/SplashScreen";
 import eyeIcon from "../assets/eye.svg";
 import eyeSlashIcon from "../assets/eye-slash.svg";
@@ -100,10 +107,6 @@ export default function LoginPage() {
             <div className="login-canvas__panel-inner">
               <div className="login-canvas__brand">
                 <img src="/three65.png" alt="Three65" className="login-canvas__logo" />
-                <div className="login-canvas__brand-copy">
-                  <strong>Welcome back</strong>
-                  <span>Sign in to continue to three65</span>
-                </div>
               </div>
 
               <form className="login-canvas__form" onSubmit={signIn}>
@@ -170,11 +173,11 @@ export default function LoginPage() {
         <a href="#terms">Terms &amp; Conditions</a>
         <a href="#faq">FAQs</a>
         <span className="login-canvas__footer-divider" />
-        <a href="#facebook" aria-label="Facebook">f</a>
-        <a href="#twitter" aria-label="X">x</a>
-        <a href="#linkedin" aria-label="LinkedIn">in</a>
-        <a href="#instagram" aria-label="Instagram">ig</a>
-        <a href="#whatsapp" aria-label="WhatsApp">wa</a>
+        <a href="#facebook" aria-label="Facebook"><Facebook size={16} /></a>
+        <a href="#twitter" aria-label="X"><Twitter size={16} /></a>
+        <a href="#linkedin" aria-label="LinkedIn"><Linkedin size={16} /></a>
+        <a href="#instagram" aria-label="Instagram"><Instagram size={16} /></a>
+        <a href="#whatsapp" aria-label="WhatsApp"><MessageCircleMore size={16} /></a>
       </div>
     </div>
   );
