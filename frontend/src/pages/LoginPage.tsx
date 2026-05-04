@@ -228,6 +228,17 @@ export default function LoginPage() {
             </strong>
           </span>
         </div>
+        <div className="login-socials">
+          <a href="#linkedin" target="_blank" rel="noreferrer">
+            <img src="/linkedin-icon.svg" alt="LinkedIn" />
+          </a>
+          <a href="#facebook" target="_blank" rel="noreferrer">
+            <img src="/facebook-icon.svg" alt="Facebook" />
+          </a>
+          <a href="#twitter" target="_blank" rel="noreferrer">
+            <img src="/twitter-icon.svg" alt="Twitter" />
+          </a>
+        </div>
       </div>
     </div>
   );
