@@ -229,6 +229,7 @@ export default function LoginPage() {
             </strong>
           </span>
         </div>
+        
         <div className="login-socials">
           <a href="#linkedin" target="_blank" rel="noreferrer">
             <img src={linkedinIcon} alt="LinkedIn" />

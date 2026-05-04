@@ -3279,16 +3279,16 @@ thead.table-light th {
   }
 }
 
-@media (max-width: 480px) {
-  .login-shell {
-    padding: 10px;
-  }
-
-  .login-socials {
+.login-socials {
     display: flex;  
     flex-direction: row;
     justify-content: space-between;
     gap: 12px;
+  }
+
+@media (max-width: 480px) {
+  .login-shell {
+    padding: 10px;
   }
 
   .login-shell > .login-card .login-card-body {
