@@ -1632,15 +1632,6 @@ export default function ManufacturingPage() {
             </div>
           </div>
           <div className="o-control-panel-right manufacturing-toolbar-right">
-            {availableCompanies.map((company) => (
-              <button
-                key={company.id}
-                className={`manufacturing-company-chip ${selectedCompanyId === company.id ? "active" : ""}`}
-                onClick={() => setSelectedCompanyId(company.id)}
-              >
-                {company.name}
-              </button>
-            ))}
             <button className="o-btn o-btn-secondary" onClick={() => navigate("/inventory")}>
               <ShoppingBasket size={16} /> Open Inventory
             </button>
