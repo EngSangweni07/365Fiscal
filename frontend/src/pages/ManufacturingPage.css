@@ -93,6 +93,15 @@
   gap: 16px;
 }
 
+.manufacturing-page {
+  display: grid;
+  gap: 16px;
+}
+
+.manufacturing-page-panel {
+  width: 100%;
+}
+
 .manufacturing-overview,
 .manufacturing-split {
   display: grid;
