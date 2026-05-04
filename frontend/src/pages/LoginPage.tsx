@@ -2,9 +2,6 @@ import { useEffect, useState } from "react";
 import SplashScreen from "../components/SplashScreen";
 import eyeIcon from "../assets/eye.svg";
 import eyeSlashIcon from "../assets/eye-slash.svg";
-import linkedinIcon from "../assets/linkedin-icon.svg";
-import facebookIcon from "../assets/facebook-icon.svg";
-import twitterIcon from "../assets/twitter-icon.svg";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -94,6 +91,7 @@ export default function LoginPage() {
       <div className="login-canvas__bg" />
       <div className="login-canvas__overlay" />
       <div className="login-canvas__orb login-canvas__orb--green" />
+      <div className="login-canvas__orb login-canvas__orb--green-bottom" />
       <div className="login-canvas__orb login-canvas__orb--blue-top" />
       <div className="login-canvas__orb login-canvas__orb--blue-bottom" />
       <div className="login-canvas__content">
@@ -162,23 +160,6 @@ export default function LoginPage() {
                   GeeNet
                 </a>
               </div>
-            </div>
-
-            <div className="login-canvas__promo">
-              <strong>Operations Hub</strong>
-              <p>Manufacturing pulls from item and inventory records so production uses live stock data.</p>
-            </div>
-
-            <div className="login-canvas__social-strip">
-              <a href="#linkedin" aria-label="LinkedIn">
-                <img src={linkedinIcon} alt="" aria-hidden="true" />
-              </a>
-              <a href="#facebook" aria-label="Facebook">
-                <img src={facebookIcon} alt="" aria-hidden="true" />
-              </a>
-              <a href="#twitter" aria-label="X">
-                <img src={twitterIcon} alt="" aria-hidden="true" />
-              </a>
             </div>
           </div>
         </div>
