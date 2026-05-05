@@ -267,15 +267,35 @@
 .manufacturing-inline-row select,
 .manufacturing-production-grid input,
 .manufacturing-trace-grid input,
-.manufacturing-inline-actions input {
+.manufacturing-inline-actions input,
+.manufacturing-search input,
+.manufacturing-filter-select select {
   width: 100%;
   min-width: 0;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  background: #fff;
-  padding: 10px 12px;
+  min-height: 38px;
+  border: 0;
+  border-bottom: 1px solid var(--color-border-soft, #d1d5db);
+  border-radius: 0;
+  background: transparent;
+  padding: 0.35rem 0.25rem;
   font-size: 14px;
+  line-height: 1.35;
   box-sizing: border-box;
+  outline: none;
+  box-shadow: none;
+}
+
+.manufacturing-field input:focus,
+.manufacturing-field select:focus,
+.manufacturing-field textarea:focus,
+.manufacturing-inline-row input:focus,
+.manufacturing-inline-row select:focus,
+.manufacturing-production-grid input:focus,
+.manufacturing-trace-grid input:focus,
+.manufacturing-inline-actions input:focus,
+.manufacturing-search input:focus,
+.manufacturing-filter-select select:focus {
+  border-bottom-color: var(--color-brand-primary, #3166e3);
 }
 
 .manufacturing-subsection {
@@ -360,6 +380,54 @@
   gap: 10px;
   flex-wrap: wrap;
   margin-top: 16px;
+}
+
+.manufacturing-filter-panel {
+  margin-bottom: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.manufacturing-filter-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(160px, 220px) minmax(160px, 220px) auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.manufacturing-search,
+.manufacturing-filter-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--muted, #64748b);
+}
+
+.manufacturing-filter-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.manufacturing-filter-stats > div {
+  border: 1px solid var(--stroke, #dbe1ef);
+  border-radius: 8px;
+  background: var(--slate-50, #f8fafc);
+  padding: 10px 12px;
+  display: grid;
+  gap: 4px;
+}
+
+.manufacturing-filter-stats span {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--muted, #64748b);
+  font-weight: 700;
+}
+
+.manufacturing-filter-stats strong {
+  color: var(--text, #0f172a);
 }
 
 .manufacturing-record,
@@ -596,7 +664,8 @@
   .manufacturing-trace-grid,
   .manufacturing-inline-row,
   .manufacturing-inline-row--routing,
-  .manufacturing-inline-actions {
+  .manufacturing-inline-actions,
+  .manufacturing-filter-row {
     grid-template-columns: 1fr;
   }
 }

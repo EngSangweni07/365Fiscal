@@ -9,8 +9,10 @@ import {
   Package,
   Play,
   Plus,
+  Search,
   Settings2,
   ShoppingBasket,
+  SlidersHorizontal,
   XCircle,
 } from "lucide-react";
 
@@ -193,6 +195,24 @@ type EditableRoutingStep = {
 type WorkspaceView = "overview" | "boms" | "orders" | "workcenters";
 type SectionScreen = "list" | "form";
 
+const ORDER_STATE_OPTIONS = [
+  { value: "", label: "All states" },
+  { value: "draft", label: "Draft" },
+  { value: "planned", label: "Planned" },
+  { value: "in_progress", label: "In progress" },
+  { value: "ready_to_close", label: "Ready to close" },
+  { value: "done", label: "Done" },
+  { value: "cancelled", label: "Cancelled" },
+];
+
+const ORDER_PRIORITY_OPTIONS = [
+  { value: "", label: "All priorities" },
+  { value: "urgent", label: "Urgent" },
+  { value: "high", label: "High" },
+  { value: "normal", label: "Normal" },
+  { value: "low", label: "Low" },
+];
+
 function formatProductOption(product: Product) {
   const reference = product.reference ? ` [${product.reference}]` : "";
   const available = Number(product.quantity_available ?? 0).toFixed(2);
@@ -274,6 +294,9 @@ export default function ManufacturingPage() {
     scheduled_end: "",
     notes: "",
   });
+  const [orderSearch, setOrderSearch] = useState("");
+  const [orderStateFilter, setOrderStateFilter] = useState("");
+  const [orderPriorityFilter, setOrderPriorityFilter] = useState("");
   const [operationMinutes, setOperationMinutes] = useState<Record<number, number>>({});
   const [productionEntry, setProductionEntry] = useState<Record<number, { produced_quantity: number; scrap_quantity: number; lot_number: string; serial_number: string; notes: string }>>({});
   const [materialTraceability, setMaterialTraceability] = useState<Record<number, { source_location_id: number | null; lot_number: string; serial_number: string; notes: string }>>({});
@@ -326,6 +349,56 @@ export default function ManufacturingPage() {
     });
     return rows;
   }, [locationsByWarehouse]);
+
+  const filteredOrders = useMemo(() => {
+    const search = orderSearch.trim().toLowerCase();
+    return orders.filter((order) => {
+      if (orderStateFilter && order.state !== orderStateFilter) return false;
+      if (orderPriorityFilter && order.priority !== orderPriorityFilter) return false;
+      if (!search) return true;
+      const productName = productById[order.product_id]?.name || "";
+      const warehouseName = warehouseById[order.warehouse_id || 0]?.name || "";
+      return [
+        order.reference,
+        order.priority,
+        order.state,
+        order.notes,
+        productName,
+        warehouseName,
+      ].some((value) => value.toLowerCase().includes(search));
+    });
+  }, [orders, orderPriorityFilter, orderSearch, orderStateFilter, productById, warehouseById]);
+
+  const orderPlanningStats = useMemo(() => {
+    return filteredOrders.reduce(
+      (stats, order) => {
+        const remaining = Math.max(order.planned_quantity - order.produced_quantity - order.scrapped_quantity, 0);
+        stats.planned += order.planned_quantity;
+        stats.remaining += remaining;
+        stats.openOperations += order.operations.filter((operation) => operation.status !== "done").length;
+        return stats;
+      },
+      { planned: 0, remaining: 0, openOperations: 0 },
+    );
+  }, [filteredOrders]);
+
+  const workCenterLoad = useMemo(() => {
+    const rows = new Map<number, { work_center_id: number | null; operations: number; minutes: number }>();
+    orders
+      .filter((order) => !["done", "cancelled"].includes(order.state))
+      .forEach((order) => {
+        order.operations
+          .filter((operation) => operation.status !== "done")
+          .forEach((operation) => {
+            const key = operation.work_center_id || 0;
+            const row = rows.get(key) || { work_center_id: operation.work_center_id, operations: 0, minutes: 0 };
+            row.operations += 1;
+            row.minutes += operation.planned_duration_minutes;
+            rows.set(key, row);
+          });
+      });
+    return Array.from(rows.values()).sort((a, b) => b.minutes - a.minutes);
+  }, [orders]);
 
   const menuSections = useMemo<SidebarSection[]>(
     () => [
@@ -807,6 +880,40 @@ export default function ManufacturingPage() {
       <section className="manufacturing-panel">
         <div className="manufacturing-panel-header">
           <div>
+            <h3>Work Center Load</h3>
+          </div>
+        </div>
+        {workCenterLoad.length ? (
+          <div className="manufacturing-table-wrap">
+            <table className="manufacturing-table">
+              <thead>
+                <tr>
+                  <th>Work Center</th>
+                  <th>Open Operations</th>
+                  <th>Planned Minutes</th>
+                  <th>Planned Hours</th>
+                </tr>
+              </thead>
+              <tbody>
+                {workCenterLoad.map((row) => (
+                  <tr key={row.work_center_id || "unassigned"}>
+                    <td>{row.work_center_id ? workCenters.find((item) => item.id === row.work_center_id)?.name || row.work_center_id : "Unassigned"}</td>
+                    <td>{row.operations}</td>
+                    <td>{row.minutes.toFixed(0)}</td>
+                    <td>{(row.minutes / 60).toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="manufacturing-empty">No open work center load.</div>
+        )}
+      </section>
+
+      <section className="manufacturing-panel">
+        <div className="manufacturing-panel-header">
+          <div>
             <h3>Recent Production Orders</h3>
           </div>
         </div>
@@ -1220,8 +1327,54 @@ export default function ManufacturingPage() {
           <Plus size={16} /> New Order
         </button>
       </div>
+      <div className="manufacturing-filter-panel">
+        <div className="manufacturing-filter-row">
+          <label className="manufacturing-search">
+            <Search size={16} />
+            <input
+              placeholder="Search orders, items, warehouses"
+              value={orderSearch}
+              onChange={(e) => setOrderSearch(e.target.value)}
+            />
+          </label>
+          <label className="manufacturing-filter-select">
+            <SlidersHorizontal size={16} />
+            <select value={orderStateFilter} onChange={(e) => setOrderStateFilter(e.target.value)}>
+              {ORDER_STATE_OPTIONS.map((option) => (
+                <option key={option.value || "all"} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </label>
+          <label className="manufacturing-filter-select">
+            <SlidersHorizontal size={16} />
+            <select value={orderPriorityFilter} onChange={(e) => setOrderPriorityFilter(e.target.value)}>
+              {ORDER_PRIORITY_OPTIONS.map((option) => (
+                <option key={option.value || "all"} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </label>
+          {(orderSearch || orderStateFilter || orderPriorityFilter) && (
+            <button
+              className="o-btn o-btn-secondary"
+              onClick={() => {
+                setOrderSearch("");
+                setOrderStateFilter("");
+                setOrderPriorityFilter("");
+              }}
+            >
+              Clear
+            </button>
+          )}
+        </div>
+        <div className="manufacturing-filter-stats">
+          <div><span>Visible orders</span><strong>{filteredOrders.length}</strong></div>
+          <div><span>Planned qty</span><strong>{orderPlanningStats.planned.toFixed(2)}</strong></div>
+          <div><span>Remaining qty</span><strong>{orderPlanningStats.remaining.toFixed(2)}</strong></div>
+          <div><span>Open ops</span><strong>{orderPlanningStats.openOperations}</strong></div>
+        </div>
+      </div>
       <div className="manufacturing-stack">
-        {orders.map((order) => {
+        {filteredOrders.length ? filteredOrders.map((order) => {
           const bom = bomById[order.bom_id];
           return (
             <article className="manufacturing-order" key={order.id}>
@@ -1494,7 +1647,9 @@ export default function ManufacturingPage() {
               </div>
             </article>
           );
-        })}
+        }) : (
+          <div className="manufacturing-empty">No production orders match the current filters.</div>
+        )}
       </div>
     </section>
   );
