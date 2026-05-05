@@ -248,7 +248,28 @@
   gap: 6px;
 }
 
+.manufacturing-inline-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.manufacturing-inline-field span,
+.manufacturing-search > span,
+.manufacturing-filter-select > span {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .manufacturing-field--full {
+  grid-column: 1 / -1;
+}
+
+.manufacturing-inline-field--full,
+.manufacturing-inline-field--wide {
   grid-column: 1 / -1;
 }
 
@@ -366,13 +387,13 @@
 
 .manufacturing-inline-row {
   display: grid;
-  grid-template-columns: minmax(0, 1.8fr) 110px 110px auto;
+  grid-template-columns: minmax(0, 1.8fr) 140px 140px auto;
   gap: 8px;
   align-items: center;
 }
 
 .manufacturing-inline-row--routing {
-  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) 110px auto;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) 140px auto;
 }
 
 .manufacturing-actions {
@@ -397,11 +418,17 @@
 
 .manufacturing-search,
 .manufacturing-filter-select {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  color: var(--muted, #64748b);
+}
+
+.manufacturing-search-control {
   display: flex;
   align-items: center;
   gap: 8px;
   min-width: 0;
-  color: var(--muted, #64748b);
 }
 
 .manufacturing-filter-stats {
@@ -562,9 +589,10 @@
 
 .manufacturing-trace-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr minmax(140px, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
   margin-top: 10px;
+  align-items: end;
 }
 
 .manufacturing-operation-meta {
@@ -584,12 +612,60 @@
 }
 
 .manufacturing-inline-actions {
-  grid-template-columns: 110px auto auto;
+  grid-template-columns: minmax(140px, 180px) auto auto;
   align-items: center;
 }
 
 .manufacturing-production-grid {
-  grid-template-columns: 110px 110px 1fr 1fr minmax(180px, 1fr) auto;
+  grid-template-columns: 140px 140px minmax(240px, 1fr) auto;
+}
+
+.manufacturing-order-progress {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--stroke, #dbe1ef);
+  border-radius: 8px;
+  background: var(--slate-50, #f8fafc);
+}
+
+.manufacturing-order-progress__bar {
+  height: 10px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.manufacturing-order-progress__fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #2563eb 0%, #0f766e 100%);
+}
+
+.manufacturing-order-progress__meta,
+.manufacturing-order-progress__dates {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.manufacturing-order-progress__meta > div,
+.manufacturing-order-progress__dates > div {
+  display: grid;
+  gap: 4px;
+}
+
+.manufacturing-order-progress__meta span,
+.manufacturing-order-progress__dates span {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--muted, #64748b);
+  font-weight: 700;
+}
+
+.manufacturing-order-progress__meta strong,
+.manufacturing-order-progress__dates strong {
+  color: var(--text, #0f172a);
 }
 
 .manufacturing-table-wrap {

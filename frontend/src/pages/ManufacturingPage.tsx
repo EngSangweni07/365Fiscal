@@ -104,8 +104,6 @@ type OrderMaterial = {
   id: number;
   component_product_id: number;
   source_location_id: number | null;
-  lot_number: string;
-  serial_number: string;
   sequence: number;
   planned_quantity: number;
   consumed_quantity: number;
@@ -194,6 +192,15 @@ type EditableRoutingStep = {
 
 type WorkspaceView = "overview" | "boms" | "orders" | "workcenters";
 type SectionScreen = "list" | "form";
+type ProductionEntryState = {
+  produced_quantity: number;
+  scrap_quantity: number;
+  notes: string;
+};
+type MaterialTraceabilityState = {
+  source_location_id: number | null;
+  notes: string;
+};
 
 const ORDER_STATE_OPTIONS = [
   { value: "", label: "All states" },
@@ -234,6 +241,19 @@ function formatStateLabel(value: string) {
 
 function formatInventoryNumber(value: number | null | undefined) {
   return Number(value ?? 0).toFixed(2);
+}
+
+function formatDateTime(value: string | null) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleString([], {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 export default function ManufacturingPage() {
@@ -298,8 +318,8 @@ export default function ManufacturingPage() {
   const [orderStateFilter, setOrderStateFilter] = useState("");
   const [orderPriorityFilter, setOrderPriorityFilter] = useState("");
   const [operationMinutes, setOperationMinutes] = useState<Record<number, number>>({});
-  const [productionEntry, setProductionEntry] = useState<Record<number, { produced_quantity: number; scrap_quantity: number; lot_number: string; serial_number: string; notes: string }>>({});
-  const [materialTraceability, setMaterialTraceability] = useState<Record<number, { source_location_id: number | null; lot_number: string; serial_number: string; notes: string }>>({});
+  const [productionEntry, setProductionEntry] = useState<Record<number, ProductionEntryState>>({});
+  const [materialTraceability, setMaterialTraceability] = useState<Record<number, MaterialTraceabilityState>>({});
 
   useEffect(() => {
     if (!selectedCompanyId && me?.company_ids?.length) {
@@ -399,6 +419,45 @@ export default function ManufacturingPage() {
       });
     return Array.from(rows.values()).sort((a, b) => b.minutes - a.minutes);
   }, [orders]);
+
+  const orderHealthById = useMemo(() => {
+    return Object.fromEntries(
+      orders.map((order) => {
+        const grossCompleted = order.produced_quantity + order.scrapped_quantity;
+        const remaining = Math.max(order.planned_quantity - grossCompleted, 0);
+        const completionPercent = order.planned_quantity > 0 ? Math.min((grossCompleted / order.planned_quantity) * 100, 100) : 0;
+        const totalMaterials = order.materials.length;
+        const shortageCount = order.materials.filter((material) => {
+          const available = stockQuants
+            .filter(
+              (quant) =>
+                quant.product_id === material.component_product_id &&
+                (material.source_location_id ? quant.location_id === material.source_location_id : true),
+            )
+            .reduce((sum, quant) => sum + quant.available_quantity, 0);
+          return available + 1e-9 < Math.max(material.planned_quantity - material.consumed_quantity, 0);
+        }).length;
+        const scheduleStatus =
+          order.state === "done"
+            ? "completed"
+            : order.scheduled_end && new Date(order.scheduled_end).getTime() < Date.now()
+              ? "overdue"
+              : order.scheduled_start
+                ? "scheduled"
+                : "unscheduled";
+        return [
+          order.id,
+          {
+            remaining,
+            completionPercent,
+            shortageCount,
+            totalMaterials,
+            scheduleStatus,
+          },
+        ] as const;
+      }),
+    );
+  }, [orders, stockQuants]);
 
   const menuSections = useMemo<SidebarSection[]>(
     () => [
@@ -832,8 +891,6 @@ export default function ManufacturingPage() {
       productionEntry[orderId] || {
         produced_quantity: 0,
         scrap_quantity: 0,
-        lot_number: "",
-        serial_number: "",
         notes: "",
       };
     try {
@@ -843,7 +900,7 @@ export default function ManufacturingPage() {
       });
       setProductionEntry((current) => ({
         ...current,
-        [orderId]: { produced_quantity: 0, scrap_quantity: 0, lot_number: "", serial_number: "", notes: "" },
+        [orderId]: { produced_quantity: 0, scrap_quantity: 0, notes: "" },
       }));
       await loadAll(selectedCompanyId);
     } catch (error) {
@@ -1086,50 +1143,72 @@ export default function ManufacturingPage() {
         <div className="manufacturing-stack">
           {bomLines.map((line, index) => (
             <div className="manufacturing-inline-row" key={index}>
-              <select
-                value={line.component_product_id}
-                onChange={(e) =>
-                  setBomLines((current) =>
-                    current.map((item, itemIndex) =>
-                      itemIndex === index ? { ...item, component_product_id: Number(e.target.value) } : item,
-                    ),
-                  )
-                }
-              >
-                <option value={0}>Component from inventory</option>
-                {selectedCompanyProducts.map((product) => (
-                  <option key={product.id} value={product.id}>{formatProductOption(product)}</option>
-                ))}
-              </select>
-              <input
-                type="number"
-                min="0.01"
-                step="0.01"
-                value={line.quantity}
-                onChange={(e) =>
-                  setBomLines((current) =>
-                    current.map((item, itemIndex) =>
-                      itemIndex === index ? { ...item, quantity: Number(e.target.value) } : item,
-                    ),
-                  )
-                }
-              />
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={line.scrap_rate_percent}
-                onChange={(e) =>
-                  setBomLines((current) =>
-                    current.map((item, itemIndex) =>
-                      itemIndex === index ? { ...item, scrap_rate_percent: Number(e.target.value) } : item,
-                    ),
-                  )
-                }
-              />
+              <label className="manufacturing-inline-field">
+                <span>Component Item</span>
+                <select
+                  value={line.component_product_id}
+                  onChange={(e) =>
+                    setBomLines((current) =>
+                      current.map((item, itemIndex) =>
+                        itemIndex === index ? { ...item, component_product_id: Number(e.target.value) } : item,
+                      ),
+                    )
+                  }
+                >
+                  <option value={0}>Component from inventory</option>
+                  {selectedCompanyProducts.map((product) => (
+                    <option key={product.id} value={product.id}>{formatProductOption(product)}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="manufacturing-inline-field">
+                <span>Quantity</span>
+                <input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={line.quantity}
+                  onChange={(e) =>
+                    setBomLines((current) =>
+                      current.map((item, itemIndex) =>
+                        itemIndex === index ? { ...item, quantity: Number(e.target.value) } : item,
+                      ),
+                    )
+                  }
+                />
+              </label>
+              <label className="manufacturing-inline-field">
+                <span>Scrap %</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={line.scrap_rate_percent}
+                  onChange={(e) =>
+                    setBomLines((current) =>
+                      current.map((item, itemIndex) =>
+                        itemIndex === index ? { ...item, scrap_rate_percent: Number(e.target.value) } : item,
+                      ),
+                    )
+                  }
+                />
+              </label>
               <button className="o-btn o-btn-danger" onClick={() => setBomLines((current) => current.filter((_, itemIndex) => itemIndex !== index))}>
                 Remove
               </button>
+              <label className="manufacturing-inline-field manufacturing-inline-field--full">
+                <span>Component Notes</span>
+                <input
+                  value={line.notes}
+                  onChange={(e) =>
+                    setBomLines((current) =>
+                      current.map((item, itemIndex) =>
+                        itemIndex === index ? { ...item, notes: e.target.value } : item,
+                      ),
+                    )
+                  }
+                />
+              </label>
             </div>
           ))}
         </div>
@@ -1153,47 +1232,68 @@ export default function ManufacturingPage() {
         <div className="manufacturing-stack">
           {routingSteps.map((step, index) => (
             <div className="manufacturing-inline-row manufacturing-inline-row--routing" key={index}>
-              <input
-                placeholder="Operation"
-                value={step.name}
-                onChange={(e) =>
-                  setRoutingSteps((current) =>
-                    current.map((item, itemIndex) =>
-                      itemIndex === index ? { ...item, name: e.target.value } : item,
-                    ),
-                  )
-                }
-              />
-              <select
-                value={step.work_center_id || 0}
-                onChange={(e) =>
-                  setRoutingSteps((current) =>
-                    current.map((item, itemIndex) =>
-                      itemIndex === index ? { ...item, work_center_id: Number(e.target.value) || null } : item,
-                    ),
-                  )
-                }
-              >
-                <option value={0}>Work center</option>
-                {workCenters.map((workCenter) => (
-                  <option key={workCenter.id} value={workCenter.id}>{workCenter.name}</option>
-                ))}
-              </select>
-              <input
-                type="number"
-                min="0"
-                value={step.duration_minutes}
-                onChange={(e) =>
-                  setRoutingSteps((current) =>
-                    current.map((item, itemIndex) =>
-                      itemIndex === index ? { ...item, duration_minutes: Number(e.target.value) } : item,
-                    ),
-                  )
-                }
-              />
+              <label className="manufacturing-inline-field">
+                <span>Operation Name</span>
+                <input
+                  value={step.name}
+                  onChange={(e) =>
+                    setRoutingSteps((current) =>
+                      current.map((item, itemIndex) =>
+                        itemIndex === index ? { ...item, name: e.target.value } : item,
+                      ),
+                    )
+                  }
+                />
+              </label>
+              <label className="manufacturing-inline-field">
+                <span>Work Center</span>
+                <select
+                  value={step.work_center_id || 0}
+                  onChange={(e) =>
+                    setRoutingSteps((current) =>
+                      current.map((item, itemIndex) =>
+                        itemIndex === index ? { ...item, work_center_id: Number(e.target.value) || null } : item,
+                      ),
+                    )
+                  }
+                >
+                  <option value={0}>Work center</option>
+                  {workCenters.map((workCenter) => (
+                    <option key={workCenter.id} value={workCenter.id}>{workCenter.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="manufacturing-inline-field">
+                <span>Planned Minutes</span>
+                <input
+                  type="number"
+                  min="0"
+                  value={step.duration_minutes}
+                  onChange={(e) =>
+                    setRoutingSteps((current) =>
+                      current.map((item, itemIndex) =>
+                        itemIndex === index ? { ...item, duration_minutes: Number(e.target.value) } : item,
+                      ),
+                    )
+                  }
+                />
+              </label>
               <button className="o-btn o-btn-danger" onClick={() => setRoutingSteps((current) => current.filter((_, itemIndex) => itemIndex !== index))}>
                 Remove
               </button>
+              <label className="manufacturing-inline-field manufacturing-inline-field--full">
+                <span>Work Instructions</span>
+                <input
+                  value={step.instructions}
+                  onChange={(e) =>
+                    setRoutingSteps((current) =>
+                      current.map((item, itemIndex) =>
+                        itemIndex === index ? { ...item, instructions: e.target.value } : item,
+                      ),
+                    )
+                  }
+                />
+              </label>
             </div>
           ))}
         </div>
@@ -1330,28 +1430,37 @@ export default function ManufacturingPage() {
       <div className="manufacturing-filter-panel">
         <div className="manufacturing-filter-row">
           <label className="manufacturing-search">
-            <Search size={16} />
-            <input
-              placeholder="Search orders, items, warehouses"
-              value={orderSearch}
-              onChange={(e) => setOrderSearch(e.target.value)}
-            />
+            <span>Search Orders</span>
+            <div className="manufacturing-search-control">
+              <Search size={16} />
+              <input
+                placeholder="Search orders, items, warehouses"
+                value={orderSearch}
+                onChange={(e) => setOrderSearch(e.target.value)}
+              />
+            </div>
           </label>
           <label className="manufacturing-filter-select">
-            <SlidersHorizontal size={16} />
-            <select value={orderStateFilter} onChange={(e) => setOrderStateFilter(e.target.value)}>
-              {ORDER_STATE_OPTIONS.map((option) => (
-                <option key={option.value || "all"} value={option.value}>{option.label}</option>
-              ))}
-            </select>
+            <span>Order State</span>
+            <div className="manufacturing-search-control">
+              <SlidersHorizontal size={16} />
+              <select value={orderStateFilter} onChange={(e) => setOrderStateFilter(e.target.value)}>
+                {ORDER_STATE_OPTIONS.map((option) => (
+                  <option key={option.value || "all"} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </div>
           </label>
           <label className="manufacturing-filter-select">
-            <SlidersHorizontal size={16} />
-            <select value={orderPriorityFilter} onChange={(e) => setOrderPriorityFilter(e.target.value)}>
-              {ORDER_PRIORITY_OPTIONS.map((option) => (
-                <option key={option.value || "all"} value={option.value}>{option.label}</option>
-              ))}
-            </select>
+            <span>Priority</span>
+            <div className="manufacturing-search-control">
+              <SlidersHorizontal size={16} />
+              <select value={orderPriorityFilter} onChange={(e) => setOrderPriorityFilter(e.target.value)}>
+                {ORDER_PRIORITY_OPTIONS.map((option) => (
+                  <option key={option.value || "all"} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </div>
           </label>
           {(orderSearch || orderStateFilter || orderPriorityFilter) && (
             <button
@@ -1421,10 +1530,9 @@ export default function ManufacturingPage() {
                     );
                     const traceability = materialTraceability[material.id] || {
                       source_location_id: material.source_location_id,
-                      lot_number: material.lot_number,
-                      serial_number: material.serial_number,
                       notes: material.notes,
                     };
+                    const availableQuantity = quantOptions.reduce((sum, quant) => sum + quant.available_quantity, 0);
                     return (
                       <div className="manufacturing-trace-card" key={material.id}>
                         <div className="manufacturing-trace-head">
@@ -1432,49 +1540,23 @@ export default function ManufacturingPage() {
                           <span>{material.consumed_quantity}/{material.planned_quantity} {material.uom}</span>
                         </div>
                         <p className="manufacturing-muted">Source location: {locationName}</p>
+                        <div className="manufacturing-operation-meta">
+                          <span>Available: {formatInventoryNumber(availableQuantity)} {material.uom}</span>
+                          <span>Status: {availableQuantity + 1e-9 < Math.max(material.planned_quantity - material.consumed_quantity, 0) ? "Shortage" : "Ready"}</span>
+                        </div>
                         <div className="manufacturing-trace-grid">
-                          <input
-                            list={`material-lots-${material.id}`}
-                            placeholder="Lot number"
-                            value={traceability.lot_number}
-                            onChange={(e) =>
-                              setMaterialTraceability((current) => ({
-                                ...current,
-                                [material.id]: { ...traceability, lot_number: e.target.value },
-                              }))
-                            }
-                          />
-                          <datalist id={`material-lots-${material.id}`}>
-                            {Array.from(new Set(quantOptions.map((quant) => quant.lot_number).filter(Boolean))).map((lotNumber) => (
-                              <option key={lotNumber} value={lotNumber} />
-                            ))}
-                          </datalist>
-                          <input
-                            list={`material-serials-${material.id}`}
-                            placeholder="Serial number"
-                            value={traceability.serial_number}
-                            onChange={(e) =>
-                              setMaterialTraceability((current) => ({
-                                ...current,
-                                [material.id]: { ...traceability, serial_number: e.target.value },
-                              }))
-                            }
-                          />
-                          <datalist id={`material-serials-${material.id}`}>
-                            {Array.from(new Set(quantOptions.map((quant) => quant.serial_number).filter(Boolean))).map((serialNumber) => (
-                              <option key={serialNumber} value={serialNumber} />
-                            ))}
-                          </datalist>
-                          <input
-                            placeholder="Notes"
-                            value={traceability.notes}
-                            onChange={(e) =>
-                              setMaterialTraceability((current) => ({
-                                ...current,
-                                [material.id]: { ...traceability, notes: e.target.value },
-                              }))
-                            }
-                          />
+                          <label className="manufacturing-inline-field">
+                            <span>Material Notes</span>
+                            <input
+                              value={traceability.notes}
+                              onChange={(e) =>
+                                setMaterialTraceability((current) => ({
+                                  ...current,
+                                  [material.id]: { ...traceability, notes: e.target.value },
+                                }))
+                              }
+                            />
+                          </label>
                           <button className="o-btn o-btn-secondary" onClick={() => saveMaterialTraceability(order.id, material.id)}>
                             Save
                           </button>
@@ -1500,18 +1582,22 @@ export default function ManufacturingPage() {
                           <span>Actual: {operation.actual_duration_minutes} min</span>
                           <span>Center: {operation.work_center_id ? workCenters.find((item) => item.id === operation.work_center_id)?.name || operation.work_center_id : "-"}</span>
                         </div>
+                        {operation.instructions ? <p className="manufacturing-muted">Instructions: {operation.instructions}</p> : null}
                         <div className="manufacturing-inline-actions">
-                          <input
-                            type="number"
-                            min="0"
-                            value={operationMinutes[operation.id] ?? operation.actual_duration_minutes ?? operation.planned_duration_minutes}
-                            onChange={(e) =>
-                              setOperationMinutes((current) => ({
-                                ...current,
-                                [operation.id]: Number(e.target.value),
-                              }))
-                            }
-                          />
+                          <label className="manufacturing-inline-field">
+                            <span>Actual Minutes</span>
+                            <input
+                              type="number"
+                              min="0"
+                              value={operationMinutes[operation.id] ?? operation.actual_duration_minutes ?? operation.planned_duration_minutes}
+                              onChange={(e) =>
+                                setOperationMinutes((current) => ({
+                                  ...current,
+                                  [operation.id]: Number(e.target.value),
+                                }))
+                              }
+                            />
+                          </label>
                           {operation.status !== "done" && (
                             <button className="o-btn o-btn-secondary" onClick={() => updateOperation(order.id, operation.id, {}, "start")}>
                               <Play size={16} /> Start
@@ -1534,94 +1620,96 @@ export default function ManufacturingPage() {
               </div>
 
               <div className="manufacturing-order-section">
+                <h5>Planning</h5>
+                <div className="manufacturing-order-progress">
+                  <div className="manufacturing-order-progress__bar">
+                    <div
+                      className="manufacturing-order-progress__fill"
+                      style={{ width: `${orderHealthById[order.id]?.completionPercent ?? 0}%` }}
+                    />
+                  </div>
+                  <div className="manufacturing-order-progress__meta">
+                    <div>
+                      <span>Completion</span>
+                      <strong>{(orderHealthById[order.id]?.completionPercent ?? 0).toFixed(0)}%</strong>
+                    </div>
+                    <div>
+                      <span>Remaining Qty</span>
+                      <strong>{(orderHealthById[order.id]?.remaining ?? 0).toFixed(2)}</strong>
+                    </div>
+                    <div>
+                      <span>Material Readiness</span>
+                      <strong>{`${(orderHealthById[order.id]?.totalMaterials ?? 0) - (orderHealthById[order.id]?.shortageCount ?? 0)}/${orderHealthById[order.id]?.totalMaterials ?? 0} ready`}</strong>
+                    </div>
+                    <div>
+                      <span>Schedule</span>
+                      <strong>{orderHealthById[order.id]?.scheduleStatus || "unscheduled"}</strong>
+                    </div>
+                  </div>
+                  <div className="manufacturing-order-progress__dates">
+                    <div><span>Start</span><strong>{formatDateTime(order.scheduled_start)}</strong></div>
+                    <div><span>End</span><strong>{formatDateTime(order.scheduled_end)}</strong></div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="manufacturing-order-section">
                 <h5>Finished Goods and Scrap</h5>
                 <div className="manufacturing-production-grid">
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="Good qty"
-                    value={productionEntry[order.id]?.produced_quantity ?? 0}
-                    onChange={(e) =>
-                      setProductionEntry((current) => ({
-                        ...current,
-                        [order.id]: {
-                          produced_quantity: Number(e.target.value),
-                          scrap_quantity: current[order.id]?.scrap_quantity ?? 0,
-                          lot_number: current[order.id]?.lot_number ?? "",
-                          serial_number: current[order.id]?.serial_number ?? "",
-                          notes: current[order.id]?.notes ?? "",
-                        },
-                      }))
-                    }
-                  />
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="Scrap qty"
-                    value={productionEntry[order.id]?.scrap_quantity ?? 0}
-                    onChange={(e) =>
-                      setProductionEntry((current) => ({
-                        ...current,
-                        [order.id]: {
-                          produced_quantity: current[order.id]?.produced_quantity ?? 0,
-                          scrap_quantity: Number(e.target.value),
-                          lot_number: current[order.id]?.lot_number ?? "",
-                          serial_number: current[order.id]?.serial_number ?? "",
-                          notes: current[order.id]?.notes ?? "",
-                        },
-                      }))
-                    }
-                  />
-                  <input
-                    placeholder="Finished lot"
-                    value={productionEntry[order.id]?.lot_number ?? ""}
-                    onChange={(e) =>
-                      setProductionEntry((current) => ({
-                        ...current,
-                        [order.id]: {
-                          produced_quantity: current[order.id]?.produced_quantity ?? 0,
-                          scrap_quantity: current[order.id]?.scrap_quantity ?? 0,
-                          lot_number: e.target.value,
-                          serial_number: current[order.id]?.serial_number ?? "",
-                          notes: current[order.id]?.notes ?? "",
-                        },
-                      }))
-                    }
-                  />
-                  <input
-                    placeholder="Finished serial"
-                    value={productionEntry[order.id]?.serial_number ?? ""}
-                    onChange={(e) =>
-                      setProductionEntry((current) => ({
-                        ...current,
-                        [order.id]: {
-                          produced_quantity: current[order.id]?.produced_quantity ?? 0,
-                          scrap_quantity: current[order.id]?.scrap_quantity ?? 0,
-                          lot_number: current[order.id]?.lot_number ?? "",
-                          serial_number: e.target.value,
-                          notes: current[order.id]?.notes ?? "",
-                        },
-                      }))
-                    }
-                  />
-                  <input
-                    placeholder="Notes"
-                    value={productionEntry[order.id]?.notes ?? ""}
-                    onChange={(e) =>
-                      setProductionEntry((current) => ({
-                        ...current,
-                        [order.id]: {
-                          produced_quantity: current[order.id]?.produced_quantity ?? 0,
-                          scrap_quantity: current[order.id]?.scrap_quantity ?? 0,
-                          lot_number: current[order.id]?.lot_number ?? "",
-                          serial_number: current[order.id]?.serial_number ?? "",
-                          notes: e.target.value,
-                        },
-                      }))
-                    }
-                  />
+                  <label className="manufacturing-inline-field">
+                    <span>Good Quantity</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={productionEntry[order.id]?.produced_quantity ?? 0}
+                      onChange={(e) =>
+                        setProductionEntry((current) => ({
+                          ...current,
+                          [order.id]: {
+                            produced_quantity: Number(e.target.value),
+                            scrap_quantity: current[order.id]?.scrap_quantity ?? 0,
+                            notes: current[order.id]?.notes ?? "",
+                          },
+                        }))
+                      }
+                    />
+                  </label>
+                  <label className="manufacturing-inline-field">
+                    <span>Scrap Quantity</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={productionEntry[order.id]?.scrap_quantity ?? 0}
+                      onChange={(e) =>
+                        setProductionEntry((current) => ({
+                          ...current,
+                          [order.id]: {
+                            produced_quantity: current[order.id]?.produced_quantity ?? 0,
+                            scrap_quantity: Number(e.target.value),
+                            notes: current[order.id]?.notes ?? "",
+                          },
+                        }))
+                      }
+                    />
+                  </label>
+                  <label className="manufacturing-inline-field manufacturing-inline-field--wide">
+                    <span>Production Notes</span>
+                    <input
+                      value={productionEntry[order.id]?.notes ?? ""}
+                      onChange={(e) =>
+                        setProductionEntry((current) => ({
+                          ...current,
+                          [order.id]: {
+                            produced_quantity: current[order.id]?.produced_quantity ?? 0,
+                            scrap_quantity: current[order.id]?.scrap_quantity ?? 0,
+                            notes: e.target.value,
+                          },
+                        }))
+                      }
+                    />
+                  </label>
                   <button className="o-btn o-btn-primary" onClick={() => recordProduction(order.id)}>
                     Record
                   </button>

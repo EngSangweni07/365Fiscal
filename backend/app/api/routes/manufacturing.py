@@ -789,8 +789,6 @@ def record_partial_production(
     gross_progress = payload.produced_quantity + payload.scrap_quantity
     if gross_progress <= 0:
         raise HTTPException(status_code=400, detail="Enter a production or scrap quantity")
-    if not (payload.lot_number or payload.serial_number):
-        raise HTTPException(status_code=400, detail="Provide a lot number or serial number for produced output")
     current_gross = order.produced_quantity + order.scrapped_quantity
     if current_gross + gross_progress > order.planned_quantity + 1e-9:
         raise HTTPException(status_code=400, detail="Recorded production exceeds planned quantity")
@@ -859,7 +857,7 @@ def complete_order(
     if remaining_good > 0:
         raise HTTPException(
             status_code=400,
-            detail="Record the remaining produced quantity with lot or serial details before closing the order",
+            detail="Record the remaining produced quantity before closing the order",
         )
 
     order.state = "done"
